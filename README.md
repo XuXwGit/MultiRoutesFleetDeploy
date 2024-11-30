@@ -32,14 +32,12 @@ This paper investigates a robust optimization problem concerning the integration
 Ensure the following environment setup: Cplex 12.10, Java 8
 
 ```bash
-复制代码
 python utils/plot_results.py
-📚 Citation
-If you use this code or model in your research, please cite our paper:
 ```
 
+## 📚 Citation
+If you use this code or model in your research, please cite our paper:
 ```bibtex
-复制代码
 @article{xiang2024liner,
   title={Liner fleet deployment and empty container repositioning under demand uncertainty: A robust optimization approach},
   author={Xiang, Xi and Xu, Xiaowei and Liu, Changchun and Jia, Shuai},
