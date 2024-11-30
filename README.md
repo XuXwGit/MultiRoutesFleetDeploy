@@ -25,7 +25,7 @@ If you find this project useful to your research, please ⭐Star the repository 
 ## 📂 **Project Structure**  
 ```plaintext
 ├── data/                # Dataset
-├── src/                 # Core algorithm part of Project with Java  
+├── src/                 # Core algorithm part of this Project  
 ├── README.md            # Project documentation  
 └── LICENSE              # License information
 ```
