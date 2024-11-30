@@ -1,4 +1,4 @@
-# **Multi Routes FleetDeploy**  
+# **Multi Routes Fleet Deployment**  
 This repository contains the official implementation of the paper "Liner Fleet Deployment and Empty Container Repositioning under Demand Uncertainty: A Robust Optimization Approach".
 
 If you find this project useful to your research, please ⭐Star the repository and 📚Cite this paper!
@@ -25,9 +25,7 @@ If you find this project useful to your research, please ⭐Star the repository 
 ## 📂 **Project Structure**  
 ```plaintext
 ├── data/                # Dataset
-├── models/              # Model implementation  
-├── utils/               # Utility functions and helper scripts  
-├── results/             # Directory to store outputs/results  
+├── src/                 # Core algorithm part of Project with Java  
 ├── README.md            # Project documentation  
 └── LICENSE              # License information
 ```
