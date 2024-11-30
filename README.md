@@ -33,20 +33,10 @@ If you find this project useful to your research, please ⭐Star the repository 
 ## 🛠️ Dependencies
 Ensure the following environment setup: Cplex 12.10, Java 8
 
+## 📊 How to Run
+To run this project, run the following codes:
 ```bash
 java -cp [classpath] multi.Main [Instance] [Experiment] [RootPath] [MIPGapLimit] [RandomSeed] [BudgetCoefficient] [UncertainDegree] [Flag]
-参数说明：
-[classpath]: 编译后的 .class 文件所在路径，或者包含 .jar 文件的路径。
-[Instance]: 一个整数，表示实例编号（必须提供）。
-[Experiment]: 一个整数，表示实验编号（必须提供）。
-[RootPath]: 根路径（可选，用 "-" 表示默认）。
-[MIPGapLimit]: MIP 间隙限制（可选，用 "-" 表示默认）。
-[RandomSeed]: 随机种子（可选）。
-[BudgetCoefficient]: 预算系数（可选）。
-[UncertainDegree]: 不确定性系数（可选）。
-[Flag]: 表示数值实验类型：
-"P": 性能测试
-"S": 敏感性分析
 ```
 
 ## 📚 Citation
