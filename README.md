@@ -56,16 +56,21 @@ python test.py --model_path checkpoints/best_model.pth
 Generate plots for the experimental results using:
 
 bash
+复制代码
 python utils/plot_results.py
 📚 Citation
 If you use this code or model in your research, please cite our paper:
 
 bibtex
-@inproceedings{author2024,
-  title     = {Paper Title},
-  author    = {Author Names},
-  booktitle = {Conference/Journal Name},
-  year      = {2024}
+复制代码
+@article{xiang2024liner,
+  title={Liner fleet deployment and empty container repositioning under demand uncertainty: A robust optimization approach},
+  author={Xiang, Xi and Xu, Xiaowei and Liu, Changchun and Jia, Shuai},
+  journal={Transportation Research Part B: Methodological},
+  volume={190},
+  pages={103088},
+  year={2024},
+  publisher={Elsevier}
 }
 📬 Contact
 For any inquiries or issues, please feel free to open an issue or contact us via email: xuxw@bit.edu.cn
