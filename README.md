@@ -44,7 +44,7 @@ java -cp [classpath] multi.Main [Instance] [Experiment] [RootPath] [MIPGapLimit]
 | `[cplex jar file path]` | Path to the cplex`.jar` file. For multiple `.jar` files, separate paths with `:` (Linux/macOS) or `;` (Windows). | Yes      | `C:\Program Files\IBM\ILOG\CPLEX_Studio\cplex\lib\cplex.jar`     |
 | `[Instance]`       | An integer specifying the instance number.                                                       | Yes      | `1`                    |
 | `[Experiment]`     | An integer specifying the experiment number.                                                     | Yes      | `2`                    |
-| `[RootPath]`       | Root path for data files. Use `-` to use the default value.                                       | Optional | `/data/root`           |
+| `[RootPath]`       | Root path for data files. Use `-` to use the default value.                                       | Optional | `/your_project_root_path/`           |
 | `[MIPGapLimit]`    | MIP gap limit for optimization. Use `-` to use the default value.                                 | Optional | `0.1`                  |
 | `[RandomSeed]`     | Random seed for the experiment.                                                                  | Optional | `42`                   |
 | `[BudgetCoefficient]` | Budget coefficient for the experiment.                                                        | Optional | `1.5`                  |
