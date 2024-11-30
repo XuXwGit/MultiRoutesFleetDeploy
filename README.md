@@ -41,7 +41,7 @@ java -cp [classpath] multi.Main [Instance] [Experiment] [RootPath] [MIPGapLimit]
 | Argument          | Description                                                                                       | Required | Example                |
 |-------------------|---------------------------------------------------------------------------------------------------|----------|------------------------|
 | `[your_classpath]` | Path to your compiled `.class` files (e.g., `bin/` or `.` for current directory).                 | Yes      | `.`                    |
-| `[third_party_jar_path]` | Path to the third-party `.jar` file. For multiple `.jar` files, separate paths with `:` (Linux/macOS) or `;` (Windows). | Yes      | `/path/to/lib.jar`     |
+| `[cplex jar file path]` | Path to the cplex`.jar` file. For multiple `.jar` files, separate paths with `:` (Linux/macOS) or `;` (Windows). | Yes      | `C:\Program Files\IBM\ILOG\CPLEX_Studio\cplex\lib\cplex.jar`     |
 | `[Instance]`       | An integer specifying the instance number.                                                       | Yes      | `1`                    |
 | `[Experiment]`     | An integer specifying the experiment number.                                                     | Yes      | `2`                    |
 | `[RootPath]`       | Root path for data files. Use `-` to use the default value.                                       | Optional | `/data/root`           |
