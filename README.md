@@ -5,11 +5,11 @@ If you find this project useful to your research, please ⭐Star the repository 
 ---
 
 ## 📄 **Paper Information**  
-Title: Liner Fleet Deployment and Empty Container Repositioning under Demand Uncertainty: A Robust Optimization Approach
-Authors: Xi Xiang, Xw Xu, Changchun Liu, Shuai Jia
-Published in: [Transportation Research Part B: Methodological]([Link to the paper](https://www.sciencedirect.com/science/article/pii/S0191261524002121))
-Abstract:
-This paper investigates a robust optimization problem concerning the integration of fleet deployment and empty container repositioning in a shipping line network, where a fleet of vessels is dispatched to transport both laden and empty containers, aiming to fulfill a predetermined set of requests over a defined time horizon. The sizes of customer demands are uncertain and are characterized by a budgeted uncertainty set. This study aims to ascertain the vessel types assigned to each shipping route, the routing of laden containers, and the repositioning of empty containers in a manner that minimizes the total cost.
+**Title:** Liner Fleet Deployment and Empty Container Repositioning under Demand Uncertainty: A Robust Optimization Approach
+**Authors:** Xi Xiang, Xw Xu, Changchun Liu, Shuai Jia
+**Published in:** [Transportation Research Part B: Methodological]([Link to the paper](https://www.sciencedirect.com/science/article/pii/S0191261524002121))
+**Abstract:**  
+> This paper investigates a robust optimization problem concerning the integration of fleet deployment and empty container repositioning in a shipping line network, where a fleet of vessels is dispatched to transport both laden and empty containers, aiming to fulfill a predetermined set of requests over a defined time horizon. The sizes of customer demands are uncertain and are characterized by a budgeted uncertainty set. This study aims to ascertain the vessel types assigned to each shipping route, the routing of laden containers, and the repositioning of empty containers in a manner that minimizes the total cost.
 
 ---
 
