@@ -38,6 +38,19 @@ To run this project, run the following codes:
 ```bash
 java -cp [classpath] multi.Main [Instance] [Experiment] [RootPath] [MIPGapLimit] [RandomSeed] [BudgetCoefficient] [UncertainDegree] [Flag]
 ```
+| Argument          | Description                                                                                       | Required | Example                |
+|-------------------|---------------------------------------------------------------------------------------------------|----------|------------------------|
+| `[your_classpath]` | Path to your compiled `.class` files (e.g., `bin/` or `.` for current directory).                 | Yes      | `.`                    |
+| `[third_party_jar_path]` | Path to the third-party `.jar` file. For multiple `.jar` files, separate paths with `:` (Linux/macOS) or `;` (Windows). | Yes      | `/path/to/lib.jar`     |
+| `[Instance]`       | An integer specifying the instance number.                                                       | Yes      | `1`                    |
+| `[Experiment]`     | An integer specifying the experiment number.                                                     | Yes      | `2`                    |
+| `[RootPath]`       | Root path for data files. Use `-` to use the default value.                                       | Optional | `/data/root`           |
+| `[MIPGapLimit]`    | MIP gap limit for optimization. Use `-` to use the default value.                                 | Optional | `0.1`                  |
+| `[RandomSeed]`     | Random seed for the experiment.                                                                  | Optional | `42`                   |
+| `[BudgetCoefficient]` | Budget coefficient for the experiment.                                                        | Optional | `1.5`                  |
+| `[UncertainDegree]` | Degree of uncertainty for the experiment.                                                       | Optional | `0.2`                  |
+| `[Flag]`           | Specifies the type of numerical experiment: `P` for performance test, `S` for sensitivity analysis. | Optional | `P` or `S`             |
+
 
 ## 📚 Citation
 If you use this code or model in your research, please cite our paper:
