@@ -1,9 +1,12 @@
-package multi;
+package multi.model;
 
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.model.BasePrimalModel;
 
 import java.io.IOException;
 import java.util.Arrays;

@@ -1,8 +1,13 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.Request;
+import multi.Scenario;
+import multi.model.BaseDualModel;
 
 @Slf4j
 public class DualSubProblemReactive extends BaseDualModel

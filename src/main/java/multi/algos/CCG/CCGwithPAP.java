@@ -3,6 +3,7 @@ package multi;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.algos.CCG;
 
 import java.io.IOException;
 import java.util.List;

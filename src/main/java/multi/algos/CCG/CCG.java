@@ -1,8 +1,12 @@
-package multi;
+package multi.algos;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.AlgoFrame;
+import multi.InputData;
+import multi.Parameter;
+import multi.Scenario;
 
 import java.io.IOException;
 import java.util.List;
@@ -109,10 +113,10 @@ public class CCG extends AlgoFrame {
 		}
 
 		if(flag == 1){
-			System.out.println("MP solution duplicate");
+			log.info("MP solution duplicate");
 		}
 		else if(flag == 2){
-			System.out.println("Worse case duplicate");
+			log.info("Worse case duplicate");
 		}
 
 		setTotalCost(upperBound);

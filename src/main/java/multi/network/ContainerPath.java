@@ -1,5 +1,9 @@
 package multi;
 
+
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 public class ContainerPath {
 	private int ContainerPathID;
 	private String originPort;
@@ -104,7 +108,7 @@ public class ContainerPath {
 		else
 		{
 			if(transshipment_port.length != transshipment_Time.length){
-				System.out.println("Error in transshipment port num!");
+				log.info("Error in transshipment port num!");
 			}
 			for (int i = 0; i < transshipment_port.length; i++)
 			{

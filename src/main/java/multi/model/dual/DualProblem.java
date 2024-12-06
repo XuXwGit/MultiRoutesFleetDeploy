@@ -1,4 +1,4 @@
-package multi;
+package multi.model;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -7,6 +7,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
+import multi.InputData;
+import multi.IntArrayWrapper;
+import multi.Parameter;
+import multi.model.BaseDualModel;
 
 @Slf4j
 public class DualProblem extends BaseDualModel {

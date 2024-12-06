@@ -1,4 +1,4 @@
-package multi;
+package multi.model;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -7,6 +7,11 @@ import java.util.List;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
+import multi.InputData;
+import multi.Parameter;
+import multi.Request;
+import multi.Scenario;
+import multi.model.BasePrimalModel;
 
 @Slf4j
 public class MasterProblem extends BasePrimalModel

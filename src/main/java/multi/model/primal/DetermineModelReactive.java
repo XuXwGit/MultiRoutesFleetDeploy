@@ -1,4 +1,4 @@
-package multi;
+package multi.model;
 
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
@@ -6,6 +6,11 @@ import ilog.concert.IloLinearIntExpr;
 import ilog.concert.IloLinearNumExpr;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.Request;
+import multi.model.BasePrimalModel;
+import multi.network.TravelingArc;
 
 
 @Slf4j

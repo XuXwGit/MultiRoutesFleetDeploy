@@ -1,8 +1,10 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.model.BaseModel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,7 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class BaseDualModel extends BaseModel{
+public class BaseDualModel extends BaseModel {
     protected int tau;
     protected IloLinearNumExpr ObjExpr;
 

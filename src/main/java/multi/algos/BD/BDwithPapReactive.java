@@ -1,12 +1,21 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualSubProblemReactive;
+import multi.model.primal.MasterProblem;
 
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BDwithPAP_Reactive extends BD {
 
@@ -56,14 +65,15 @@ public class BDwithPAP_Reactive extends BD {
     protected void frame() throws IloException, IOException {
         initialize();
 
-        if(WhetherAddInitializeSce)
+        if(WhetherAddInitializeSce) {
             initializeSce(sce);
+        }
 
         // change  MaxVarDemand
         // beta = min(k, m/k)=tau
 
         double[] maxDemandVar = p.getMaximumDemandVariation();
-        p.changeMaximunDemandVariation(tau);
+        p.changeMaximumDemandVariation(tau);
 
         double time0 = System.currentTimeMillis();
         initialModel();

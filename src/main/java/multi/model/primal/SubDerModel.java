@@ -1,8 +1,11 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.Request;
 
 @Slf4j
 public class SubDerModel extends BasePrimalModel {

@@ -1,8 +1,10 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.model.BasePrimalModel;
 
 import java.io.File;
 import java.io.FileWriter;

@@ -1,8 +1,13 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.IntArrayWrapper;
+import multi.Parameter;
+import multi.Request;
+import multi.model.BasePrimalModel;
 
 @Slf4j
 public class SubProblemReactive extends BasePrimalModel
@@ -341,12 +346,12 @@ public class SubProblemReactive extends BasePrimalModel
             }
             else
             {
-                System.out.println("SubProblem No solution");
+                log.info("SubProblem No solution");
             }
 
         }
         catch (IloException ex) {
-            System.out.println("Concert Error: " + ex);
+            log.info("Concert Error: " + ex);
         }
     }
 

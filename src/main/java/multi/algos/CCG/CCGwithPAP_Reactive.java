@@ -3,6 +3,8 @@ package multi;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.algos.CCG;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -101,7 +103,7 @@ public class CCGwithPAP_Reactive  extends CCG {
 
             // check if the mp-solution changed
             if(! addSolutionPool(mp.getSolution())){
-                System.out.println("MP solution duplicate");
+                log.info("MP solution duplicate");
                 flag=1;
             }
 
@@ -127,7 +129,7 @@ public class CCGwithPAP_Reactive  extends CCG {
             sp.changeConstraintCoefficients(mp.getVVarValue(), mp.getVVarValue2(), dsp.getScene().getRequest());
             sp.solveModel();
             sp.end();
-//            System.out.println("SP-Obj = "+sp.getObjective());
+//            log.info("SP-Obj = "+sp.getObjective());
 
             if(dsp.getObjVal()+mp.getOperationCost() < upperBound
                     && dsp.getSolveStatus() == IloCplex.Status.Optimal)
@@ -177,7 +179,7 @@ public class CCGwithPAP_Reactive  extends CCG {
     private int[][] vValue2;
 
     public void printSolution(){
-        System.out.println("Master Objective ="+String.format("%.2f", getObjVal()));
+        log.info("Master Objective ="+String.format("%.2f", getObjVal()));
 
         System.out.print("Vessel Decision vVar (MP) : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
@@ -191,18 +193,16 @@ public class CCGwithPAP_Reactive  extends CCG {
                 }
             }
         }
-        System.out.println();
-        System.out.print("Reactive Decision vVar2 (MP) : ");
+        log.info("Reactive Decision vVar2 (MP) : ");
         for(int w=0;w<p.getVesselPathSet().length;w++)
         {
             for(int h=0;h<p.getVesselSet().length;h++)
             {
                 if(vValue2[h][w] != 0)
                 {
-                    System.out.print(p.getVesselPathSet()[w]+"("+p.getVesselSet()[h]+")\t");
+                    log.info(p.getVesselPathSet()[w]+"("+p.getVesselSet()[h]+")\t");
                 }
             }
         }
-        System.out.println();
     }
 }
