@@ -1,11 +1,12 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
-import multi.Request;
+import multi.network.Request;
+import multi.model.BaseModel;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -16,6 +17,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BasePrimalModel extends BaseModel {
     public BasePrimalModel(InputData in, Parameter p) {
@@ -138,13 +144,13 @@ public class BasePrimalModel extends BaseModel {
         }
     }
     public boolean checkVesselConstraint(double[][] vValueDouble) {
-        if(FleetType.equals("Homo")){
+        if("Homo".equals(FleetType)){
             if(!checkVesselConstraint11_1(vValueDouble)){
                 log.info("Error in Vessel Constraint 1");
                 return false;
             }
         }
-        else if (FleetType.equals("Hetero")) {
+        else if ("Hetero".equals(FleetType)) {
             if(!checkVesselConstraint11_2(vValueDouble)){
                 log.info("Error in Vessel Constraint 1");
                 return false;
@@ -874,7 +880,7 @@ public class BasePrimalModel extends BaseModel {
         }
     }
     protected double calculateSampleMeanPerformance(int[][] vValue) throws IOException, IloException {
-        String filename = Model + "-R"+ in.getShipRouteSet().size()
+        String filename = model + "-R"+ in.getShipRouteSet().size()
                 + "-T" + p.getTimeHorizon() + "-"+ FleetType
                 + "-Tau" + p.getTau()
                 + "-U" + p.getUncertainDegree()
@@ -950,8 +956,8 @@ public class BasePrimalModel extends BaseModel {
         log.info("Calculating Mean Performance ...");
         if(UseHistorySolution)
         {
-            if((in.getHistorySolutionSet().get(ModelName) != (null))) {
-                calculateSampleMeanPerformance(solutionToVValue(in.getHistorySolutionSet().get(ModelName)));
+            if((in.getHistorySolutionSet().get(modelName) != (null))) {
+                calculateSampleMeanPerformance(solutionToVValue(in.getHistorySolutionSet().get(modelName)));
             }
         }else {
             calculateSampleMeanPerformance(this.getVVarValue());

@@ -1,39 +1,41 @@
-package multi;
+package multi.algos;
 
 import ilog.concert.IloException;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
+import multi.InputData;
+import multi.Parameter;
 
 import java.io.FileWriter;
 import java.io.IOException;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
+@Getter
+@Setter
 
 public class BaseAlgoFrame extends DefaultSetting {
     protected InputData in;
     protected Parameter p;
+    private double gap;
+    private double obj;
+    private double solveTime;
+    private int iter;
+    protected int iteration=0;
+
     public BaseAlgoFrame() {
     }
-
-    protected double upperBound = Long.MAX_VALUE;
-    protected double lowerBound = Long.MIN_VALUE;
-
-    public double getUpperBound() {
-        return upperBound;
-    }
-    public void setUpperBound(double upperBound) {
-        this.upperBound = upperBound;
-    }
-    public double getLowerBound() {
-        return lowerBound;
-    }
-    public void setLowerBound(double lowerBound) {
-        this.lowerBound = lowerBound;
-    }
-
     protected double [] upper =new double [maxIterationNum+1];
     protected double [] lower =new double [maxIterationNum+1];
 
-    protected int iteration=0;
+    protected double upperBound = Long.MAX_VALUE;
+    protected double lowerBound = Long.MIN_VALUE;
 
     protected void frame() throws IOException, IloException {
     }
@@ -59,77 +61,49 @@ public class BaseAlgoFrame extends DefaultSetting {
         }
     }
 
-    protected void printIteration(FileWriter fileWriter, double LB, double UB, double total_time) throws IOException {
+    protected void printIteration(FileWriter fileWriter, double lb, double ub, double totalTime) throws IOException {
         if(WhetherPrintProcess || WhetherPrintIteration){
             log.info(iteration+"\t\t"
-                    +String.format("%.2f", LB)+"\t\t"
-                    +String.format("%.2f", UB)+"\t\t"
-                    +String.format("%.2f", total_time)+"\t\t"
+                    +String.format("%.2f", lb)+"\t\t"
+                    +String.format("%.2f", ub)+"\t\t"
+                    +String.format("%.2f", totalTime)+"\t\t"
             );
         }
         if(WhetherWriteFileLog){
             fileWriter.write(iteration+"\t\t"
-                    +String.format("%.2f", LB) +"\t\t"
-                    +String.format("%.2f", UB)+"\t\t"
-                    +String.format("%.2f", total_time)+"\t\t"
+                    +String.format("%.2f", lb) +"\t\t"
+                    +String.format("%.2f", ub)+"\t\t"
+                    +String.format("%.2f", totalTime)+"\t\t"
             );
             fileWriter.write("\n");
             fileWriter.flush();
         }
     }
 
-    protected void printIteration(FileWriter fileWriter, double LB, double UB, double mp_time, double sp_time, double total_time) throws IOException {
+    protected void printIteration(FileWriter fileWriter, double lb, double ub, double mpTime, double spTime, double totalTime) throws IOException {
         if(WhetherPrintProcess || WhetherPrintIteration){
             log.info(iteration+"\t\t"
-                    +String.format("%.2f", LB)+"\t\t"
-                    +String.format("%.2f", UB)+"\t\t"
-                    +String.format("%.2f", mp_time)+"\t\t"
-                    +String.format("%.2f", sp_time)+"\t\t"
-                    +String.format("%.2f", total_time)+"\t\t"
+                    +String.format("%.2f", lb)+"\t\t"
+                    +String.format("%.2f", ub)+"\t\t"
+                    +String.format("%.2f", mpTime)+"\t\t"
+                    +String.format("%.2f", spTime)+"\t\t"
+                    +String.format("%.2f", totalTime)+"\t\t"
             );
         }
         if(WhetherWriteFileLog){
             fileWriter.write(iteration+"\t\t"
-                    +String.format("%.2f", LB) +"\t\t"
-                    +String.format("%.2f", UB)+"\t\t"
-                    +String.format("%.2f", mp_time)+"\t\t"
-                    +String.format("%.2f", sp_time)+"\t\t"
-                    +String.format("%.2f", total_time)+"\t\t"
+                    +String.format("%.2f", lb) +"\t\t"
+                    +String.format("%.2f", ub)+"\t\t"
+                    +String.format("%.2f", mpTime)+"\t\t"
+                    +String.format("%.2f", spTime)+"\t\t"
+                    +String.format("%.2f", totalTime)+"\t\t"
             );
             fileWriter.write("\n");
             fileWriter.flush();
         }
     }
 
-    private double Gap;
-    public double getGap() {
-        return Gap;
-    }
-    protected void setGap(double Gap) {
-        this.Gap = Gap;
-    }
-    private double obj;
     public double getObjVal() {
         return obj;
     }
-    protected void setObj(double obj) {
-        this.obj = obj;
-    }
-
-    private double solveTime;
-    public double getSolveTime() {
-        return solveTime;
-    }
-    protected void setSolveTime(double solveTime) {
-        this.solveTime = solveTime;
-    }
-
-    private int iter;
-    public int getIter() {
-        return iter;
-    }
-    protected void setIter(int iter) {
-        this.iter = iter;
-    }
-
 }

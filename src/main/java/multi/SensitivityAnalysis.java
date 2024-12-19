@@ -3,23 +3,27 @@ package multi;
 import ilog.concert.IloException;
 
 import lombok.extern.slf4j.Slf4j;
+import multi.algos.CCG.CCGwithPAP;
+import multi.network.Port;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class SensitivityAnalysis extends DefaultSetting {
-//    private double[] uncertainDegreeSet = {0.01, 0.02, 0.03,0.04,0.06,0.07,0.08,0.09};
     private static int defaultTimeHorizon;
     private double[] uncertainDegreeSet = {0.005, 0.015, 0.025, 0.035,0.045, 0.055, 0.065, 0.075, 0.085, 0.095};
-    private double[] ContainerPathCostSet = {0.80, 0.825, 0.85, 0.875, 0.90, 0.925, 0.95, 0.975,
+    private double[] containerPathCostSet = {0.80, 0.825, 0.85, 0.875, 0.90, 0.925, 0.95, 0.975,
         1.025,1.05, 1.0725, 1.10,1.125, 1.15, 1.175, 1.20};
     private double[] rentalContainerCostSet = {0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1.00,
             1.05, 1.10, 1.15,  1.20, 1.25, 1.30, 1.35, 1.40};
-    //private double[] penaltyCostSet = {0.80, 0.85, 0.90,  0.95, 1.00, 1.05, 1.10, 1.15, 1.20，0.825, 0.875, 0.925, 0.975};
- private double[] penaltyCostSet = {1.025, 1.075, 1.125, 1.175};
+     private double[] penaltyCostSet = {1.025, 1.075, 1.125, 1.175};
 
     private int[] turnOverTimeSet = {0,1, 2, 3, 4,5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,  24, 25,  26, 27, 28};
     private int[] initialContainerSet = { 0,1, 2, 3, 4,5, 6, 7,
@@ -32,11 +36,11 @@ public class SensitivityAnalysis extends DefaultSetting {
 
     private double uncertainDegree = 0.05;
     private FileWriter fileWriter;
-    private String Algo;
+    private String algo;
     public SensitivityAnalysis(int instance, int type, String algo)
     {
         super();
-        this.Algo = algo;
+        this.algo = algo;
 
         try{
 
@@ -75,7 +79,7 @@ public class SensitivityAnalysis extends DefaultSetting {
             new ReadData(fileName, input, defaultTimeHorizon);
             input.showStatus();
 
-            System.out.print("Experiment " + type + ": ");
+            log.info("Experiment " + type + ": ");
             if(type == 1){
                 log.info("Sensitivity Analysis Varying TurnOverTime");
                 VaryTurnOverTime(input);
@@ -125,9 +129,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "OC"
                     + '\t' + "TC");
             log.info(UD
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -145,9 +149,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                         + '\t' + "OperationCost"
                         +'\t'+"TotalCost"+'\n');
                 fileWriter.write(UD
-                        + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                        + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                        + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                        + "\t" + String.format("%.2f", cp.getLadenCost())
+                        + "\t" + String.format("%.2f", cp.getEmptyCost())
+                        + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                         + "\t" + String.format("%.2f", cp.getRentalCost())
                         + "\t" + String.format("%.2f", cp.getPenaltyCost())
                         + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -160,18 +164,18 @@ public class SensitivityAnalysis extends DefaultSetting {
         log.info("=========Varying Unit L&D&T Cost========");
 
         double LDTCoeff;
-        for (int i = 0; i < ContainerPathCostSet.length; i++) {
+        for (int i = 0; i < containerPathCostSet.length; i++) {
 
-            log.info("Unit ContainerPath Cost = "+ ContainerPathCostSet[i]);
+            log.info("Unit ContainerPath Cost = "+ containerPathCostSet[i]);
 
             Parameter p = new Parameter();
             new GenerateParameter(p, in, defaultTimeHorizon, uncertainDegree);
-            LDTCoeff = ContainerPathCostSet[i];
+            LDTCoeff = containerPathCostSet[i];
             double[] ladenPathCost = p.getLadenPathCost();
             double[] emptyPathCost = p.getEmptyPathCost();
             for (int j = 0; j < p.getPathSet().length; j++) {
-                ladenPathCost[j] = in.getContainerPathSet().get(j).getPathCost() * LDTCoeff + p.getLadenPathDemurrageCost()[j];
-                emptyPathCost[j] = in.getContainerPathSet().get(j).getPathCost() * 0.5 * LDTCoeff + p.getEmptyPathDemurrageCost()[j];
+                ladenPathCost[j] = in.getContainerPaths().get(j).getPathCost() * LDTCoeff + p.getLadenPathDemurrageCost()[j];
+                emptyPathCost[j] = in.getContainerPaths().get(j).getPathCost() * 0.5 * LDTCoeff + p.getEmptyPathDemurrageCost()[j];
             }
             p.setLadenPathCost(ladenPathCost);
             p.setEmptyPathCost(emptyPathCost);
@@ -187,9 +191,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "OC"
                     + '\t' + "TC");
             log.info(LDTCoeff
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -208,7 +212,7 @@ public class SensitivityAnalysis extends DefaultSetting {
         }
 
 
-        double RentalCostCoeff;
+        double rentalCostCoeff;
         for (int i = 0; i < rentalContainerCostSet.length; i++) {
 
             log.info("RentalCost = "+rentalContainerCostSet[i]);
@@ -217,8 +221,8 @@ public class SensitivityAnalysis extends DefaultSetting {
             new GenerateParameter(para, input, defaultTimeHorizon, uncertainDegree);
             new SelectPaths(input, para, 0.4);
 
-            RentalCostCoeff = rentalContainerCostSet[i];
-            para.changeRentalCost(RentalCostCoeff);
+            rentalCostCoeff = rentalContainerCostSet[i];
+            para.changeRentalCost(rentalCostCoeff);
 
             CCGwithPAP cp = new CCGwithPAP(input, para);
 
@@ -230,10 +234,10 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "PC"
                     + '\t' + "OC"
                     + '\t' + "TC");
-            log.info(RentalCostCoeff
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+            log.info(rentalCostCoeff
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -250,10 +254,10 @@ public class SensitivityAnalysis extends DefaultSetting {
                         + '\t' + "PC"
                         + '\t' + "OC"
                         + '\t' + "TC");
-                fileWriter.write(RentalCostCoeff
-                        + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                        + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                        + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                fileWriter.write(rentalCostCoeff
+                        + "\t" + String.format("%.2f", cp.getLadenCost())
+                        + "\t" + String.format("%.2f", cp.getEmptyCost())
+                        + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                         + "\t" + String.format("%.2f", cp.getRentalCost())
                         + "\t" + String.format("%.2f", cp.getPenaltyCost())
                         + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -292,9 +296,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "OC"
                     + '\t' + "TC");
             log.info(PenaltyCostCoeff
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -328,9 +332,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "OC"
                     + '\t' + "TC");
             log.info(turnOverTime
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())
@@ -357,12 +361,12 @@ public class SensitivityAnalysis extends DefaultSetting {
             int x=0;
             double alpha=0.8+0.2*random.nextDouble();
             int totalOwnedEmptyContainers = 0;
-            for(Port pp:in.getPortSet())
+            for(Port pp:in.getPortSet().values())
             {
                 for(int ii = 0; ii<in.getRequestSet().size(); ii++)
                 {
                     if(pp.getPort().equals(in.getRequestSet().get(ii).getOriginPort())
-                            &&in.getRequestSet().get(ii).getW_i_Earliest()<initialContainers)
+                            &&in.getRequestSet().get(ii).getEarliestPickupTime()<initialContainers)
                     {
                         initialEmptyContainer [x]=(int) (initialEmptyContainer [x]+alpha*p.getDemand()[i]);
                         totalOwnedEmptyContainers += initialEmptyContainer [x];
@@ -383,9 +387,9 @@ public class SensitivityAnalysis extends DefaultSetting {
                     + '\t' + "OC"
                     + '\t' + "TC");
             log.info(initialContainers
-                    + "\t" + String.format("%.2f", cp.getLadenDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost())
-                    + "\t" + String.format("%.2f", cp.getEmptyDemurrageCost()+cp.getLadenDemurrageCost())
+                    + "\t" + String.format("%.2f", cp.getLadenCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost())
+                    + "\t" + String.format("%.2f", cp.getEmptyCost()+cp.getLadenCost())
                     + "\t" + String.format("%.2f", cp.getRentalCost())
                     + "\t" + String.format("%.2f", cp.getPenaltyCost())
                     + "\t" + String.format("%.2f", cp.getOperationCost())

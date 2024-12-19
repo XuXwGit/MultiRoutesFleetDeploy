@@ -1,4 +1,4 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
@@ -7,15 +7,22 @@ import ilog.concert.IloRange;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 
+import multi.DefaultSetting;
+import multi.IntArrayWrapper;
+import multi.model.dual.DualSubProblem;
+
 import java.util.Set;
 
-// The class BendersLazyConsCallback
-// Allows to add Benders' cuts as lazy constraints.
+/**
+ * @Author: XuXw
+ * @Description:  The class BendersLazyConsCallback : Allows to add Benders' cuts as lazy constraints.
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BendersLazyConsCallback
         extends IloCplex.LazyConstraintCallback {
     IloCplex cplex;
-    IloIntVar[][] V;
+    IloIntVar[][] vVars;
     IloNumVar eta;
     DualSubProblem dsp;
     Set<IntArrayWrapper> solutionPool;
@@ -24,14 +31,15 @@ public class BendersLazyConsCallback
     int numSolutions;
     public BendersLazyConsCallback(IloCplex cplex, IloIntVar[][] V, IloNumVar eta, DualSubProblem dsp, Set<IntArrayWrapper> solutionPool) throws IloException {
         this.cplex = cplex;
-        this.V = V;
+        this.vVars = V;
         this.eta = eta;
         this.dsp = dsp;
         this.numVessels = V.length;
         this.numRoutes = V[0].length;
         this.solutionPool = solutionPool;
-        if (solutionPool != null)
+        if (solutionPool != null) {
             this.numSolutions = solutionPool.size();
+        }
     }
 
     private void frame2() throws IloException {
@@ -42,7 +50,7 @@ public class BendersLazyConsCallback
         {
             for (int h = 0; h < numVessels; ++h)
             {
-                sol[h][r] = getValue(V[h][r]);
+                sol[h][r] = getValue(vVars[h][r]);
                 if (sol[h][r] == 1)
                 {
                     solution[r] = h + 1;
@@ -60,25 +68,26 @@ public class BendersLazyConsCallback
         }
 
         // Benders' cut separation
-        IloRange cut = dsp.separate(sol, cplex,  V, eta);
+        IloRange cut = dsp.separate(sol, cplex, vVars, eta);
 
         System.out.print("Add cut: " + solutionPool.size() + "\t");
         printSolution(sol);
 
-        if ( cut != null)
+        if ( cut != null) {
             add(cut, IloCplex.CutManagement.UseCutForce);
+        }
     }
 
     private void frame3() throws IloException {
         // Get the current x solution
-        int numVesselPaths = V[0].length;
+        int numVesselPaths = vVars[0].length;
         double[][] sol = new double[numVessels][numVesselPaths];
         int[] solution = new int[numVesselPaths];
         for (int w = 0; w < numVesselPaths; w++)
         {
             for (int h = 0; h < numVessels; ++h)
             {
-                sol[h][w] = getValue(V[h][w]);
+                sol[h][w] = getValue(vVars[h][w]);
                 if (sol[h][w] == 1)
                 {
                     solution[w] = h + 1;
@@ -96,23 +105,24 @@ public class BendersLazyConsCallback
         }
 
         // Benders' cut separation
-        IloRange cut = dsp.separate(sol, cplex,  V, eta);
+        IloRange cut = dsp.separate(sol, cplex, vVars, eta);
 
         System.out.print("Add cut: " + solutionPool.size() + "\t");
         printSolution(sol);
 
-        if ( cut != null)
+        if ( cut != null) {
             add(cut, IloCplex.CutManagement.UseCutForce);
+        }
     }
 
     @Override
     protected void main() throws IloException {
-        if (V != null) {
-            if(DefaultSetting.FleetType == "Homo")
+        if (vVars != null) {
+            if(DefaultSetting.FleetType == "Homo") {
                 frame2();
-            else if (DefaultSetting.FleetType == "Hetero")
+            } else if (DefaultSetting.FleetType == "Hetero") {
                 frame3();
-            else{
+            } else{
                 log.info("Error in Get Fleet Type");
             }
         }

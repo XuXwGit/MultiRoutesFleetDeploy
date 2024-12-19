@@ -1,12 +1,16 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
-import multi.Request;
-
+import multi.network.Request;
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class SubDerModel extends BasePrimalModel {
 	private double[] uValueDouble;
@@ -14,7 +18,7 @@ public class SubDerModel extends BasePrimalModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "SDP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SDP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.uValueDouble = new double [p.getDemand().length];
 		try{
 			cplex = new IloCplex();

@@ -1,11 +1,21 @@
 package multi;
 
+import lombok.extern.slf4j.Slf4j;
+import multi.network.*;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
+@Slf4j
 public class GenerateParameter extends DefaultSetting {
 	private Parameter p;
 	private InputData in;
@@ -23,7 +33,7 @@ public class GenerateParameter extends DefaultSetting {
 	}
 
 	private void frame() throws IOException {
-		System.out.println("========"+ "Start to Generate parameters" + "========");
+		log.info("========"+ "Start to Generate parameters" + "========");
 		double start = System.currentTimeMillis();
 
 		p.setTimeHorizon(timeHorizon);
@@ -61,18 +71,18 @@ public class GenerateParameter extends DefaultSetting {
 		}
 
 		double end = System.currentTimeMillis();
-		System.out.println("========"+ "End Generate parameters" + "(" +String.format("%.2f", (end - start)) + "ms)"+ "========");
+		log.info("========"+ "End Generate parameters" + "(" +String.format("%.2f", (end - start)) + "ms)"+ "========");
 	}
 
 	public static double getRandDouble()
 	{
 		double mean = 0.5;
 		double variance = 1.0/12.0;
-		if(distributionType.equals( "Uniform"))
+		if("Uniform".equals(distributionType)) {
 			return random.nextDouble();
-		else if(distributionType.equals( "Normal"))
+		} else if("Normal".equals(distributionType)) {
 			return random.nextGaussian();
-		else if(distributionType.equals("Log-Normal")){
+		} else if("Log-Normal".equals(distributionType)){
 			// Log-Normal distribution :
 			// mean = exp(mu + sigma^2/2)
 			// variance = (exp(sigma^2) - 1) * exp(2 * mu + sigma^2)
@@ -82,8 +92,9 @@ public class GenerateParameter extends DefaultSetting {
 			// z ~ N(0,1) --> X = exp(mu + sigma * z)
 			return Math.exp(mu + sigma * random.nextGaussian());
 		}
-		else
+		else {
 			return random.nextDouble();
+		}
 	}
 
 	private void SetArcSet(){
@@ -92,7 +103,7 @@ public class GenerateParameter extends DefaultSetting {
 		int x=0;
 		for(TravelingArc tt:in.getTravelingArcSet())
 		{
-			travellingArcsSet[x]=tt.getTravelingArc_ID();
+			travellingArcsSet[x]=tt.getTravelingArcID();
 			x=x+1;
 		}
 		p.setTravelingArcsSet(travellingArcsSet);
@@ -102,7 +113,7 @@ public class GenerateParameter extends DefaultSetting {
 		x=0;
 		for(TransshipArc tt: in.getTransshipArcSet())
 		{
-			transhipmentArcsSet[x]=tt.getTransshipArc_ID();
+			transhipmentArcsSet[x]=tt.getTransshipArcID();
 			x=x+1;
 		}
 		p.setTranshipmentArcsSet(transhipmentArcsSet);
@@ -132,7 +143,7 @@ public class GenerateParameter extends DefaultSetting {
 		double [] ladenDemurrageCost =new double[in.getPortSet().size()];
 		double [] emptyDemurrageCost=new double[in.getPortSet().size()];
 		int x=0;
-		for(Port pp :in.getPortSet())
+		for(Port pp :in.getPortSet().values())
 		{
 			portSet[x]=pp.getPort();
 			turnOverTime[x]=DefaultTurnOverTime;
@@ -140,8 +151,8 @@ public class GenerateParameter extends DefaultSetting {
 			emptyDemurrageCost[x]=DefaultEmptyDemurrageCost;
 			pp.setRentalCost(DefaultUnitRentalCost);
 			pp.setTurnOverTime(DefaultTurnOverTime);
-			pp.setLadenDemurrageCost(DefaultLadenDemurrageCost);
-			pp.setEmptyDemurrageCost(DefaultEmptyDemurrageCost);
+			pp.setLadenDemurralCost(DefaultLadenDemurrageCost);
+			pp.setEmptyDemurralCost(DefaultEmptyDemurrageCost);
 			pp.setLoadingCost(DefaultUnitLoadingCost);
 			pp.setDischargeCost(DefaultUnitDischargeCost);
 			pp.setTransshipmentCost(DefaultUnitTransshipmentCost);
@@ -177,7 +188,7 @@ public class GenerateParameter extends DefaultSetting {
 			filewriter.write(in.getRequestSet().get(i).getRequestID() + "\t"
 					+ in.getRequestSet().get(i).getOriginPort() + "\t"
 					+ in.getRequestSet().get(i).getDestinationPort() + "\t"
-					+ in.getRequestSet().get(i).getW_i_Earliest() + "\t"
+					+ in.getRequestSet().get(i).getEarliestPickupTime() + "\t"
 					+ in.getRequestSet().get(i).getLatestDestinationTime() + "\t"
 					+ p.getDemand()[i] + "\t"
 					+ p.getPenaltyCostForDemand()[i] + "\n");
@@ -237,7 +248,7 @@ public class GenerateParameter extends DefaultSetting {
 		int x=0;
 		for(ShipRoute ss:in.getShipRouteSet())
 		{
-			vesselRoute[x]=ss.getShippingRouteID();
+			vesselRoute[x]=ss.getShipRouteID();
 			roundTrips[x] = ss.getNumRoundTrips();
 			x=x+1;
 		}
@@ -248,8 +259,8 @@ public class GenerateParameter extends DefaultSetting {
 		// set vessel type
 		// v[x][r] == 1: vessel x is for ship route r
 		// v[x][r] == 0: otherwise
-		int vessel [] =new int [in.getVesselSet().size()];
-		int vesselCapacity []=new int [in.getVesselSet().size()];
+		int[] vessel =new int [in.getVesselSet().size()];
+		int[] vesselCapacity =new int [in.getVesselSet().size()];
 		double [] vesselOperationCost =new double [in.getVesselSet().size()];
 		int [][] vesselTypeAndShippingRoute =new int[in.getVesselSet().size()][in.getShipRouteSet().size()];
 		int [] shippingRouteVesselNum = new int[p.getShippingRouteSet().length];
@@ -290,9 +301,9 @@ public class GenerateParameter extends DefaultSetting {
 
 			for (int nn = 0; nn < in.getTravelingArcSet().size(); nn++)
 			{
-				for (int j = 0; j < in.getVesselPathSet().get(w).getPathArcIDs().length; j++)
+				for (int j = 0; j < in.getVesselPathSet().get(w).getArcIDs().length; j++)
 				{
-					if (in.getTravelingArcSet().get(nn).getTravelingArc_ID() == in.getVesselPathSet().get(w).getPathArcIDs()[j])
+					if (in.getTravelingArcSet().get(nn).getTravelingArcID() == in.getVesselPathSet().get(w).getArcIDs()[j])
 					{
 						arcAndVesselPath[nn][w] = 1;
 					}
@@ -313,28 +324,28 @@ public class GenerateParameter extends DefaultSetting {
 		// demurrage = sum{transshipTime * unit demurrage}
 		// arcAndPath : arcs X paths
 		// arcAndPath[arc][path] == 1 : the travel arc is in path arcs
-		double [] PathLoadAndDischargeCost=new double [in.getContainerPathSet().size()];
-		double [] ladenPathDemurrageCost=new double [in.getContainerPathSet().size()];
-		double [] emptyPathDemurrageCost=new double [in.getContainerPathSet().size()];
-		double [] ladenPathCost=new double [in.getContainerPathSet().size()];
-		double [] emptyPathCost=new double [in.getContainerPathSet().size()];
-		int [] travelTimeOnLadenPath=new int [in.getContainerPathSet().size()];
-		int [] PathSet =new int [in.getContainerPathSet().size()];
-		int [][] arcAndPath  =new int [in.getTravelingArcSet().size()][in.getContainerPathSet().size()];
+		double [] PathLoadAndDischargeCost=new double [in.getContainerPaths().size()];
+		double [] ladenPathDemurrageCost=new double [in.getContainerPaths().size()];
+		double [] emptyPathDemurrageCost=new double [in.getContainerPaths().size()];
+		double [] ladenPathCost=new double [in.getContainerPaths().size()];
+		double [] emptyPathCost=new double [in.getContainerPaths().size()];
+		int [] travelTimeOnLadenPath=new int [in.getContainerPaths().size()];
+		int [] PathSet =new int [in.getContainerPaths().size()];
+		int [][] arcAndPath  =new int [in.getTravelingArcSet().size()][in.getContainerPaths().size()];
 		int x=0;
-		for(ContainerPath pp :in.getContainerPathSet())
+		for(ContainerPath pp :in.getContainerPaths())
 		{
-			for (int i = 0; i < in.getPortSet().size(); i++) {
-				if (in.getPortSet().get(i).getPort().equals(pp.getOriginPort())){
-					PathLoadAndDischargeCost[x] += in.getPortSet().get(i).getLoadingCost();
-				} else if (in.getPortSet().get(i).getPort().equals(pp.getDestinationPort())) {
-					PathLoadAndDischargeCost[x] += in.getPortSet().get(i).getDischargeCost();
+			for (Port port: in.getPortSet().values()) {
+				if (port.getPort().equals(pp.getOriginPort())){
+					PathLoadAndDischargeCost[x] += port.getLoadingCost();
+				} else if (port.getPort().equals(pp.getDestinationPort())) {
+					PathLoadAndDischargeCost[x] += port.getDischargeCost();
 				}
 				else {
-					if(pp.getTransshipment_port() != null && pp.getTransshipment_port().length > 0){
-						for (int j = 0; j < pp.getTransshipment_port().length; j++) {
-							if(in.getPortSet().get(i).getPort().equals(pp.getTransshipment_port()[j])){
-								PathLoadAndDischargeCost[x] += in.getPortSet().get(i).getTransshipmentCost();
+					if(pp.getTransshipmentPort() != null && pp.getTransshipmentPort().length > 0){
+						for (int j = 0; j < pp.getTransshipmentPort().length; j++) {
+							if(port.getPort().equals(pp.getTransshipmentPort()[j])){
+								PathLoadAndDischargeCost[x] += port.getTransshipmentCost();
 							}
 						}
 					}
@@ -359,7 +370,7 @@ public class GenerateParameter extends DefaultSetting {
 			for (int i = 0; i < in.getTravelingArcSet().size(); i++) {
 				arcAndPath[i][x] = 0;
 				for (int j = 0; j < pp.getArcsID().length; j++) {
-					if(in.getTravelingArcSet().get(i).getTravelingArc_ID() == pp.getArcsID()[j])
+					if(in.getTravelingArcSet().get(i).getTravelingArcID() == pp.getArcsID()[j])
 					{
 						arcAndPath[i][x] = 1;
 					}
@@ -397,8 +408,8 @@ public class GenerateParameter extends DefaultSetting {
 
 			if ( DebugEnable && GenerateParamEnable)
 			{
-				System.out.println("RouteID = "+in.getTravelingArcSet().get(nn).getRoute() +'\t'
-						+"TravelArcID = " + in.getTravelingArcSet().get(nn).getTravelingArc_ID() +'\t'
+				log.info("RouteID = "+in.getTravelingArcSet().get(nn).getRoute() +'\t'
+						+"TravelArcID = " + in.getTravelingArcSet().get(nn).getTravelingArcID() +'\t'
 						+"(" + in.getTravelingArcSet().get(nn).getOriginPort().toString()
 						+"," + in.getTravelingArcSet().get(nn).getDestinationPort().toString() +")" +'\t'
 						+"("+in.getTravelingArcSet().get(nn).getOriginTime()
@@ -414,12 +425,12 @@ public class GenerateParameter extends DefaultSetting {
 		int[] initialEmptyContainer =new int [in.getPortSet().size()];
 		int x=0;
 		double alpha=0.8+0.2*getRandDouble();
-		for(Port pp:in.getPortSet())
+		for(Port pp:in.getPortSet().values())
 		{
 			for(int i = 0; i<in.getRequestSet().size(); i++)
 			{
 				if(pp.getPort().equals(in.getRequestSet().get(i).getOriginPort())
-						&&in.getRequestSet().get(i).getW_i_Earliest()<initialEmptyContainers)
+						&&in.getRequestSet().get(i).getEarliestPickupTime()<initialEmptyContainers)
 				{
 					initialEmptyContainer [x]=(int) (initialEmptyContainer [x]+alpha*p.getDemand()[i]);
 				}
@@ -450,8 +461,9 @@ public class GenerateParameter extends DefaultSetting {
 			filewriter.write(i + "\t");
 			for(int j=0;j<p.getSampleScenes()[i].length;j++)
 			{
-				if(sampleScenes[i][j] != 0)
+				if(sampleScenes[i][j] != 0) {
 					filewriter.write(j + ",");
+				}
 			}
 			filewriter.write("\n");
 			filewriter.flush();
@@ -481,7 +493,6 @@ public class GenerateParameter extends DefaultSetting {
 		{
 			WriteRandomSampleSceneSet();
 		}
-
 	}
 }
 

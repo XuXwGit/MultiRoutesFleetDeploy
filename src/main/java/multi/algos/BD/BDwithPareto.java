@@ -1,11 +1,22 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualProblem;
+import multi.model.dual.DualSubProblem;
+import multi.model.primal.MasterProblem;
 
 import java.io.IOException;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BDwithPareto extends BD {
 	public BDwithPareto(InputData in, Parameter p) throws IloException, IOException {
@@ -35,7 +46,7 @@ public class BDwithPareto extends BD {
 		dp = new DualProblem(in, p);
 		mp=new MasterProblem(in, p);
 
-		dp.changeObjectiveVCoefficients(corePoint);
+		dp.changeObjectiveVvarsCoefficients(corePoint);
 
 		if(WhetherAddInitializeSce){
 			mp.addScene(sce.get(0));
@@ -55,10 +66,11 @@ public class BDwithPareto extends BD {
 			return;
 		}
 
-		if(WhetherAddInitializeSce)
+		if(WhetherAddInitializeSce) {
 			initializeSce(sce);
+		}
 
-		if(FleetType.equals("Homo")){
+		if("Homo".equals(FleetType)){
 			corePoint = new double[p.getVesselSet().length][p.getShippingRouteSet().length];
 			if (UseParetoOptimalCut){
 				for (int h = 0; h < p.getVesselSet().length; h++) {
@@ -67,7 +79,7 @@ public class BDwithPareto extends BD {
 					}
 				}
 			}
-		} else if (FleetType.equals("Hetero")) {
+		} else if ("Hetero".equals(FleetType)) {
 			corePoint = new double [p.getVesselSet().length][p.getVesselPathSet().length];
 			if (UseParetoOptimalCut){
 				for (int h = 0; h < p.getVesselSet().length; h++) {
@@ -77,7 +89,6 @@ public class BDwithPareto extends BD {
 					}
 				}
 			}
-
 		}
 		else{
 			log.info("Error in Fleet type!");
@@ -126,11 +137,11 @@ public class BDwithPareto extends BD {
 			}
 
 			double start2 = System.currentTimeMillis();
-			dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+			dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
 			dsp.solveModel();
 			double end20 = System.currentTimeMillis();
 			//log.info("Time to solve DSP: " + (end20 - start2) + "ms");
-			dp.changeObjectiveUCoefficients(dsp.getUValue());
+			dp.changeObjectiveUvarsCoefficients(dsp.getUValue());
 			dp.changeParetoConstr(mp.getVVarValue(), dsp.getUValue(), dsp.getObjVal());
 			dp.solveModel();
 			double end2 = System.currentTimeMillis();
@@ -162,14 +173,13 @@ public class BDwithPareto extends BD {
 		//  the SP is optimal :  add optimality cut
 		if(dsp.getSolveStatus() == IloCplex.Status.Optimal)
 		{
-			//log.info("DSP is Optimal");
 			//  update UB : UB = min{UB, MP.OperationCost + SP.Objective}
 			if(dsp.getObjVal()+mp.getOperationCost()<upperBound)
 			{
 				setUpperBound(dsp.getObjVal()+mp.getOperationCost());
 			}
 			// add optimality cut
-			//mp.addOptimalityCut(dsp.getConstantItem(), dsp.getBetaValue());
+			// mp.addOptimalityCut(dsp.getConstantItem(), dsp.getBetaValue());
 			mp.getCplex().add(dp.constructOptimalCut(mp.getCplex(), mp.getVVars(), mp.getEtaVar()));
 			// add the worst scene (extreme point) to scene set
 			if(! addScenarioPool(dsp.getScene())){
@@ -199,7 +209,7 @@ public class BDwithPareto extends BD {
 		else {
 			log.info("DSP is error");
 		}
+
 		return true;
 	}
-
 }

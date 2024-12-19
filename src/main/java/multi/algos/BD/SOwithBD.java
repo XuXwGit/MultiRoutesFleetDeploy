@@ -1,12 +1,21 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.algos.AlgoFrame;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualProblem;
+import multi.model.primal.MasterProblem;
 
 import java.io.IOException;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class SOwithBD extends AlgoFrame {
     private DualProblem dp;
@@ -45,8 +54,9 @@ public class SOwithBD extends AlgoFrame {
     protected void frame() throws IOException, IloException {
         initialize();
 
-        if(WhetherAddInitializeSce)
+        if(WhetherAddInitializeSce) {
             initializeSce(sce);
+        }
 
         double time0 = System.currentTimeMillis();
         initialModel();
@@ -79,10 +89,10 @@ public class SOwithBD extends AlgoFrame {
             }
 
             double total_sp_cost = 0;
-            dp.changeObjectiveVCoefficients(mp.getVVarValue());
+            dp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
             double start2 = System.currentTimeMillis();
             for(int i=0; i<p.getSampleScenes().length; i++){
-                dp.changeObjectiveUCoefficients(p.getSampleScenes()[i]);
+                dp.changeObjectiveUvarsCoefficients(p.getSampleScenes()[i]);
                 dp.solveModel();
                 total_sp_cost += dp.getObjVal();
                 mp.getCplex().add(dp.constructOptimalCut(mp.getCplex(), mp.getVVars(), mp.getEtaVars()[i]));

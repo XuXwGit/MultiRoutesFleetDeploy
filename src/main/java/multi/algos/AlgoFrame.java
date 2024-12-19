@@ -1,8 +1,15 @@
-package multi;
+package multi.algos;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualSubProblem;
+import multi.model.primal.MasterProblem;
+import multi.model.primal.SubProblem;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -15,7 +22,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
+@Getter
+@Setter
 public class AlgoFrame extends BaseAlgoFrame {
     protected int tau;
     protected String Algo;
@@ -32,10 +46,17 @@ public class AlgoFrame extends BaseAlgoFrame {
     protected List<Scenario> sce;
     protected double [] masterObj =new double [DefaultSetting.maxIterationNum+1];
     protected double [] subObj =new double [DefaultSetting.maxIterationNum+1];
+    protected int[][] vValue;
     private double worstPerformance;
     private double meanPerformance;
     private double worstSecondStageCost;
     private double meanSecondStageCost;
+    private double totalCost;
+    private double operationCost;
+    private double rentalCost;
+    private double ladenCost;
+    private double emptyCost;
+    private double penaltyCost;
     protected void frame() throws IOException, IloException {
         initialize();
 
@@ -67,7 +88,7 @@ public class AlgoFrame extends BaseAlgoFrame {
             }
 
             // solve the DSP
-            dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+            dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
             double start2 = System.currentTimeMillis();
             dsp.solveModel();
             double end2 = System.currentTimeMillis();
@@ -274,7 +295,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         setSolveTime(System.currentTimeMillis() - start);
         setObj(upperBound);
         setIter(iteration);
-        setvValue(mp.getVVarValue());
+        setVValue(mp.getVVarValue());
         setGap(( upperBound - lowerBound)/lowerBound);
         setSolution(mp.getVVarValue());
         writeSolution(mp.getVVarValue(), fileWriter);
@@ -287,6 +308,7 @@ public class AlgoFrame extends BaseAlgoFrame {
             calculateMeanPerformance();
         }
     }
+
     protected void end() throws IOException, IloException {
 
         if(WhetherPrintProcess || WhetherPrintIteration){
@@ -383,41 +405,6 @@ public class AlgoFrame extends BaseAlgoFrame {
         return mp_operation_cost + sum_sub_opera_costs/ numSampleScenes;
     }
 
-    public int[][] getSolution() {
-        return solution;
-    }
-
-    protected void setSolution(int[][] solution) {
-        this.solution = solution;
-    }
-    public double getWorstPerformance() {
-        return worstPerformance;
-    }
-    protected void setWorstPerformance(double worstPerformance) {
-        this.worstPerformance = worstPerformance;
-    }
-    public double getMeanPerformance() {
-        return meanPerformance;
-    }
-
-    public void setMeanPerformance(double meanPerformance) {
-        this.meanPerformance = meanPerformance;
-    }
-    public double getWorstSecondStageCost() {
-        return worstSecondStageCost;
-    }
-
-    protected void setWorstSecondStageCost(double worstSecondStageCost) {
-        this.worstSecondStageCost = worstSecondStageCost;
-    }
-    public double getMeanSecondStageCost() {
-        return meanSecondStageCost;
-    }
-
-    protected void setMeanSecondStageCost(double meanSecondStageCost) {
-        this.meanSecondStageCost = meanSecondStageCost;
-    }
-
 
     protected void printIterTitle(FileWriter fileWriter, double bulidModelTime) throws IOException {
         if(WhetherPrintProcess || WhetherPrintIteration){
@@ -476,14 +463,6 @@ public class AlgoFrame extends BaseAlgoFrame {
             fileWriter.flush();
         }
     }
-
-    protected int[][] vValue;
-    protected void setvValue(int[][] vValue) {
-        this.vValue = vValue;
-    }
-    protected int[][] getVValue() {
-        return vValue;
-    }
     public void printSolution(int[][] vValue) throws IloException {
         log.info("Vessel Decision vVar : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
@@ -491,7 +470,7 @@ public class AlgoFrame extends BaseAlgoFrame {
             System.out.print(p.getShippingRouteSet()[r]);
             System.out.print(":");
 
-            if(FleetType.equals("Homo")){
+            if("Homo".equals(FleetType)){
                 for(int h=0;h<p.getVesselSet().length;++h)
                 {
                     if(vValue[h][r] != 0)
@@ -499,7 +478,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                         System.out.print(p.getVesselSet()[h]+"\t");
                     }
                 }
-            } else if (FleetType.equals("Hetero")) {
+            } else if ("Hetero".equals(FleetType)) {
                 for(int w=0;w<p.getVesselPathSet().length;++w)
                 {
                     if (p.getShipRouteAndVesselPath()[r][w] != 1)
@@ -526,7 +505,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         {
             fileWriter.write(p.getShippingRouteSet()[r] + ": ");
 
-            if(FleetType.equals("Homo")){
+            if("Homo".equals(FleetType)){
                 for(int h=0;h<p.getVesselSet().length;++h)
                 {
                     if(vValue[h][r] != 0)
@@ -534,7 +513,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                         fileWriter.write(p.getVesselSet()[h]+"\t");
                     }
                 }
-            } else if (FleetType.equals("Hetero")) {
+            } else if ("Hetero".equals(FleetType)) {
                 for(int w=0;w<p.getVesselPathSet().length;++w)
                 {
                     if (p.getShipRouteAndVesselPath()[r][w] != 1)
@@ -574,55 +553,5 @@ public class AlgoFrame extends BaseAlgoFrame {
             }
         }
         return vvv;
-    }
-    private double totalCost;
-    private double operationCost;
-    private double rentalCost;
-    private double ladenCost;
-    private double emptyCost;
-    private double penaltyCost;
-    public double getTotalCost() {
-        return totalCost;
-    }
-    protected void setTotalCost(double totalCost) {
-        this.totalCost = totalCost;
-    }
-    public double getOperationCost() {
-        return operationCost;
-    }
-    protected void setOperationCost(double operationCost) {
-        this.operationCost = operationCost;
-    }
-    protected void setLadenDemurrageCost(double ladenDemurrageCost)
-    {
-        this.ladenCost = ladenDemurrageCost;
-    }
-    public double getLadenDemurrageCost()
-    {
-        return ladenCost;
-    }
-    protected void setEmptyDemurrageCost(double emptyDemurrageCost)
-    {
-        this.emptyCost = emptyDemurrageCost;
-    }
-    public double getEmptyDemurrageCost()
-    {
-        return emptyCost;
-    }
-    protected void setRentalCost(double rentalCost)
-    {
-        this.rentalCost = rentalCost;
-    }
-    public double getRentalCost()
-    {
-        return rentalCost;
-    }
-    protected void setPenaltyCost(double penaltyDemurrageCost)
-    {
-        this.penaltyCost = penaltyDemurrageCost;
-    }
-    public double getPenaltyCost()
-    {
-        return penaltyCost;
     }
 }

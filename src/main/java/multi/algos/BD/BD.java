@@ -1,11 +1,19 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.algos.AlgoFrame;
 
 import java.io.IOException;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BD extends AlgoFrame {
 	public BD(InputData in, Parameter p) throws IloException, IOException {
@@ -76,7 +84,7 @@ public class BD extends AlgoFrame {
 				setLowerBound(mp.getObjVal());
 			}
 
-			dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+			dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
 			double start2 = System.currentTimeMillis();
 			dsp.solveModel();
 			double end2 = System.currentTimeMillis();

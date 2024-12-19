@@ -1,5 +1,8 @@
 package multi;
 
+import lombok.extern.slf4j.Slf4j;
+import multi.network.*;
+
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,6 +11,12 @@ import java.util.Map;
 
 import static java.lang.Integer.parseInt;
 
+/**
+* @Author: XuXw
+* @Description: read input data from local files
+* @DateTime: 2024/12/4 22:11
+*/
+@Slf4j
 public class ReadData extends DefaultSetting {
 	private final InputData inputdata;
 	private final int timeHorizon;
@@ -26,31 +35,53 @@ public class ReadData extends DefaultSetting {
 
 	private void frame()
 	{
-		System.out.println("========"+ "Start to read data" + "========");
+		log.info("========"+ "Start to read data" + "========");
 		double start = System.currentTimeMillis();
 
 		inputdata.setTimeHorizon(timeHorizon);
+		// 1. read shipping network data (include ports and ship routes)
+		readPorts();
 		readShipRoutes();
+
+		// 2. read space-time data (include nodes, traveling arcs, transshipment arcs) generated based on the shipping network
+		//  traveling arc, and transshipment arc are extended on arc
 		readNodes();
 		readTravelingArcs();
 		readTransshipArcs();
-		readPaths();
+
+		// 3. read container paths (include laden paths and empty paths) searched based on the shipping network
+		// laden path and empty path both combined with container path
+		readContainerPaths();
 		readVesselPaths();
-//		readLadenPaths();
-//		readEmptyPaths();
-		readPorts();
+		readLadenPaths();
+		readEmptyPaths();
+
+		// 4. read vessel data (include vessel capacity, cost, route, max number)
 		readVessels();
-		readRequests();
+
+		// 5. read orders or requests
 		readDemandRange();
-		if(UseHistorySolution)
+		readRequests();
+
+		// 6. read history solution and sample scenes
+		if(UseHistorySolution) {
 			readHistorySolution();
-		if(WhetherLoadSampleTests)
+		}
+		if(WhetherLoadSampleTests) {
 			readSampleScenes();
+		}
 
 		double end = System.currentTimeMillis();
-		System.out.println("========"+ "End read data" + "(" +String.format("%.2f", (end - start)) + "ms)"+ "========");
+		log.info("========"+ "End read data" + "(" +String.format("%.2f", (end - start)) + "ms)"+ "========");
 	}
 
+	/**
+	 * @Author Xu Xw
+	 * @Description Read data from local file "filename", and return the data as a two-dimensional array
+	 * @Date  2024/12/18 17:26
+	 * @Param
+	 * @return
+	 **/
 	String[][] read_to_string(String filename){
 		ArrayList<String> temp = new ArrayList<>();
 		int totalLine = 0;
@@ -61,9 +92,7 @@ public class ReadData extends DefaultSetting {
 
 			if(file.isFile() && file.exists())
 			{
-				if(WhetherPrintFileLog){
-					System.out.println("Success to Read File: " + filename);
-				}
+				log.info("Success to Read File: " + filename);
 
 				InputStreamReader read = new InputStreamReader(new FileInputStream(file),encoding);
 				BufferedReader bufferedReader = new BufferedReader(read);
@@ -87,11 +116,11 @@ public class ReadData extends DefaultSetting {
 			}
 			else
 			{
-				System.out.println("Can not find the file: " + filename);
+				log.info("Can not find the file: " + filename);
 			}
 		}
 		catch (Exception e) {
-			System.out.println("Error in read data");
+			log.info("Error in read data");
 			e.printStackTrace();
 		}
 
@@ -107,6 +136,18 @@ public class ReadData extends DefaultSetting {
 		return result;
 	}
 
+	/**
+	 * @Author Xu Xw
+	 * @Description Read OD range from the local  file
+	 * 		The file format is as follows:
+	 * 				OriginRegion	DestinationRegion	DemandLowerBound	DemandUpperBound	FreightLowerBound	FreightUpperBound
+	 * 				1	2	20	40	2000	2500
+	 * 				2	1	40	60	2000	2500
+	 * 				...
+	 * @Date  2024/12/18 17:25
+	 * @Param
+	 * @return
+	 **/
 	private void readDemandRange() {
 		String[][] result = read_to_string(filePath + "DemandRange.txt");
 
@@ -125,62 +166,68 @@ public class ReadData extends DefaultSetting {
 		}
 		inputdata.setGroupRangeMap(rangeMap);
 	}
-	private void readPaths()
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the container paths from the local  file
+	 * 		The file format is as follows:
+	 * 					ContainerPath ID	OriginPort	OriginTime	DestinationPort	DestinationTime	PathTime	TransshipPort	TransshipTime	PortPath_length	PortPath	Arcs_length	Arcs_ID
+	 * 					1	A	2	B	3	1	0	0	2	A,B	1	1
+	 * 					2	A	9	B	10	1	0	0	2	A,B	1	9
+	 * 					3	A	16	B	17	1	0	0	2	A,B	1	17
+	 * 					...
+	 * @Date  2024/12/18 17:24
+	 * @Param
+	 * @return
+	 **/
+	private void readContainerPaths()
 	{
 		String[][] result = read_to_string(filePath + "P-aths.txt");
 
-		List<ContainerPath> ContainerPath =new ArrayList<>();
-
-		//for (int j = 0; j < result[0].length; j++) {
-		//System.out.print(result[0][j]+"\t");
-		//}
-		//System.out.println();
+		List<ContainerPath> containerPathList = new ArrayList<>();
+		Map<Integer, ContainerPath> containerPaths =new HashMap<>();
 
 		for (int i=1;i<result.length;i++)
 		{
 			ContainerPath ff=new ContainerPath();
 
 			// output reference path
-			//for (int j = 0; j < result[i].length; j++) {
-			// System.out.print(result[i][j]+"\t");
-			//}
-			//System.out.println();
 
 			// set the ContainerPath ID
-			//System.out.print(result[i][0] + "\t");
 			ff.setContainerPathID(Integer.parseInt(result[i][0]));
 
 			// set origin port
-			//System.out.print(result[i][1] + "\t");
 			ff.setOriginPort((result[i][1]));
 
 			// set origin time
-			//System.out.print(result[i][2] + "\t");
 			ff.setOriginTime(Integer.parseInt(result[i][2]));
 
 			// set destination port
-			//System.out.print(result[i][3] + "\t");
 			ff.setDestinationPort(result[i][3]);
 
 			// set destination time
-			//System.out.print(result[i][4] + "\t");
 			ff.setDestinationTime(Integer.parseInt(result[i][4]));
 
 			// set path travel time
-			//System.out.print(result[i][5] + "\t");
 			ff.setPathTime(Integer.parseInt(result[i][5]));
 
 			//set the transshipment port and transhipment time
-			if(result[i][6].equals("0")&& result[i][7].equals("0"))
+			if("0".equals(result[i][6])&& "0".equals(result[i][7]))
 			{
-				ff.setTransshipment_port(null);
-				ff.setTransshipment_Time(null);
+				ff.setTransshipmentPort(null);
+				ff.setTransshipmentTime(null);
 			}
 			else
 			{
 				// transshipment port
 				String[] trans_port = result[i][6].split(",");
-				ff.setTransshipment_port(trans_port);
+				ff.setTransshipmentPort(trans_port);
+
+				List<Port> transshipmentPorts = new ArrayList<>();
+				for (int j = 0; j < trans_port.length; j++) {
+					transshipmentPorts.add(inputdata.getPortSet().get(trans_port[j]));
+				}
+				ff.setTransshipmentPorts(transshipmentPorts);
 
 				//transshipment time
 				String[] s_trans_time = result[i][7].split(",");
@@ -188,21 +235,26 @@ public class ReadData extends DefaultSetting {
 				for (int j = 0; j < s_trans_time.length; j++) {
 					trans_time[j] = Integer.parseInt(s_trans_time[j]);
 				}
-				ff.setTransshipment_Time(trans_time);
+				ff.setTransshipmentTime(trans_time);
 			}
 
 			// set the number of Ports in ContainerPath
-			ff.setNumberofPath( Integer.parseInt(result[i][8]));
-			//System.out.print(ff.getNumberofPath() + "\t");
+			ff.setNumberOfPath(Integer.parseInt(result[i][8]));
 
 			// set the Port ContainerPath sequence
 			String[] port_path = result[i][9].split(",");
 			ff.setPortPath(port_path);
 
+			// set the Port Sequence in ContainerPath
+			List<Port> portsInPath = new ArrayList<>();
+			for (int j = 0; j < port_path.length; j++) {
+				portsInPath.add(inputdata.getPortSet().get(port_path[j]));
+			}
+			ff.setPortsInPath(portsInPath);
+
 			//set the number of arcs
 			int num_of_arcs = Integer.parseInt(result[i][10]);
 			ff.setNumberOfArcs(num_of_arcs);
-			//System.out.print(ff.getNumberOfArcs() + "\t");
 
 			// set the arcs sequence
 			int[] arcIDs  =new int [num_of_arcs];
@@ -212,52 +264,99 @@ public class ReadData extends DefaultSetting {
 			}
 			ff.setArcsID(arcIDs);
 
+			// set the arcs sequence
+			List<Arc> arcs = new ArrayList<>();
+			for (int j = 0; j < arcIDs.length; j++) {
+				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
+			}
+			ff.setArcs(arcs);
+
 			// add the path to ContainerPath set
 			if(ff.getDestinationTime()<=timeHorizon)
 			{
-				ContainerPath.add(ff);
+				containerPathList.add(ff);
+				containerPaths.put(ff.getContainerPathID(), ff);
 			}
 		}
 
 		// set the ContainerPath set
-		inputdata.setContainerPathSet(ContainerPath);
+		inputdata.setContainerPaths(containerPathList);
+		inputdata.setContainerPathSet(containerPaths);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the ship routes from the local  file
+	 * 		The file format is as follows:
+	 * 				ShippingRouteID	NumberofPorts	Ports	NumberofCall	PortsofCall	Time
+	 * 				1	7	A,B,C,D,E,F,G	8	A,B,C,D,E,F,G,A	2,3,4,10,12,14,17,23
+	 * 				2	5	H,D,F,I,J	6	H,D,F,I,J,H	4,5,6,16,22,32
+	 * 				...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readShipRoutes()
 	{
 		String[][] result = read_to_string(filePath + "Shipingroute.txt");
 
-		List<ShipRoute> request=new ArrayList<>();
+		List<ShipRoute> shipRoutes=new ArrayList<>();
 
 		for (int i=1;i<result.length;i++)
 		{
 			ShipRoute ff=new ShipRoute();
 
-			ff.setShippingRouteID( Integer.parseInt(result[i][0]));
-			ff.setNumberofPorts( Integer.parseInt(result[i][1]));
-			ff.setNumberofCall( Integer.parseInt(result[i][3]));
+			ff.setShipRouteID( Integer.parseInt(result[i][0]));
+			ff.setNumberOfPorts( Integer.parseInt(result[i][1]));
+			ff.setNumberOfCall( Integer.parseInt(result[i][3]));
 
 			String[] route_ports = result[i][2].split(",");
 			String[] port_calls = result[i][4].split(",");
 			String[] S_time_calls = result[i][5].split(",");
 
+			Map<Integer, Port> port_calls_map = new HashMap<>();
+
 			int[] time_calls = new int[S_time_calls.length];
 			for (int t = 0; t < S_time_calls.length; t++) {
 				time_calls[t] = Integer.parseInt(S_time_calls[t]);
+				port_calls_map.put(time_calls[t], inputdata.getPortSet().get(port_calls[t]));
 			}
 
 			ff.setPorts(route_ports);
-			ff.setPortsofCall(port_calls);
+			ff.setPortsOfCall(port_calls);
+			ff.setPortCalls(port_calls_map);
 			ff.setTimePointsOfCall(time_calls);
 
 			ff.setCycleTime(time_calls[S_time_calls.length-1] - time_calls[0]);
 			ff.setNumRoundTrips((int) Math.ceil(ff.getCycleTime() / 7));
 
+			// set after initialization vessel paths
 			ff.setNumVesselPaths(0);
 
-			request.add(ff);
+			shipRoutes.add(ff);
 		}
-		inputdata.setShipRoute(request);
+		inputdata.setShipRouteSet(shipRoutes);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the requests from the local  file
+	 * 		The file format is as follows:
+	 * 				RequestID	OriginPort	DestinationPort	W_i_Earlist	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
+	 * 				1	BALBOA	BUSAN(KOREA)	1	58	0	0	0	0
+	 *					2	BALBOA	BUSAN(KOREA)	8	65	0	0	0	0
+	 * 				3	BALBOA	BUSAN(KOREA)	15	72	0	0	0	0
+	 * 				4	BALBOA	BUSAN(KOREA)	22	79	0	0	0	0
+	 *					5	BALBOA	BUSAN(KOREA)	29	86	16	1	0	0
+	 * 				6	BALBOA	BUSAN(KOREA)	36	93	16,17,18,23	4	0	0
+	 *					7	BALBOA	BUSAN(KOREA)	43	100	23,24,25,31	4	3709,3710,3721,3722,10965,15794,16874,21134,23390,23391,32217	11
+	 *					...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readRequests()
 	{
 		String[][] result = read_to_string(filePath + "Requests.txt");
@@ -272,29 +371,33 @@ public class ReadData extends DefaultSetting {
 			ff.setRequestID(Integer.parseInt(result[i][0]));
 			ff.setOriginPort( (result[i][1]));
 			ff.setDestinationPort( (result[i][2]));
-			ff.setW_i_Earliest(Integer.parseInt(result[i][3]));
+			ff.setEarliestPickupTime(Integer.parseInt(result[i][3]));
 			ff.setLatestDestinationTime(Integer.parseInt(result[i][4]));
 			ff.setNumberOfLadenPath(Integer.parseInt(result[i][6]));
 			ff.setNumberOfEmptyPath(Integer.parseInt(result[i][8]));
 
 			// >=
 			// >
-			if(ff.getLatestDestinationTime() >= timeHorizon)
+			if(ff.getLatestDestinationTime() >= timeHorizon) {
 				continue;
+			}
 
 			// get laden path IDs
 			String[] s_laden_paths = result[i][5].split(",");
 			int[] laden_paths = new int[s_laden_paths.length];
 			int[] laden_path_indexes = new int[s_laden_paths.length];
+			List<ContainerPath> ladenPathSet = new ArrayList<>();
 			for (int j = 0; j < ff.getNumberOfLadenPath(); j++) {
 				laden_paths[j] = Integer.parseInt(s_laden_paths[j]);
+				ladenPathSet.add(inputdata.getContainerPathSet().get(laden_paths[j]));
 
 				if(ff.getNumberOfLadenPath() != 0)
 				{
 					int flag = 0;
+
 					// get the path index according to path ID
-					for (int k = 0; k < inputdata.getContainerPathSet().size(); k++) {
-						if(laden_paths[j] == inputdata.getContainerPathSet().get(k).getContainerPathID())
+					for (int k = 0; k < inputdata.getContainerPaths().size(); k++) {
+						if(laden_paths[j] == inputdata.getContainerPaths().get(k).getContainerPathID())
 						{
 							laden_path_indexes[j] = k;
 							flag = 1;
@@ -304,7 +407,7 @@ public class ReadData extends DefaultSetting {
 
 					if(flag == 0)
 					{
-						System.out.println("Error in finding laden path");
+						log.info("Error in finding laden path");
 					}
 				}
 			}
@@ -312,27 +415,29 @@ public class ReadData extends DefaultSetting {
 			{
 				ff.setLadenPaths(laden_paths);
 				ff.setLadenPathIndexes(laden_path_indexes);
+				ff.setLadenPathSet(ladenPathSet);
 			}
 			else
 			{
 				ff.setLadenPaths(null);
 				ff.setLadenPathIndexes(null);
+				ff.setLadenPathSet(null);
 			}
-
 
 			// get empty path IDs
 			String[] s_empty_paths = result[i][7].split(",");
 			int[] empty_paths = new int[ff.getNumberOfEmptyPath()];
 			int[] empty_path_indexes = new int[ff.getNumberOfEmptyPath()];
+			List<ContainerPath> emptyPathSet = new ArrayList<>();
 			for (int j = 0; j < ff.getNumberOfEmptyPath(); j++) {
 				empty_paths[j] = Integer.parseInt(s_empty_paths[j]);
-
+				emptyPathSet.add(inputdata.getContainerPathSet().get(empty_paths[j]));
 				if(empty_paths[0] != 0)
 				{
 					int flag = 0;
 					// get the path index according to path ID
-					for (int k = 0; k < inputdata.getContainerPathSet().size(); k++) {
-						if(empty_paths[j] == inputdata.getContainerPathSet().get(k).getContainerPathID())
+					for (int k = 0; k < inputdata.getContainerPaths().size(); k++) {
+						if(empty_paths[j] == inputdata.getContainerPaths().get(k).getContainerPathID())
 						{
 							empty_path_indexes[j] = k;
 							flag = 1;
@@ -342,18 +447,19 @@ public class ReadData extends DefaultSetting {
 
 					if(flag == 0)
 					{
-						System.out.println("Error in finding laden path");
+						log.info("Error in finding laden path");
 					}
 				}
 
 			}
 			ff.setEmptyPaths(empty_paths);
 			ff.setEmptyPathIndexes(empty_path_indexes);
+			ff.setEmptyPathSet(emptyPathSet);
 
 			// set originGroup and destinationGroup
 			int groupO = 0;
 			int groupD = 0;
-			for(Port pp:inputdata.getPortSet())
+			for(Port pp:inputdata.getPortSet().values())
 			{
 				if(pp.getPort().equals(ff.getOriginPort()))
 				{
@@ -374,21 +480,37 @@ public class ReadData extends DefaultSetting {
 			//! solution : not import
 			if(ff.getLatestDestinationTime()<=timeHorizon
 					&& ff.getNumberOfLadenPath() != 0){
-				if(WhetherAllowSameRegionTrans || ff.getOriginGroup() != ff.getDestinationGroup())
+				if(WhetherAllowSameRegionTrans || ff.getOriginGroup() != ff.getDestinationGroup()) {
 					request.add(ff);
+				}
 			}
-
 		}
 		inputdata.setRequestSet(request);
 	}
+
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the vessels  from the local  file
+	 * 		The file format is as follows:
+	 * 				VesselID	Capacity	OperationCost	RouteID	MaxNum
+	 * 				1	10642	14.69	1	1
+	 * 				2	11388	14.877	1	1
+	 *					3	15072	15.798	1	1
+	 *					...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readVessels()
 	{
 		String filename = filePath;
-		if(VesselCapacityRange.equals("I")){
+		if("I".equals(VesselCapacityRange)){
 			filename += "Vessels.txt";
-		}else if(VesselCapacityRange.equals("II")) {
+		}else if("II".equals(VesselCapacityRange)) {
 			filename += "Vessels-II.txt";
-		}else if(VesselCapacityRange.equals("III")) {
+		}else if("III".equals(VesselCapacityRange)) {
 			filename += "Vessels-III.txt";
 		}
 
@@ -409,16 +531,23 @@ public class ReadData extends DefaultSetting {
 		inputdata.setVesselSet(VesselSet);
 	}
 
-	/*
-	PortID	Port	WhetherTrans	Region	Group
-	1	SINGAPORE	0	ASIA	1
-	...
-	* */
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the ports from the local  file
+	 * The Ports example:
+	 * 	PortID	Port	WhetherTrans	Region	Group
+	 * 	1				SINGAPORE	0				ASIA		1
+	 * 	...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:55
+	 * @Param
+	 * @return
+	 **/
 	private void readPorts()
 	{
 		String[][] result = read_to_string(filePath + "Ports.txt");
 
-		List <Port> port =new ArrayList<>();
+		Map <String, Port> portSet = new HashMap<>();
 		for (int i=1;i<result.length;i++)
 		{
 			Port ff=new Port();
@@ -430,11 +559,27 @@ public class ReadData extends DefaultSetting {
 			ff.setRegion(result[i][3]);
 			ff.setGroup(Integer.parseInt(result[i][4]));
 
-			port.add(ff);
+			portSet.put(ff.getPort(), ff);
 		}
-		inputdata.setPortSet(port);
+		inputdata.setPortSet(portSet);
 	}
 
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the empty paths from the local  file
+	 * 	The file format is as follows:
+	 * 			RequestID	OriginPort	OriginTime	NumOfEmptyPath	PathIDs
+	 * 			1	A	1	0	0
+	 * 			2	A	8	0	0
+	 *				3	A	15	0	0
+	 * 			4	A	22	0	0
+	 * 			5	A	29	13	425,426,911,912,1452,1453,1454,1898,2144,2354,2714,2715,2716
+	 * 			...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readEmptyPaths()
 	{
 		String[][] result = read_to_string(filePath + "EmptyP-aths.txt");
@@ -443,77 +588,86 @@ public class ReadData extends DefaultSetting {
 
 		for (int i=1;i<result.length;i++)
 		{
-			EmptyPath ff=new EmptyPath();
-
 			// set Request ID, 	Origin Port, 	Earliest Setup Time
-			ff.setRequestID(Integer.parseInt(result[i][0]));
-			ff.setOriginPort((result[i][1]));
-			ff.setOriginTime(Integer.parseInt(result[i][2]));
-//        	System.out.print(ff.getRequest_ID()+"\t");
-//        	System.out.print(ff.getOrigin_Port()+"\t");
-//        	System.out.print(ff.getOrigin_time()+"\t");
+			int requestID = Integer.parseInt(result[i][0]);
+			String originPortString = result[i][1];
+			Port originPort = inputdata.getPortSet().get(originPortString);
+			int originTime = Integer.parseInt(result[i][2]);
+			int numOfEmptyPath = Integer.parseInt(result[i][3]);
+			if(numOfEmptyPath == 0)
+			{
+				continue;
+			}
 
 			// get all Empty ContainerPath IDs
 			String[] s_empty_paths = result[i][3].split(",");
-			int[] empty_paths  =new int [s_empty_paths.length];
-			for(int k=0;k<s_empty_paths.length;k++)
-			{
-				empty_paths[k] = Integer.parseInt(s_empty_paths[k]);
-			}
-			ff.setPathID(empty_paths);
+			for (String s_empty_path : s_empty_paths) {
+				EmptyPath ff = new EmptyPath();
+				ff.setRequestID(requestID);
+				ff.setOriginPortString(originPortString);
+				ff.setOriginTime(originTime);
+				ff.setOriginPort(originPort);
+				ff.setPathID(Integer.parseInt(s_empty_path));
 
-			// if the Request ID has laden path : add corresponding empty paths
-			// otherwise : no need for empty path
-			int index=0;
-			for(LadenPath ll :inputdata.getLadenPathSet())
-			{
-				if(ll.getRequest_ID()==ff.getRequestID())
-				{
-					index=index+1;
+				// if the Request ID has laden path : add corresponding empty paths
+				// otherwise : no need for empty path
+				int index = 0;
+				for (LadenPath ll : inputdata.getLadenPathSet()) {
+					if (ll.getRequestID() == ff.getRequestID()) {
+						index = index + 1;
+					}
+				}
+
+				if (index > 0) {
+					emptyPaths.add(ff);
 				}
 			}
-//        	 System.out.print(index + "\t");
-
-			if(index>0)
-			{
-				emptyPaths.add(ff);
-
-//        		 System.out.print("Y");
-			}
-//        	 System.out.println();
-
 		}
 		inputdata.setEmptyPathSet(emptyPaths);
-
 	}
 
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the laden paths from the local  file
+	 * 		The file format is as follows:
+	 * 				RequestID	OriginPort	OriginTime	DestinationPort	RoundTrip	W_i_Earlist	ArrivalTime_to_Destination	PathTime	TransshipPort	TransshipTime	Port_Path	PathID	ArcIDs
+	 * 						1	A	2	B	1	1	3	1	0	0	1	A,B	1
+	 * 						1	A	9	B	1	1	10	1	0	0	2	A,B	9
+	 *							2	A	9	B	2	8	10	1	0	0	2	A,B	9
+	 *							2	A	16	B	2	8	17	1	0	0	3	A,B	17
+	 * 						3	A	16	B	3	15	17	1	0	0	3	A,B	17
+	 * 						...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readLadenPaths()
 	{
 		String[][] result = read_to_string(filePath+"LadenP-aths.txt");
 
-		List<LadenPath> ladenPath=new ArrayList<>();
+		List<LadenPath> ladenPaths=new ArrayList<>();
 
 		for (int i=1;i<result.length;i++)
 		{
 			LadenPath ff=new LadenPath();
 
-			//get Request ID, origin Port, Origin Time, Rotation, W_i_Earliest, Destination Time , travel Time
-			ff.setRequest_ID(Integer.parseInt(result[i][0]));
-			ff.setOrigin_Port((result[i][1]));
-			ff.setOrigin_Time(Integer.parseInt(result[i][2]));
-			ff.setDestination_Port(result[i][3]);
-			ff.setRound_trip(Integer.parseInt(result[i][4]));
-			ff.setW_i_Earlist(Integer.parseInt(result[i][5]));
-			ff.setArrival_Time_to_destination(Integer.parseInt(result[i][6]));
-			ff.setPathtime(Integer.parseInt(result[i][7]));
+			ff.setRequestID(Integer.parseInt(result[i][0]));
+			ff.setOriginPort((result[i][1]));
+			ff.setOriginTime(Integer.parseInt(result[i][2]));
+			ff.setDestinationPort(result[i][3]);
+			ff.setRoundTrip(Integer.parseInt(result[i][4]));
+			ff.setEarliestSetUpTime(Integer.parseInt(result[i][5]));
+			ff.setArrivalTimeToDestination(Integer.parseInt(result[i][6]));
+			ff.setPathTime(Integer.parseInt(result[i][7]));
 
 			// get transship ports and transship time in path i
 			// there is no transshipment in path i
 			// default : no data format error
 			if(result[i][8].equals("0") && result[i][9].equals("0"))
 			{
-				ff.setTransshipment_port(null);
-				ff.setTransshipment_port(null);
+				ff.setTransshipmentPort(null);
+				ff.setTransshipmentPort(null);
 			}
 			// otherwise
 			else
@@ -524,38 +678,56 @@ public class ReadData extends DefaultSetting {
 				for (int j = 0; j < transship_port.length; j++) {
 					transship_time[j] = Integer.parseInt(s_transship_time[j]);
 				}
-				ff.setTransshipment_port(transship_port);
-				ff.setTransshipment_Time(transship_time);
+				ff.setTransshipmentPort(transship_port);
+				ff.setTransshipmentTime(transship_time);
 			}
 
 			// get ContainerPath ID
-			ff.setPath_ID(Integer.parseInt(result[i][10]));
+			ff.setPathID(Integer.parseInt(result[i][10]));
+			ff.setContainerPath(inputdata.getContainerPathSet().get(ff.getPathID()));
 
 			// get port path sequence
 			String [] portPath = result[i][11].split(",");
-			ff.setPort_Path(portPath);
+			ff.setPortPath(portPath);
 
 			// get port arcIDs sequence
 			String[] s_arcIDs = result[i][12].split(",");
 			int[] arcIDs = new int[s_arcIDs.length];
+			List<Arc> arcs = new ArrayList<>();
 			for (int j = 0; j < arcIDs.length; j++) {
 				arcIDs[j] = Integer.parseInt(s_arcIDs[j]);
+				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
 			}
-			ff.setArcs_ID(arcIDs);
+			ff.setArcsID(arcIDs);
+			ff.setArcs(arcs);
 
-			if(ff.getArrival_Time_to_destination()<timeHorizon)
+			if(ff.getArrivalTimeToDestination()<timeHorizon)
 			{
-				ladenPath.add(ff);
+				ladenPaths.add(ff);
 			}
 		}
-		inputdata.setLadenPathSet(ladenPath);
+		inputdata.setLadenPathSet(ladenPaths);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read the vessel paths from the local file: "VesselPaths.txt"
+	 * 	Note: The String "path" in the file name is not available in the Linux system
+	 * 	The file format is as follows:
+	 * 		VesselPathID	VesselRouteID	NumOfArcs	ArcIDs	originTime	destinationTime
+	 * 		1	1	14	1,2,3,4,5,6,7,8,9,10,11,12,13,14	3	87
+	 * 		2	1	14	16,17,18,19,20,21,22,23,24,25,26,27,28,29	10	94
+	 * 		...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readVesselPaths()
 	{
 		String[][] result = read_to_string(filePath+ "VesselP-aths.txt");
 
 		List<VesselPath> vesselPath=new ArrayList<>();
-		List<ShipRoute> shipRouteSet = inputdata.getShipRouteSet();
 		for (int i=1;i<result.length;i++)
 		{
 			VesselPath ff=new VesselPath();
@@ -563,23 +735,29 @@ public class ReadData extends DefaultSetting {
 			// set vessel ContainerPath ID, Routes ID, Number of Arcs
 			ff.setVesselPathID( Integer.parseInt(result[i][0]));
 			ff.setRouteID(Integer.parseInt(result[i][1]));
-			ff.setNumberofArcs(Integer.parseInt(result[i][2]));
+
+
 			ff.setOriginTime(Integer.parseInt(result[i][4]));
 			ff.setDestinationTime(Integer.parseInt(result[i][5]));
 			ff.setPathTime(ff.getDestinationTime() - ff.getOriginTime());
 
-			// set vesselPath ArcIDs
-			int[] arcIDs =new int [ff.getNumberofArcs()];
+
+			// set vesselPath ArcIDs and Arcs
+			ff.setNumberOfArcs(Integer.parseInt(result[i][2]));
+			int[] arcIDs =new int [ff.getNumberOfArcs()];
 			String[] s_arcIDs = result[i][3].split(",");
+			List<Arc> arcs = new ArrayList<>();
 			for (int j = 0; j < s_arcIDs.length; j++) {
 				arcIDs[j] = Integer.parseInt(s_arcIDs[j]);
+				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
 			}
-			ff.setArcID(arcIDs);
+			ff.setArcIDs(arcIDs);
+			ff.setArcs(arcs);
 
 			int index=0;
 			for(TravelingArc tt:inputdata.getTravelingArcSet())
 			{
-				if(tt.getTravelingArc_ID()==ff.getPathArcIDs()[ff.getNumberofArcs()-1])
+				if(tt.getTravelingArcID()==ff.getArcIDs()[ff.getNumberOfArcs()-1])
 				{
 					index=index+1;
 				}
@@ -587,12 +765,32 @@ public class ReadData extends DefaultSetting {
 			if(index>0)
 			{
 				vesselPath.add(ff);
-				shipRouteSet.get(ff.getRouteID()-1).setNumVesselPaths(shipRouteSet.get(ff.getRouteID()-1).getNumVesselPaths()+1);
+
+				// update vessel paths in the route
+				if(inputdata.getShipRouteSet().get(ff.getRouteID()-1).getVesselPaths() == null)
+				{
+					inputdata.getShipRouteSet().get(ff.getRouteID()-1).setVesselPaths(new ArrayList<>());
+				}
+				inputdata.getShipRouteSet().get(ff.getRouteID()-1).setNumVesselPaths(inputdata.getShipRouteSet().get(ff.getRouteID()-1).getNumVesselPaths()+1);
+				inputdata.getShipRouteSet().get(ff.getRouteID()-1).getVesselPaths().add(ff);
 			}
 		}
 		inputdata.setVesselPathSet(vesselPath);
-		inputdata.setShipRoute(shipRouteSet);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read  transship arcs from the local  file: "TransshipArcs.txt"
+	 * 	The file format is as follows:
+	 * 		TransshipArc ID	Port	origin_node_ID	OriginTime	TransshipTime	Destination_node_ID	DestinationTime	FromRoute	ToRoute
+	 * 		557	SHEKOU	2	7	3	225	10	1	2
+	 * 		558	SHEKOU	2	7	10	241	17	1	2
+	 * 		...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readTransshipArcs()
 	{
 		String[][] result = read_to_string(filePath +"TransshipArcs.txt");
@@ -601,24 +799,52 @@ public class ReadData extends DefaultSetting {
 		for (int i=1;i<result.length;i++)
 		{
 			TransshipArc ff=new TransshipArc();
-			ff.setTransshipArc_ID(Integer.parseInt(result[i][0]));
+			ff.setArcID(Integer.parseInt(result[i][0]));
+			ff.setTransshipArcID(Integer.parseInt(result[i][0]));
+
 			ff.setPort((result[i][1]));
+
 			ff.setOriginNodeID(Integer.parseInt(result[i][2]));
 			ff.setOriginTime(Integer.parseInt(result[i][3]));
+			ff.setOriginNode(inputdata.getNodeSet().get(ff.getOriginNodeID()));
+
 			ff.setTransshipTime(Integer.parseInt(result[i][4]));
-			ff.setDestination_node_ID(Integer.parseInt(result[i][5]));
+
+			ff.setDestinationNodeID(Integer.parseInt(result[i][5]));
 			ff.setDestinationTime(Integer.parseInt(result[i][6]));
+			ff.setDestinationNode(inputdata.getNodeSet().get(ff.getDestinationNodeID()));
+
 			ff.setFromRoute(Integer.parseInt(result[i][7]));
 			ff.setToRoute(Integer.parseInt(result[i][8]));
 
 			if(ff.getDestinationTime()<timeHorizon)
 			{
 				transshipArcs.add(ff);
+
+				if(inputdata.getArcSet() == null){
+					inputdata.setArcSet(new HashMap<>());
+				}
+				inputdata.getArcSet().putIfAbsent(ff.getArcID(), ff);
 			}
 
 		}
 		inputdata.setTransshipArcSet(transshipArcs);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read  traveling arcs from the local file: "TravelingArcs.txt"
+	 * 	The file format is as follows:
+	 * 			TravelingArc_ID	Route	Origin_node_ID	Origin_Call	Origin_Port	Round_Trip	OriginTime	TravelingTime	Destination_node_ID	Destination_Call	Destination_Port	DestinationTime
+	 * 			1	1	1	1	A	1	2	1	2	2	B	3
+	 *				2	1	2	2	B	1	3	1	3	3	C	4
+	 * 			3	1	3	3	C	1	4	6	4	4	D	10
+	 * 			...
+	 * @version: v0.1.0
+	 * @Date  2024/12/18 15:16
+	 * @Param None
+	 * @return None
+	 **/
 	private void readTravelingArcs()
 	{
 		String[][] result = read_to_string(filePath +"TravelingArcs.txt");
@@ -628,53 +854,89 @@ public class ReadData extends DefaultSetting {
 		{
 			TravelingArc ff=new TravelingArc();
 
-			ff.setTravelingArc_ID(Integer.parseInt(result[i][0]));
+			ff.setArcID(Integer.parseInt(result[i][0]));
+			ff.setTravelingArcID(Integer.parseInt(result[i][0]));
+
 			ff.setRoute(Integer.parseInt(result[i][1]));
-			ff.setOrigin_node_ID(Integer.parseInt(result[i][2]));
-			ff.setOrigin_Call(Integer.parseInt(result[i][3]));
-			ff.setOrigin_Port((result[i][4]));
+
+			// origin node
+			ff.setOriginNodeID(Integer.parseInt(result[i][2]));
+			ff.setOriginCall(Integer.parseInt(result[i][3]));
+			ff.setOriginPort((result[i][4]));
 			ff.setOriginTime(Integer.parseInt(result[i][6]));
+			ff.setOriginNode(inputdata.getNodeSet().get(ff.getOriginNodeID()));
+
 			ff.setTravelingTime(Integer.parseInt(result[i][7]));
-			ff.setDestination_node_ID(Integer.parseInt(result[i][8]));
-			ff.setDestination_Call(Integer.parseInt(result[i][9]));
-			ff.setDestination_Port((result[i][10]));
+
+			// destination node
+			ff.setDestinationNodeID(Integer.parseInt(result[i][8]));
+			ff.setDestinationCall(Integer.parseInt(result[i][9]));
+			ff.setDestinationPort((result[i][10]));
 			ff.setDestinationTime(Integer.parseInt(result[i][11]));
-			//        	ff.setRound_Trip(Integer.parseInt(result[i][5]));
+			ff.setDestinationNode(inputdata.getNodeSet().get(ff.getDestinationNodeID()));
+
 			//The front input data about round_trip is error
 			ShipRoute r = inputdata.getShipRouteSet().get(ff.getRouteIndex());
 			int index = r.getCallIndexOfPort(ff.getOriginPort());
 			int round_trip = (ff.getOriginTime() - r.getTimePointsOfCall()[index])/7 + 1;
-			ff.setRound_Trip(round_trip);
+			ff.setRoundTrip(round_trip);
 
-			if(r.getTimePointsOfCall()[r.getNumberofCall() - 1] + 7 * ( ff.getRound_Trip() - 1)
+			if(r.getTimePointsOfCall()[r.getNumberOfCall() - 1] + 7 * ( ff.getRoundTrip() - 1)
 					<= timeHorizon)
 			{
 				travelingArcs.add(ff);
+				if(inputdata.getArcSet() == null){
+					inputdata.setArcSet(new HashMap<>());
+				}
+				inputdata.getArcSet().putIfAbsent(ff.getArcID(), ff);
 			}
 		}
 		inputdata.setTravelingArcSet(travelingArcs);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read Nodes from the local file : "Nodes.txt"
+	 * 			The file format is as follows:
+	 * 					ID	Route	Call	Port	Round_trip	Time
+	 * 					1	1	1	A	1	2
+	 * 					2	1	2	B	1	3
+	 * 					3	1	3	C	1	4
+	 *						4	1	4	D	1	10
+	 *						...
+	 * @Date  2024/12/18 17:27
+	 * @Param
+	 * @return
+	 **/
 	private void readNodes()
 	{
 		String[][] result = read_to_string(filePath +"Nodes.txt");
 
-		List<Node> node =new ArrayList<>();
+		Map<Integer, Node> nodeMap =new HashMap<>();
 
-		/*System.out.println(result[0]);*/
+		/**	example:
+		 * 		ID	Route	Call	Port	Round_trip	Time
+		 * 		1		1			1		D5		1						4
+		 */
+		Map<String, Integer> mapToIndex = new HashMap<>();
+		for (int i = 0; i < result[0].length; i++) {
+			mapToIndex.put(result[0][i], i);
+		}
 		for (int i=1;i<result.length;i++)
 		{
 			Node ff=new Node();
-			ff.setNodeID(parseInt(result[i][0].trim()));
-			ff.setRoute(parseInt(result[i][1].trim()));
-			ff.setCall(parseInt(result[i][2].trim()));
-			ff.setRound_trip(parseInt(result[i][4].trim()));
-			ff.setTime(parseInt(result[i][5].trim()));
-			ff.setPort(result[i][3].trim());
+			ff.setNodeID(parseInt(result[i][mapToIndex.get("ID")].trim()));
+			ff.setRoute(parseInt(result[i][mapToIndex.get("Route")].trim()));
+			ff.setCall(parseInt(result[i][mapToIndex.get("Call")].trim()));
+			ff.setPortString(result[i][mapToIndex.get("Port")].trim());
+			ff.setPort(inputdata.getPortSet().get(ff.getPortString()));
+			ff.setRoundTrip(parseInt(result[i][mapToIndex.get("Round_trip")].trim()));
+			ff.setTime(parseInt(result[i][mapToIndex.get("Time")].trim()));
 			if(ff.getTime()<timeHorizon){
-				node.add(ff);
+				nodeMap.put(ff.getNodeID(), ff);
 			}
 		}
-		inputdata.setNodeSet(node);
+		inputdata.setNodeSet(nodeMap);
 	}
 	private void readHistorySolution()
 	{
@@ -710,6 +972,17 @@ public class ReadData extends DefaultSetting {
 
 		inputdata.setHistorySolutionSet(historySolution);
 	}
+
+	/**
+	 * @Author Xu Xw
+	 * @Description Read Sample Data from local backup
+	 * 		The file format is as follows:
+	 * 				0	18,29,32,37,38,53,102,130,160,171,204,211,218,227,296,301,319,320,
+	 * 				1	56,59,67,71,144,177,183,187,225,227,246,248,250,269,287,322,336,343,
+	 * @Date  2024/12/18 17:36
+	 * @Param
+	 * @return
+	 **/
 	private void readSampleScenes(){
 		int tau = (int) Math.sqrt(inputdata.getRequestSet().size());
 		String samplefilename = "R"+ inputdata.getShipRouteSet().size() + "-T"

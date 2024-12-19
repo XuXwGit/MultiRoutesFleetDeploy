@@ -1,8 +1,19 @@
 package multi;
 
-import java.util.ArrayList;
-import java.util.List;
+import multi.network.ContainerPath;
+import multi.network.Request;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 public class CuttingPaths {
 	private InputData in;
 	private Parameter p;
@@ -28,7 +39,14 @@ public class CuttingPaths {
 		reCalculatePaths();
 	}
 
-	// 有问题
+	
+	/**
+	* @Author: XuXw
+	* @Description: 有问题 Todo
+	* @DateTime: 2024/12/5 16:09
+	* @Params: []
+	* @Return void
+	*/
 	private void reduceLongEmptyPath()
 	{
 		for (int i = 0; i < in.getRequestSet().size(); i++)
@@ -37,8 +55,9 @@ public class CuttingPaths {
 			int flag = 0;
 
 			// 0/1
-			if(request.getNumberOfEmptyPath() <= 1)
+			if(request.getNumberOfEmptyPath() <= 1) {
 				continue;
+			}
 
 			// 仅保留用时最短的EmptyPath
 			int[] newEmptyPaths = new int[1];
@@ -49,7 +68,7 @@ public class CuttingPaths {
 			int shortestPathIndex = request.getEmptyPathIndexes()[0];
 			for (int j = 1; j < request.getEmptyPathIndexes().length; j++) {
 				int index = request.getEmptyPathIndexes()[j];
-				if (in.getContainerPathSet().get(index).getPathTime() <= in.getContainerPathSet().get(shortestPathIndex).getPathTime())
+				if (in.getContainerPaths().get(index).getPathTime() <= in.getContainerPaths().get(shortestPathIndex).getPathTime())
 				{
 					newEmptyPaths[0] = request.getEmptyPaths()[j];
 					newEmptyPathIndexes[0] = index;
@@ -72,15 +91,22 @@ public class CuttingPaths {
 		}
 	}
 
-	// 仅保留直达Path
+	/**
+	* @Author: XuXw
+	* @Description: 仅保留直达Path
+	* @DateTime: 2024/12/5 16:09
+	* @Params: []
+	* @Return void
+	*/
 	private void reduceTransshippingPaths()
 	{
 		for (int i = 0; i < in.getRequestSet().size(); i++)
 		{
 			Request request = in.getRequestSet().get(i);
 
-			if(request.getNumberOfLadenPath() == 0)
+			if(request.getNumberOfLadenPath() == 0) {
 				continue;
+			}
 
 			int[] newLadenPaths = new int[request.getLadenPaths().length];
 			int[] newLadenPathIndexes = new int[request.getLadenPaths().length];
@@ -89,7 +115,7 @@ public class CuttingPaths {
 
 			for (int j = 0; j < request.getLadenPathIndexes().length; j++) {
 				int index = request.getLadenPathIndexes()[j];
-				if (in.getContainerPathSet().get(index).getTransshipment_port() == null)
+				if (in.getContainerPaths().get(index).getTransshipmentPort() == null)
 				{
 					newLadenPaths[newNumLadenPaths] = request.getLadenPaths()[j];
 					newLadenPathIndexes[newNumLadenPaths] = index;
@@ -113,11 +139,17 @@ public class CuttingPaths {
 		}
 	}
 
-	// 将重定向到“进口型”港口的Request的可选EmptyPath数量置为0
+	/**
+	* @Author: XuXw
+	* @Description: 将重定向到“进口型”港口的Request的可选EmptyPath数量置为0
+	* @DateTime: 2024/12/5 16:10
+	* @Params: []
+	* @Return void
+	*/
 	private void reduceEmptyPaths()
 	{
-		int[] min_importContainers = new int[in.getPortSet().size()];
-		int[] max_exportContainers = new int[in.getPortSet().size()];
+		int[] minImportContainers = new int[in.getPortSet().size()];
+		int[] maxExportContainers = new int[in.getPortSet().size()];
 
 		// 计算各个港口的总流入量与总流出量
 		for (int i = 0; i < in.getRequestSet().size(); i++) {
@@ -127,17 +159,17 @@ public class CuttingPaths {
 			for (int j = 0; j < in.getPortSet().size(); j++) {
 				if (in.getPortSet().get(j).getPort().equals(origin))
 				{
-					max_exportContainers[j] += p.getDemand()[i] + p.getMaximumDemandVariation()[i];
+					maxExportContainers[j] += p.getDemand()[i] + p.getMaximumDemandVariation()[i];
 				}
 				if(in.getPortSet().get(j).getPort().equals(destination))
 				{
-					min_importContainers[j] += p.getDemand()[i];
+					minImportContainers[j] += p.getDemand()[i];
 				}
 			}
 		}
 
 		for (int i = 0; i < in.getPortSet().size(); i++) {
-			if(max_exportContainers[i] <= min_importContainers[i])
+			if(maxExportContainers[i] <= minImportContainers[i])
 			{
 				for (int j = 0; j < in.getRequestSet().size(); j++) {
 					if (in.getRequestSet().get(j).getOriginPort().equals(in.getPortSet().get(i).getPort()))
@@ -151,7 +183,13 @@ public class CuttingPaths {
 		}
 	}
 
-	// 仅保留不同区域间的Request
+	/**
+	* @Author: XuXw
+	* @Description: 仅保留不同区域间的Request
+	* @DateTime: 2024/12/5 16:11
+	* @Params: []
+	* @Return void
+	*/
 	private void cutRequests()
 	{
 		List<Request> newRequestSet = new ArrayList<>();
@@ -180,13 +218,15 @@ public class CuttingPaths {
 		in.setRequestSet(newRequestSet);
 		p.setDemand(newDemands);
 		p.setMaximumDemandVariation(newMaxVarDemands);
-		//System.out.println("The number of Requests after Cutting Requests between same group: "+ in.getRequestSet().size());
+		//log.info("The number of Requests after Cutting Requests between same group: "+ in.getRequestSet().size());
 	}
 
 	private void reCalculatePaths()
 	{
 		int numOfPaths = 0;
-		List<ContainerPath> newPaths = new ArrayList<>();
+
+		List<ContainerPath> newPathList = new ArrayList<>();
+		Map<Integer, ContainerPath> newPaths = new HashMap<>();
 
 		// 由于减少Request而导致减少的Path
 		for (int i = 0; i < in.getRequestSet().size(); i++)
@@ -195,8 +235,12 @@ public class CuttingPaths {
 
 			for (int j = 0; j < in.getRequestSet().get(i).getNumberOfLadenPath(); j++) {
 				int index = in.getRequestSet().get(i).getLadenPathIndexes()[j];
-				ContainerPath tempPath = in.getContainerPathSet().get(index);
-				newPaths.add(tempPath);
+
+				ContainerPath tempPath = in.getContainerPaths().get(index);
+
+				newPaths.put(numOfPaths, tempPath);
+				newPathList.add(tempPath);
+
 				newLadenIndexes[j] = numOfPaths;
 				numOfPaths++;
 			}
@@ -204,21 +248,23 @@ public class CuttingPaths {
 			in.getRequestSet().get(i).setLadenPathIndexes(newLadenIndexes);
 		}
 
+		in.setContainerPaths(newPathList);
 		in.setContainerPathSet(newPaths);
 
 		// update empty paths
 		for (int i = 0; i < in.getRequestSet().size(); i++) {
 			Request request = in.getRequestSet().get(i);
 
-			if(request.getNumberOfEmptyPath() == 0)
+			if(request.getNumberOfEmptyPath() == 0) {
 				continue;
+			}
 
 			int newNumOfEmptyPaths = 0;
 
 			for (int j = 0; j < request.getNumberOfEmptyPath(); j++) {
 				int tempPathID = request.getEmptyPaths()[j];
-				for (int k = 0; k < in.getContainerPathSet().size(); k++) {
-					if (in.getContainerPathSet().get(k).getContainerPathID() == tempPathID)
+				for (int k = 0; k < in.getContainerPaths().size(); k++) {
+					if (in.getContainerPaths().get(k).getContainerPathID() == tempPathID)
 					{
 						in.getRequestSet().get(i).getEmptyPaths()[newNumOfEmptyPaths] = tempPathID;
 						in.getRequestSet().get(i).getEmptyPathIndexes()[newNumOfEmptyPaths] = k;
@@ -246,19 +292,19 @@ public class CuttingPaths {
 		// demurrage = sum{transshipTime * unit demurrage}
 		// arcAndPath : arcs X paths
 		// arcAndPath[arc][path] == 1 : the travel arc is in path arcs
-		double [] ladenPathDemurrageCost=new double [in.getContainerPathSet().size()];
-		double [] emptyPathDemurrageCost=new double [in.getContainerPathSet().size()];
-		int [] travelTimeOnPath=new int [in.getContainerPathSet().size()];
-		int [] pathSet =new int [in.getContainerPathSet().size()];
-		int [][] arcAndPath  =new int [in.getTravelingArcSet().size()][in.getContainerPathSet().size()];
+		double [] ladenPathDemurrageCost=new double [in.getContainerPaths().size()];
+		double [] emptyPathDemurrageCost=new double [in.getContainerPaths().size()];
+		int [] travelTimeOnPath=new int [in.getContainerPaths().size()];
+		int [] pathSet =new int [in.getContainerPaths().size()];
+		int [][] arcAndPath  =new int [in.getTravelingArcSet().size()][in.getContainerPaths().size()];
 		int x=0;
-		for(ContainerPath pp :in.getContainerPathSet())
+		for(ContainerPath pp :in.getContainerPaths())
 		{
 /*			ladenPathDemurrageCost[x]=175*pp.getTotalTransshipment_Time();
 			emptyPathDemurrageCost[x]=100*pp.getTotalTransshipment_Time();*/
 			// why - 7 ?
-			ladenPathDemurrageCost[x]=Math.max(0, 175*(pp.getTotalTransshipment_Time()-7));
-			emptyPathDemurrageCost[x]=Math.max(0, 100*(pp.getTotalTransshipment_Time()-7));
+			ladenPathDemurrageCost[x]=Math.max(0, 175*(pp.getTotalTransshipmentTime()-7));
+			emptyPathDemurrageCost[x]=Math.max(0, 100*(pp.getTotalTransshipmentTime()-7));
 
 			travelTimeOnPath[x]=pp.getPathTime();
 			pathSet[x]=pp.getContainerPathID();
@@ -266,7 +312,7 @@ public class CuttingPaths {
 			for (int i = 0; i < in.getTravelingArcSet().size(); i++) {
 				arcAndPath[i][x] = 0;
 				for (int j = 0; j < pp.getArcsID().length; j++) {
-					if(in.getTravelingArcSet().get(i).getTravelingArc_ID() == pp.getArcsID()[j])
+					if(in.getTravelingArcSet().get(i).getTravelingArcID() == pp.getArcsID()[j])
 					{
 						arcAndPath[i][x] = 1;
 					}

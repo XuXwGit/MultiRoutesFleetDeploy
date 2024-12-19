@@ -1,13 +1,21 @@
-package multi;
+package multi.algos.CCG;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
-import multi.algos.CCG;
+import multi.*;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualSubProblem;
+import multi.model.primal.MasterProblem;
+import multi.model.primal.SubProblem;
 
 import java.io.IOException;
 import java.util.List;
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class CCGwithPAP extends CCG {
     public CCGwithPAP(InputData in, Parameter p) throws IloException, IOException {
@@ -80,7 +88,7 @@ public class CCGwithPAP extends CCG {
                 setLowerBound(mp.getObjVal());
             }
 
-            dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+            dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
 
             double start2 = System.currentTimeMillis();
             dsp.solveModel();
@@ -138,13 +146,14 @@ public class CCGwithPAP extends CCG {
                 log.info("SubProblem Time = "+ (end1 - start1));
             }
 
-            setLadenDemurrageCost(sp.getLadenCost());
-            setEmptyDemurrageCost(sp.getEmptyCost());
+            setLadenCost(sp.getLadenCost());
+            setEmptyCost(sp.getEmptyCost());
             setRentalCost(sp.getRentalCost());
             setPenaltyCost(sp.getPenaltyCost());
         }
     }
-@Override
+
+    @Override
 protected double initialModel() throws IloException, IOException {
     dsp =new DualSubProblem(in, p, 1);
     mp=new MasterProblem(in, p);
@@ -165,7 +174,7 @@ protected double initialModel() throws IloException, IOException {
         // beta = min{k , I/k}
         double beta=(double)tau > p.getDemand().length/(double)tau ?
                 p.getDemand().length/(double)tau : (double)tau;
-        p.changeMaximunDemandVariation(beta);
+        p.changeMaximumDemandVariation(beta);
 
         double[] sss  =new double [in.getRequestSet().size()];
         // v = tau/I * e  --> |e| = tau/I --> e_i = tau/I * 1/sqrt(I)

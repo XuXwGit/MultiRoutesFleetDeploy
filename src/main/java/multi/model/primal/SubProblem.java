@@ -1,15 +1,19 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.*;
-import multi.model.BasePrimalModel;
+import multi.network.Request;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class SubProblem extends BasePrimalModel
 {
@@ -23,7 +27,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		if(FleetType.equals("Homo")){
 			vVarValue = new int[p.getVesselSet().length][p.getShippingRouteSet().length];
 		} else if (FleetType.equals("Hetero")) {
@@ -45,7 +49,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = new double[p.getDemand().length];
 		try{
@@ -60,7 +64,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = uValue;
 		try{
@@ -75,7 +79,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = IntArrayWrapper.IntArrayToDoubleArray(uValue);
 		try{

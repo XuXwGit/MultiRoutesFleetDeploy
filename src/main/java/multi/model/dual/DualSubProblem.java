@@ -1,22 +1,32 @@
-package multi.model;
+package multi.model.dual;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
 import multi.Scenario;
+import multi.model.primal.SubProblem;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
+@Getter
+@Setter
 public class DualSubProblem extends BaseDualModel
 {
 	// data : in/p/tau
+
 	// cplex model/variables/objective
 	private IloIntVar[] miuVar;
 	private IloNumVar[] lambdaVar;
@@ -29,11 +39,11 @@ public class DualSubProblem extends BaseDualModel
 		this.in = in;
 		this.p = p;
 		this.tau=p.getTau();
-		this.ModelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
-		if(FleetType.equals("Homo")){
+		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		if("Homo".equals(FleetType)){
 			// V[h][r]
 			vVarValue= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
-		} else if (FleetType.equals("Hetero")) {
+		} else if ("Hetero".equals(FleetType)) {
 			// V[h][w]
 			this.vVarValue= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
 		}
@@ -55,11 +65,11 @@ public class DualSubProblem extends BaseDualModel
 		this.in = in;
 		this.p = p;
 		this.tau=tau;
-		this.ModelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
-		if(FleetType.equals("Homo")){
+		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		if("Homo".equals(FleetType)){
 			// V[h][r]
 			vVarValue= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
-		} else if (FleetType.equals("Hetero")) {
+		} else if ("Hetero".equals(FleetType)) {
 			// V[h][w]
 			this.vVarValue= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
 		}
@@ -108,18 +118,18 @@ public class DualSubProblem extends BaseDualModel
 
 	protected IloLinearNumExpr setObjExpr(int[][] vValue) throws IloException {
 		// determine objective function
-		ObjExpr =getDetermineObj(vValue);
+		objExpr =getDetermineObj(vValue);
 		// variable objective function
 		for(int i=0;i<p.getDemand().length;i++){
-			ObjExpr.addTerm(p.getMaximumDemandVariation()[i], lambdaVar[i]);
+			objExpr.addTerm(p.getMaximumDemandVariation()[i], lambdaVar[i]);
 		}
-		return ObjExpr;
+		return objExpr;
 	}
 
 	@Override
 	public void setObjectives() throws IloException{
 		setObjExpr(vVarValue);
-		objective = cplex.addMaximize(ObjExpr);
+		objective = cplex.addMaximize(objExpr);
 	}
 
 	@Override
@@ -254,8 +264,9 @@ public class DualSubProblem extends BaseDualModel
 	public void solveModel()	{
 		try
 		{
-			if (WhetherExportModel)
+			if (WhetherExportModel) {
 				exportModel();
+			}
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())
 			{
@@ -473,10 +484,10 @@ public class DualSubProblem extends BaseDualModel
 		}
 	}
 
-	public IloRange separate(double[][] _vValue, IloCplex _cplex, IloIntVar[][] vVars, IloNumVar etaVar) throws IloException {
-		changeObjectiveVCoefficients(_vValue);
+	public IloRange separate(double[][] vValue, IloCplex cplex, IloIntVar[][] vVars, IloNumVar etaVar) throws IloException {
+		changeObjectiveVvarsCoefficients(vValue);
 		solveModel();
-		return constructOptimalCut(_cplex, vVars, etaVar);
+		return constructOptimalCut(cplex, vVars, etaVar);
 	}
 
 	protected void writeSolution(FileWriter fileWriter){

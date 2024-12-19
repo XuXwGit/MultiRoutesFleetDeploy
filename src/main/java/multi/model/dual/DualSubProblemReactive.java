@@ -1,14 +1,17 @@
-package multi.model;
+package multi.model.dual;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
-import multi.Request;
+import multi.network.Request;
 import multi.Scenario;
-import multi.model.BaseDualModel;
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class DualSubProblemReactive extends BaseDualModel
 {
@@ -30,7 +33,7 @@ public class DualSubProblemReactive extends BaseDualModel
         this.in = in;
         this.p = p;
         this.tau=tau;
-        this.ModelName = "DSPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "DSPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
         this.vVarValue1= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
         this.vVarValue2= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
         try{

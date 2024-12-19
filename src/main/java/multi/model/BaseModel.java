@@ -1,7 +1,9 @@
-package multi;
+package multi.model;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import multi.DefaultSetting;
 import multi.InputData;
@@ -12,14 +14,27 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+/**
+ * @Author: XuXw
+ * @Description: The basic model class
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
+@Getter
+@Setter
 public class BaseModel  extends DefaultSetting {
     protected InputData in;
     protected Parameter p;
     protected IloCplex cplex;
-    protected String Model;
-    protected String ModelName;
+    protected String model;
+    protected String modelName;
+    protected double objVal;
+    protected double objGap;
+    protected double operationCost;
+    protected double solveTime;
+    protected int[][] vVarValue;
+    protected double[][] vVarValueDouble;
+    protected double[] uValue;
 
     public BaseModel(InputData in, Parameter p) {
         super();
@@ -52,15 +67,15 @@ public class BaseModel  extends DefaultSetting {
     }
 
     public void frame() throws IloException{
-        //long start = System.currentTimeMillis();
+        long start = System.currentTimeMillis();
         setDecisionVars();
-        //log.info("Set <" + ModelName + "> DecisionVars Time = "+ (System.currentTimeMillis() - start));
-        //start = System.currentTimeMillis();
+        log.debug("Set <" + modelName + "> DecisionVars Time = "+ (System.currentTimeMillis() - start));
+        start = System.currentTimeMillis();
         setObjectives();
-        //log.info("Set <" + ModelName + "> Objectives Time = "+ (System.currentTimeMillis() - start));
-        //start = System.currentTimeMillis();
+        log.debug("Set <" + modelName + "> Objectives Time = "+ (System.currentTimeMillis() - start));
+        start = System.currentTimeMillis();
         setConstraints();
-        //log.info("Set <" + ModelName + "> Constraints Time = "+ (System.currentTimeMillis() - start));
+        log.debug("Set <" + modelName + "> Constraints Time = "+ (System.currentTimeMillis() - start));
     }
 
     protected  void setDecisionVars() throws IloException {
@@ -69,66 +84,18 @@ public class BaseModel  extends DefaultSetting {
     }
     protected  void setObjectives() throws IloException{
     }
-    public IloCplex getCplex() {
-        return cplex;
-    }
-
-    protected double objVal;
-    public double getObjVal() {
-        return objVal;
-    }
-    public void setObjVal(double objVal) {
-        this.objVal = objVal;
-    }
-
-    protected double objGap;
-    public double getObjGap() {
-        return objGap;
-    }
-    protected void setObjGap(double objGap) {
-        this.objGap = objGap;
-    }
-
-    protected double operationCost;
-    public double getOperationCost() {
-        return operationCost;
-    }
-
-    public void setOperationCost(double operationCost) {
-        this.operationCost = operationCost;
-    }
-
-    protected double solveTime;
-    public double getSolveTime() {
-        return solveTime;
-    }
-    protected void setSolveTime(double solveTime) {
-        this.solveTime = solveTime;
-    }
     public void end()
     {
         cplex.end();
-    }
-    protected int[][] vVarValue;
-    protected double[][] vVarValueDouble;
-    public int[][] getVVarValue() {
-        return vVarValue;
-    }
-    public void setVVarValue(int[][] vVarValue) {
-        this.vVarValue = vVarValue;
-    }
-    protected double[] uValue;
-    public double[] getUValue() {
-        return uValue;
     }
 
     public IloCplex.Status getSolveStatus() throws IloException {
         return cplex.getStatus();
     }
     public String getSolveStatusString() throws IloException {
-        if (cplex.getStatus() == IloCplex.Status.Optimal)
+        if (cplex.getStatus() == IloCplex.Status.Optimal) {
             return "Optimal";
-        else if (cplex.getStatus() == IloCplex.Status.Feasible) {
+        } else if (cplex.getStatus() == IloCplex.Status.Feasible) {
             return "Feasible";
         }
         else if (cplex.getStatus() == IloCplex.Status.Infeasible) {
@@ -140,10 +107,10 @@ public class BaseModel  extends DefaultSetting {
         return "Others";
     }
     protected double[] getCapacityOnArcs(double[][] vValue){
-        double capacitys [] = new double[p.getTravelingArcsSet().length];
+        double[] capacities = new double[p.getTravelingArcsSet().length];
         for(int n = 0; n<p.getTravelingArcsSet().length; n++)
         {
-            capacitys[n] = 0;
+            capacities[n] = 0;
             // r ∈R
             // w∈Ω
             for(int w=0; w<p.getVesselPathSet().length; w++)
@@ -153,16 +120,16 @@ public class BaseModel  extends DefaultSetting {
                 // h \in Hr
                 for(int h=0;h<p.getVesselSet().length;h++)
                 {
-                    if(FleetType.equals("Homo")){
+                    if("Homo".equals(FleetType)){
                         // vValue[v][r] : come from solution of master problem
-                        capacitys[n] += p.getArcAndVesselPath()[n][w]
+                        capacities[n] += p.getArcAndVesselPath()[n][w]
                                 *p.getShipRouteAndVesselPath()[r][w]
                                 *p.getVesselTypeAndShipRoute()[h][r]
                                 *p.getVesselCapacity()[h]
                                 * vValue[h][r];
-                    } else if (FleetType.equals("Hetero")) {
+                    } else if ("Hetero".equals(FleetType)) {
                         // vValue[v][r] : come from solution of master problem
-                        capacitys[n] += p.getArcAndVesselPath()[n][w]
+                        capacities[n] += p.getArcAndVesselPath()[n][w]
                                 *p.getVesselCapacity()[h]
                                 * vValue[h][w];
                     }
@@ -172,14 +139,12 @@ public class BaseModel  extends DefaultSetting {
                 }
             }
         }
-        return capacitys;
+        return capacities;
     }
-
     protected double[] getCapacityOnArcs(int[][] vValue){
         double[][] vValueDouble = IntArray2DWrapper.Int2DArrayToDouble2DArray(vValue);
         return getCapacityOnArcs(vValueDouble);
     }
-
     protected void exportModel() throws IloException {
         String modelFilePath = RootPath + ExportModelPath;
         try {
@@ -195,7 +160,7 @@ public class BaseModel  extends DefaultSetting {
             // 处理可能的IOException
             e.printStackTrace();
         }
-        String filename = ModelName + ".lp";
+        String filename = modelName + ".lp";
         cplex.exportModel(modelFilePath+ filename);
     }
 }

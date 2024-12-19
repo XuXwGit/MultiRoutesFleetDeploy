@@ -1,17 +1,21 @@
-package multi.algos;
+package multi.algos.CCG;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
-import multi.AlgoFrame;
 import multi.InputData;
 import multi.Parameter;
 import multi.Scenario;
+import multi.algos.AlgoFrame;
 
 import java.io.IOException;
 import java.util.List;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class CCG extends AlgoFrame {
 	public CCG(InputData in, Parameter p) throws IloException, IOException {
@@ -45,8 +49,9 @@ public class CCG extends AlgoFrame {
 			return;
 		}
 
-		if(WhetherAddInitializeSce)
+		if(WhetherAddInitializeSce) {
 			initializeSce(sce);
+		}
 
 		double time0 = System.currentTimeMillis();
 
@@ -85,7 +90,7 @@ public class CCG extends AlgoFrame {
 			}
 
 			// solve dual sub problem
-			dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+			dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
 			double start2 = System.currentTimeMillis();
 			dsp.solveModel();
 			double end2 = System.currentTimeMillis();

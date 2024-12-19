@@ -1,13 +1,22 @@
-package multi;
+package multi.algos.CCG;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
-import multi.algos.CCG;
+import multi.*;
+import multi.model.primal.DetermineModel;
+import multi.model.dual.DualSubProblemReactive;
+import multi.model.primal.MasterProblem;
+import multi.model.primal.SubProblemReactive;
 
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class CCGwithPAP_Reactive  extends CCG {
     private DualSubProblemReactive dsp;
@@ -62,10 +71,11 @@ public class CCGwithPAP_Reactive  extends CCG {
         // beta = min(k, m/k)
         double beta=(double)tau > p.getDemand().length/(double)tau ?
                 p.getDemand().length/(double)tau : (double)tau;
-        p.changeMaximunDemandVariation(beta);
+        p.changeMaximumDemandVariation(beta);
 
-        if(WhetherAddInitializeSce)
+        if(WhetherAddInitializeSce) {
             initializeSce(sce);
+        }
 
         double masterObjective;
 

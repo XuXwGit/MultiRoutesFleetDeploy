@@ -2,6 +2,11 @@ package multi;
 
 import java.util.Arrays;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 public class IntArray2DWrapper {
     private final int[][] array2D;
 
@@ -15,8 +20,12 @@ public class IntArray2DWrapper {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         IntArray2DWrapper that = (IntArray2DWrapper) o;
         return Arrays.deepEquals(array2D, that.array2D);
     }

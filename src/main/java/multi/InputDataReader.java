@@ -18,6 +18,11 @@
 package multi;
 import java.io.*;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 public class InputDataReader {
    public static class InputDataReaderException extends Exception {
       private static final long serialVersionUID = 1021L;
@@ -26,74 +31,73 @@ public class InputDataReader {
       }
    }
    
-   StreamTokenizer _tokenizer;
-   Reader _reader;
-   String _fileName;
-
+   StreamTokenizer tokenizer;
+   Reader reader;
+   String fileName;
    public InputDataReader(String fileName) throws IOException {
-      _reader = new FileReader(fileName);
-      _fileName = fileName;
+      reader = new FileReader(fileName);
+      this.fileName = fileName;
     
-      _tokenizer = new StreamTokenizer(_reader);
+      tokenizer = new StreamTokenizer(reader);
     
       // State the '"', '\'' as white spaces.
-      _tokenizer.whitespaceChars('"', '"');
-      _tokenizer.whitespaceChars('\'', '\'');
-      _tokenizer.whitespaceChars('\t', '\t');
+      tokenizer.whitespaceChars('"', '"');
+      tokenizer.whitespaceChars('\'', '\'');
+      tokenizer.whitespaceChars('\t', '\t');
     
       // State the '[', ']' as normal characters.
-      _tokenizer.ordinaryChar('[');
-      _tokenizer.ordinaryChar(']');
-      _tokenizer.ordinaryChar(',');
+      tokenizer.ordinaryChar('[');
+      tokenizer.ordinaryChar(']');
+      tokenizer.ordinaryChar(',');
    }
 
    protected void finalize() throws Throwable {
-      _reader.close();
+      reader.close();
    }
 
    double readDouble() throws InputDataReaderException,
                               IOException {
-      int ntType = _tokenizer.nextToken();
+      int ntType = tokenizer.nextToken();
       
       if ( ntType != StreamTokenizer.TT_NUMBER )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
-      return _tokenizer.nval;
+      return tokenizer.nval;
    }
      
    int readInt() throws InputDataReaderException,
                         IOException {
-      int ntType = _tokenizer.nextToken();
+      int ntType = tokenizer.nextToken();
     
       if ( ntType != StreamTokenizer.TT_NUMBER )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
-      return (new Double(_tokenizer.nval)).intValue();
+      return (new Double(tokenizer.nval)).intValue();
    }
    
    double[] readDoubleArray() throws InputDataReaderException,
                                      IOException {
-      int ntType = _tokenizer.nextToken(); // Read the '['
+      int ntType = tokenizer.nextToken(); // Read the '['
       
       if ( ntType != '[' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
       DoubleArray values = new DoubleArray();
-      ntType = _tokenizer.nextToken();
+      ntType = tokenizer.nextToken();
       while (ntType == StreamTokenizer.TT_NUMBER) {
-         values.add(_tokenizer.nval);
-         ntType = _tokenizer.nextToken();
+         values.add(tokenizer.nval);
+         ntType = tokenizer.nextToken();
          
          if ( ntType == ',' ) {
-            ntType = _tokenizer.nextToken();
+            ntType = tokenizer.nextToken();
          }
          else if ( ntType != ']' ) {
-            throw new InputDataReaderException(_fileName);
+            throw new InputDataReaderException(fileName);
          }
       }
       
       if ( ntType != ']' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
     
       // Allocate and fill the array.
       double[] res = new double[values.getSize()];
@@ -106,30 +110,30 @@ public class InputDataReader {
 
    double[][] readDoubleArrayArray() throws InputDataReaderException,
                                             IOException {
-      int ntType = _tokenizer.nextToken(); // Read the '['
+      int ntType = tokenizer.nextToken(); // Read the '['
       
       if ( ntType != '[' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
       DoubleArrayArray values = new DoubleArrayArray();
-      ntType = _tokenizer.nextToken();
+      ntType = tokenizer.nextToken();
       
       while (ntType == '[') {
-         _tokenizer.pushBack();
+         tokenizer.pushBack();
          
          values.add(readDoubleArray());
          
-         ntType = _tokenizer.nextToken();
+         ntType = tokenizer.nextToken();
          if      ( ntType == ',' ) {
-           ntType = _tokenizer.nextToken();
+           ntType = tokenizer.nextToken();
          }
          else if ( ntType != ']' ) {
-           throw new InputDataReaderException(_fileName);
+           throw new InputDataReaderException(fileName);
          }
       }
     
       if ( ntType != ']' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
     
       // Allocate and fill the array.
       double[][] res = new double[values.getSize()][];
@@ -144,27 +148,27 @@ public class InputDataReader {
 
    int[] readIntArray() throws InputDataReaderException,
                                IOException {
-      int ntType = _tokenizer.nextToken(); // Read the '['
+      int ntType = tokenizer.nextToken(); // Read the '['
       
       if ( ntType != '[' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
       IntArray values = new IntArray();
-      ntType = _tokenizer.nextToken();
+      ntType = tokenizer.nextToken();
       while (ntType == StreamTokenizer.TT_NUMBER) {
-         values.add(_tokenizer.nval);
-         ntType = _tokenizer.nextToken();
+         values.add(tokenizer.nval);
+         ntType = tokenizer.nextToken();
          
          if      ( ntType == ',' ) {
-            ntType = _tokenizer.nextToken();
+            ntType = tokenizer.nextToken();
          }
          else if ( ntType != ']' ) {
-            throw new InputDataReaderException(_fileName);
+            throw new InputDataReaderException(fileName);
          }
       }
       
       if ( ntType != ']' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
 
       // Allocate and fill the array.
       int[] res = new int[values.getSize()];
@@ -176,30 +180,30 @@ public class InputDataReader {
 
    int[][] readIntArrayArray() throws InputDataReaderException,
                                       IOException {
-      int ntType = _tokenizer.nextToken(); // Read the '['
+      int ntType = tokenizer.nextToken(); // Read the '['
       
       if ( ntType != '[' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
       
       IntArrayArray values = new IntArrayArray();
-      ntType = _tokenizer.nextToken();
+      ntType = tokenizer.nextToken();
       
       while (ntType == '[') {
-         _tokenizer.pushBack();
+         tokenizer.pushBack();
          
          values.add(readIntArray());
          
-         ntType = _tokenizer.nextToken();
+         ntType = tokenizer.nextToken();
          if      ( ntType == ',' ) {
-            ntType = _tokenizer.nextToken();
+            ntType = tokenizer.nextToken();
          }
          else if ( ntType != ']' ) {
-            throw new InputDataReaderException(_fileName);
+            throw new InputDataReaderException(fileName);
          }
       }
     
       if ( ntType != ']' )
-         throw new InputDataReaderException(_fileName);
+         throw new InputDataReaderException(fileName);
     
       // Allocate and fill the array.
       int[][] res = new int[values.getSize()][];

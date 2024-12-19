@@ -1,4 +1,4 @@
-package multi.model;
+package multi.model.dual;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -10,8 +10,11 @@ import ilog.cplex.IloCplex;
 import multi.InputData;
 import multi.IntArrayWrapper;
 import multi.Parameter;
-import multi.model.BaseDualModel;
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class DualProblem extends BaseDualModel {
 
@@ -22,7 +25,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue = new int[p.getVesselSet().length][p.getShippingRouteSet().length];
 		this.uValue = new double[p.getDemand().length];
 		try{
@@ -37,7 +40,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = new double[p.getDemand().length];
 		try{
@@ -52,7 +55,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = uValue;
 		try{
@@ -68,7 +71,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = IntArrayWrapper.IntArrayToDoubleArray(uValue);
 		try{
@@ -88,8 +91,8 @@ public class DualProblem extends BaseDualModel {
 
 	@Override
 	public void setObjectives() throws IloException{
-		ObjExpr = getObjExpr(vVarValue, uValue);
-		objective = cplex.addMaximize(ObjExpr);
+		objExpr = getObjExpr(vVarValue, uValue);
+		objective = cplex.addMaximize(objExpr);
 	}
 
 	@Override
@@ -105,16 +108,22 @@ public class DualProblem extends BaseDualModel {
 		}
 	}
 
-	// pareto optimal cut constraint:
-	// DSP-obj == Obj -> objLB <= DSP-obj <= objUB
+	/**
+	* @Author: XuXw
+	* @Description: add pareto optimal cut constraint: objLB <= DSP-obj <= objUB
+	* @DateTime: 2024/12/5 16:21
+	* @Params: []
+	* @Return void
+	*/
 	private void setParetoConstraint() throws IloException{
-		CObj = cplex.addRange(Double.MIN_VALUE, ObjExpr, Double.MAX_VALUE, "ParetoObj");
+		CObj = cplex.addRange(Double.MIN_VALUE, objExpr, Double.MAX_VALUE, "ParetoObj");
 	}
 	public void changeParetoConstr(int[][] vValue, double[] uValue, double dspObjVal) throws IloException {
-		ObjExpr = getObjExpr(vValue, uValue);
-		CObj.setExpr(ObjExpr);
+		objExpr = getObjExpr(vValue, uValue);
+		CObj.setExpr(objExpr);
 		CObj.setBounds(dspObjVal - boundGapLimit, dspObjVal + boundGapLimit);
 	}
+
 	// C1------X
 	private void setConstraint1() throws IloException {
 		//  ∀i∈I
@@ -138,8 +147,9 @@ public class DualProblem extends BaseDualModel {
 	public void solveModel() {
 		try
 		{
-			if (WhetherExportModel)
+			if (WhetherExportModel) {
 				exportModel();
+			}
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())
 			{

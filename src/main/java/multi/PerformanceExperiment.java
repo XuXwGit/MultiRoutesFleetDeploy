@@ -2,12 +2,25 @@ package multi;
 
 import ilog.concert.IloException;
 import lombok.extern.slf4j.Slf4j;
+import multi.algos.BD.BD;
+import multi.algos.BD.BDwithPAP;
+import multi.algos.BD.BDwithPareto;
+import multi.algos.BD.SOwithBD;
+import multi.algos.CCG.CCG;
+import multi.algos.CCG.CCGwithPAP;
+import multi.algos.CCG.CCGwithPAP_Reactive;
+import multi.model.primal.DetermineModel;
+import multi.model.primal.DetermineModelReactive;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-
+/**
+* @Author: XuXw
+* @Description: TODO
+* @DateTime: 2024/12/4 17:28
+*/
 @Slf4j
 public class PerformanceExperiment {
     private static FileWriter fileWriter;
@@ -61,16 +74,16 @@ public class PerformanceExperiment {
         // 6: compare different demand distribution
         // 7: compare mean-performance and worst-case performance
         // 8: compare two-stage robust with two-stage stochastic programming
-        System.out.print("Experiment " + type + ": ");
+        log.info("Experiment " + type + ": ");
         if(type == 1){
             log.info("Compare the performance of the four algorithms (CCG/BD/CCG&PAP/BD&PAP)");
-            experiment_test1(fileName);
+            experimentTest1(fileName);
         } else if (type == 2) {
             log.info("Compare the empty container reposition strategy with reactive strategy");
             experiment_test2(fileName);
         }else if (type == 3){
             log.info("Compare performance under different laden/empty paths select strategy");
-            experiment_test3(fileName);
+            experimentTest3(fileName);
         }else if (type == 4){
             log.info("Compare performance under different fleet composition: Homo V/S Hetero");
             experiment_test4(fileName);
@@ -94,14 +107,14 @@ public class PerformanceExperiment {
         fileWriter.close();
     }
 
-    static private void experiment_test1(String filename) throws IloException, IOException {
+    static private void experimentTest1(String filename) throws IloException, IOException {
         log.info("========================== Begin Performance Test =========================");
         log.info("==============================" + "Experiment 1" + "=============================");
-        for (int T : timeHorizonSet) {
+        for (int t : timeHorizonSet) {
             InputData inputData = new InputData();
-            new ReadData(filename, inputData, T);
+            new ReadData(filename, inputData, t);
             Parameter para = new Parameter();
-            new GenerateParameter(para, inputData, T, uncertainDegree);
+            new GenerateParameter(para, inputData, t, uncertainDegree);
             inputData.showStatus();
             new SelectPaths(inputData, para, 0.4);
 
@@ -153,7 +166,7 @@ public class PerformanceExperiment {
 
 
             if(DefaultSetting.WhetherWriteFileLog){
-                fileWriter.write("\n" + "TimeHorizon : " + T + "\n");
+                fileWriter.write("\n" + "TimeHorizon : " + t + "\n");
                 fileWriter.write("UncertainDegree : " + uncertainDegree + "\n");
 
                 inputData.writeStatus(fileWriter);
@@ -201,8 +214,8 @@ public class PerformanceExperiment {
         log.info("=============================" + "Experiment 2" + "=============================");
 
         for (int T : timeHorizonSet) {
-            System.out.print("TimeHorizon : " + T + "\n");
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+            log.info("TimeHorizon : " + T + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
 
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
@@ -279,34 +292,34 @@ public class PerformanceExperiment {
         log.info("========================== Print Data Status =========================");
 
         for (int T : timeHorizonSet) {
-            System.out.print("TimeHorizon : " + T + "\n");
+            log.info("TimeHorizon : " + T + "\n");
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
             Parameter para = new Parameter();
             new GenerateParameter(para, inputData, T, uncertainDegree);
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
 
             inputData.showStatus();
         }
     }
 
-    static private void experiment_test3(String filename) throws IOException, IloException {
+    static private void experimentTest3(String filename) throws IOException, IloException {
         print_data_status(filename);
 
         log.info("========================== Begin Performance Test =========================");
         log.info("=============================" + "Experiment 3" + "=============================");
 
         for (int T : timeHorizonSet) {
-            System.out.print("TimeHorizon : " + T + "\n");
+            log.info("TimeHorizon : " + T + "\n");
             double[] percentSet = new double[]{0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.0};
             //double[] percentSet = new double[]{0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
             for (double percent : percentSet) {
-                System.out.print("Path Percent : " + percent + "\n");
+                log.info("Path Percent : " + percent + "\n");
                 InputData inputData = new InputData();
                 new ReadData(filename, inputData, T);
                 Parameter para = new Parameter();
                 new GenerateParameter(para, inputData, T, uncertainDegree);
-                System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+                log.info("UncertainDegree : " + uncertainDegree + "\n");
                 inputData.showStatus();
                 new SelectPaths(inputData, para, percent);
 
@@ -405,8 +418,8 @@ public class PerformanceExperiment {
                 + "\n");
 
         for (int T : timeHorizonSet) {
-            System.out.print("TimeHorizon : " + T + "\n");
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+            log.info("TimeHorizon : " + T + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
             Parameter para = new Parameter();
@@ -425,10 +438,10 @@ public class PerformanceExperiment {
                 fileWriter.write(ccgp_hetero.getObjVal() + "\t");
                 fileWriter.write(ccgp_homo.getOperationCost() + "\t");
                 fileWriter.write(ccgp_hetero.getOperationCost() + "\t");
-                fileWriter.write(ccgp_homo.getLadenDemurrageCost() + "\t");
-                fileWriter.write(ccgp_hetero.getLadenDemurrageCost() + "\t");
-                fileWriter.write(ccgp_homo.getEmptyDemurrageCost() + "\t");
-                fileWriter.write(ccgp_hetero.getEmptyDemurrageCost() + "\t");
+                fileWriter.write(ccgp_homo.getLadenCost() + "\t");
+                fileWriter.write(ccgp_hetero.getLadenCost() + "\t");
+                fileWriter.write(ccgp_homo.getEmptyCost() + "\t");
+                fileWriter.write(ccgp_hetero.getEmptyCost() + "\t");
                 fileWriter.write(ccgp_homo.getRentalCost() + "\t");
                 fileWriter.write(ccgp_hetero.getRentalCost() + "\t");
                 fileWriter.write(ccgp_homo.getPenaltyCost() + "\t");
@@ -464,7 +477,7 @@ public class PerformanceExperiment {
             DefaultSetting.VesselCapacityRange = vessel_type;
 
             for (int T : timeHorizonSet) {
-                System.out.print("TimeHorizon : " + T + "\n");
+                log.info("TimeHorizon : " + T + "\n");
 
                 InputData inputData = new InputData();
                 new ReadData(filename, inputData, T);
@@ -473,7 +486,7 @@ public class PerformanceExperiment {
 
                 Parameter para = new Parameter();
                 new GenerateParameter(para, inputData, T, uncertainDegree);
-                System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+                log.info("UncertainDegree : " + uncertainDegree + "\n");
 
                 new SelectPaths(inputData, para, 0.4);
 
@@ -483,8 +496,8 @@ public class PerformanceExperiment {
                     fileWriter.write(T + "\t");
                     fileWriter.write(ccgp.getObjVal() + "\t");
                     fileWriter.write(ccgp.getOperationCost() + "\t");
-                    fileWriter.write(ccgp.getLadenDemurrageCost() + "\t");
-                    fileWriter.write(ccgp.getEmptyDemurrageCost() + "\t");
+                    fileWriter.write(ccgp.getLadenCost() + "\t");
+                    fileWriter.write(ccgp.getEmptyCost() + "\t");
                     fileWriter.write(ccgp.getRentalCost() + "\t");
                     fileWriter.write(ccgp.getPenaltyCost() + "\t");
                     fileWriter.write(ccgp.getWorstPerformance() + "\t");
@@ -513,13 +526,13 @@ public class PerformanceExperiment {
                 + "WP" + "\t"
                 + "\n");
         int T = defaultTimeHorizon;
-        System.out.print("TimeHorizon : " + T + "\n");
+        log.info("TimeHorizon : " + T + "\n");
         //double[] sigma_factor_set = new double[]{0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0};
-        double[] sigma_factor_set = new double[]{1};
-        for (double sigma_factor : sigma_factor_set) {
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
-            DefaultSetting.log_normal_sigma_factor = sigma_factor;
-            System.out.print("log_normal_sigma_factor : " + DefaultSetting.log_normal_sigma_factor + "\n");
+        double[] sigmaFactorSet = new double[]{1};
+        for (double sigmaFactor : sigmaFactorSet) {
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
+            DefaultSetting.log_normal_sigma_factor = sigmaFactor;
+            log.info("log_normal_sigma_factor : " + DefaultSetting.log_normal_sigma_factor + "\n");
 
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
@@ -534,11 +547,11 @@ public class PerformanceExperiment {
             CCGwithPAP ccgp = new CCGwithPAP(inputData, para, para.getTau());
 
             if(DefaultSetting.WhetherWriteFileLog) {
-                fileWriter.write(sigma_factor + "\t");
+                fileWriter.write(sigmaFactor + "\t");
                 fileWriter.write(ccgp.getObjVal() + "\t");
                 fileWriter.write(ccgp.getOperationCost() + "\t");
-                fileWriter.write(ccgp.getLadenDemurrageCost() + "\t");
-                fileWriter.write(ccgp.getEmptyDemurrageCost() + "\t");
+                fileWriter.write(ccgp.getLadenCost() + "\t");
+                fileWriter.write(ccgp.getEmptyCost() + "\t");
                 fileWriter.write(ccgp.getRentalCost() + "\t");
                 fileWriter.write(ccgp.getPenaltyCost() + "\t");
                 fileWriter.write(ccgp.getWorstPerformance() + "\t");
@@ -578,8 +591,8 @@ public class PerformanceExperiment {
 
         DefaultSetting.UseHistorySolution = false;
 
-        System.out.print("TimeHorizon : " + T + "\n");
-        System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+        log.info("TimeHorizon : " + T + "\n");
+        log.info("UncertainDegree : " + uncertainDegree + "\n");
         InputData inputData = new InputData();
         new ReadData(filename, inputData, T);
         Parameter para = new Parameter();
@@ -587,80 +600,6 @@ public class PerformanceExperiment {
         inputData.showStatus();
         new SelectPaths(inputData, para, 0.4);
         log.info("Tau : " + para.getTau());
-        // String[] methods = new String[]{"DM", "BD", "CCG", "CCG&PAP"};
-            /*String[] methods = new String[]{"BD", "CCG", "CCG&PAP"};
-            for(String method : methods){
-                String AlgoID = method + "-R"+ inputData.getShipRouteSet().size() + "-T" + T + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
-                if((inputData.getHistorySolutionSet().get(AlgoID) != (null))) {
-                    int[][] vValue = para.solutionToVValue(inputData.getHistorySolutionSet().get(AlgoID));
-                    String samplefilename = method + "-R"+ inputData.getShipRouteSet().size() + "-T"
-                            + para.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-SampleTestResult"+ ".csv";
-                    File file = new File(RootPath + AlgoLogPath + samplefilename);
-                    if (!file.exists()) {
-                        try {
-                            file.createNewFile();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-                    FileWriter filewriter = new FileWriter(file, false);
-                    filewriter.write("Sample\tOperationCost\t TotalTransCost\t LadenCost\t EmptyCost\t RentalCost\t PenaltyCost\tTotalCost\n");
-                    filewriter.flush();
-
-                    double mp_operation_cost = 0;
-                    if(UseHistorySolution){
-                        mp_operation_cost = para.getOperationCost(vValue);
-                    }
-
-                    double[] sample_sub_opera_costs = new double[numSampleScenes];
-                    double[] sample_laden_costs = new double[numSampleScenes];
-                    double[] sample_empty_costs = new double[numSampleScenes];
-                    double[] sample_rental_costs = new double[numSampleScenes];
-                    double[] sample_penalty_costs = new double[numSampleScenes];
-
-                    double sum_sub_opera_costs = 0;
-                    double worst_total_cost = 0;
-                    double worst_second_cost = 0;
-                    SubProblem sp = new SubProblem(inputData, para, vValue);
-                    for (int sce = 0; sce < numSampleScenes; sce++) {
-                        sp.changeDemandConstraintCoefficients(para.getSampleScenes()[sce]);
-                        sp.solveModel();
-
-                        sample_sub_opera_costs[sce] = sp.getTotalCost();
-                        sample_laden_costs[sce] = sp.getLadenCost();
-                        sample_empty_costs[sce] = sp.getEmptyCost();
-                        sample_rental_costs[sce] = sp.getRentalCost();
-                        sample_penalty_costs[sce] = sp.getPenaltyCost();
-
-                        sum_sub_opera_costs += sp.getTotalCost();
-                        if((mp_operation_cost + sample_sub_opera_costs[sce]) > worst_total_cost){
-                            worst_total_cost = mp_operation_cost + sample_sub_opera_costs[sce];
-                            worst_second_cost = sample_sub_opera_costs[sce];
-                        }
-
-                        drawProgressBar((sce) * 100 / numSampleScenes);
-
-                        filewriter.write(sce + "\t" + mp_operation_cost + "\t"
-                                + sample_sub_opera_costs[sce] + "\t"
-                                + sample_laden_costs[sce] + "\t"
-                                + sample_empty_costs[sce] + "\t"
-                                + sample_rental_costs[sce] + "\t"
-                                + sample_penalty_costs[sce] + "\t"
-                                + (mp_operation_cost + sample_sub_opera_costs[sce])
-                                + "\n");
-                        filewriter.flush();
-                    }
-
-                    log.info("Worst Performance = " + worst_total_cost);
-                    log.info("Mean Performance = " + (mp_operation_cost + sum_sub_opera_costs / numSampleScenes));
-                    log.info("Worst Second Stage Cost = " + worst_second_cost);
-                    log.info("Mean Second Stage Cost = " + sum_sub_opera_costs / numSampleScenes);
-
-                    filewriter.close();
-                }
-            }*/
-
 
         ////////////////////////////////////////
         DetermineModel dm = new DetermineModel(inputData, para);
@@ -704,8 +643,8 @@ public class PerformanceExperiment {
         DefaultSetting.printSettings();
         for (int T : timeHorizonSet) {
 
-            System.out.print("TimeHorizon : " + T + "\n");
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+            log.info("TimeHorizon : " + T + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
             Parameter para = new Parameter();
@@ -727,8 +666,8 @@ public class PerformanceExperiment {
         DefaultSetting.printSettings();
         for (int T : timeHorizonSet) {
 
-            System.out.print("TimeHorizon : " + T + "\n");
-            System.out.print("UncertainDegree : " + uncertainDegree + "\n");
+            log.info("TimeHorizon : " + T + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
             InputData inputData = new InputData();
             new ReadData(filename, inputData, T);
             Parameter para = new Parameter();
@@ -739,7 +678,7 @@ public class PerformanceExperiment {
             BDwithPareto bdpa = new BDwithPareto(inputData, para);
             BD bd = new BD(inputData, para);
 
-            log.info("BDwithPareto : \t" + bdpa.getObjVal() + "\t" + bdpa.getSolveTime() + "\t" + bdpa.getIter());
+            log.info("BD with Pareto Cut: \t" + bdpa.getObjVal() + "\t" + bdpa.getSolveTime() + "\t" + bdpa.getIter());
             log.info("BD : \t" + bd.getObjVal() + "\t" + bd.getSolveTime() + "\t" + bd.getIter());
         }
     }

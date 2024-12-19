@@ -2,6 +2,12 @@ package multi;
 
 import java.util.Arrays;
 
+
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 public class DoubleArrayWrapper {
     private final double[] array;
 
@@ -15,8 +21,12 @@ public class DoubleArrayWrapper {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
         DoubleArrayWrapper that = (DoubleArrayWrapper) o;
         return Arrays.equals(array, that.array);
     }

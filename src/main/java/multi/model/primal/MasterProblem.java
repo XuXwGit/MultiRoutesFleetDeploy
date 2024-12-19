@@ -1,4 +1,4 @@
-package multi.model;
+package multi.model.primal;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -9,10 +9,13 @@ import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import multi.InputData;
 import multi.Parameter;
-import multi.Request;
+import multi.network.Request;
 import multi.Scenario;
-import multi.model.BasePrimalModel;
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class MasterProblem extends BasePrimalModel
 {
@@ -25,7 +28,7 @@ public class MasterProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		try{
 			cplex = _cplex;
 			publicSetting(cplex);
@@ -39,7 +42,7 @@ public class MasterProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.ModelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
 		try{
 			cplex = new IloCplex();
 			publicSetting(cplex);

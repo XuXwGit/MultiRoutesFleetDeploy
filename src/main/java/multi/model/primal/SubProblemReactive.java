@@ -1,4 +1,4 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
@@ -6,9 +6,12 @@ import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.IntArrayWrapper;
 import multi.Parameter;
-import multi.Request;
-import multi.model.BasePrimalModel;
-
+import multi.network.Request;
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class SubProblemReactive extends BasePrimalModel
 {
@@ -24,7 +27,7 @@ public class SubProblemReactive extends BasePrimalModel
         super();
         this.in = in;
         this.p = p;
-        this.ModelName = "SPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "SPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
         this.vVarValue1= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
         this.vVarValue2= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
         this.uValue = new double[p.getDemand().length];
@@ -334,8 +337,9 @@ public class SubProblemReactive extends BasePrimalModel
     public void solveModel()	{
         try
         {
-            if (WhetherExportModel)
+            if (WhetherExportModel) {
                 exportModel();
+            }
             long startTime = System.currentTimeMillis();
             if (cplex.solve())
             {

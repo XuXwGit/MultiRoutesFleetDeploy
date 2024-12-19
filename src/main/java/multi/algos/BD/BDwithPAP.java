@@ -1,12 +1,20 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
+import multi.Scenario;
 
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BDwithPAP extends BD {
     public BDwithPAP(InputData in, Parameter p) throws IloException, IOException {
@@ -44,14 +52,15 @@ public class BDwithPAP extends BD {
             return;
         }
 
-        if(WhetherAddInitializeSce)
+        if(WhetherAddInitializeSce) {
             initializeSce(sce);
+        }
 
         // change  MaxVarDemand
         // beta = min(k, m/k)=tau
 
         double[] maxDemandVar = p.getMaximumDemandVariation();
-        p.changeMaximunDemandVariation(tau);
+        p.changeMaximumDemandVariation(tau);
 
         double time0 = System.currentTimeMillis();
         initialModel();
@@ -89,9 +98,8 @@ public class BDwithPAP extends BD {
                     && mp.getSolveStatus() == IloCplex.Status.Optimal) {
                 setLowerBound(mp.getObjVal());
             }
-//            printSolution(mp.getVVarValue());
 
-            dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+            dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
             double start2 = System.currentTimeMillis();
             dsp.solveModel();
             double end2 = System.currentTimeMillis();

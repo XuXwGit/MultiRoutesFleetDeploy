@@ -17,10 +17,10 @@ import java.util.List;
  * @DateTime: 2024/12/4 21:54
  */
 @Slf4j
-public class BDwithPAP_Reactive extends BD {
+public class BDwithPapReactive extends BD {
 
     private DualSubProblemReactive dsp;
-    public BDwithPAP_Reactive(InputData in, Parameter p) throws IloException, IOException {
+    public BDwithPapReactive(InputData in, Parameter p) throws IloException, IOException {
         super();
         this.in = in;
         this.p = p;
@@ -29,7 +29,7 @@ public class BDwithPAP_Reactive extends BD {
         this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
         frame();
     }
-    public BDwithPAP_Reactive(InputData in, Parameter p, int tau) throws IloException, IOException {
+    public BDwithPapReactive(InputData in, Parameter p, int tau) throws IloException, IOException {
         super();
         this.in = in;
         this.p = p;

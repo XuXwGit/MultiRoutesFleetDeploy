@@ -1,9 +1,18 @@
 package multi;
 
+import lombok.extern.slf4j.Slf4j;
+import multi.network.Request;
+
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
+@Slf4j
 public class SelectPaths extends DefaultSetting {
     private InputData in;
     private Parameter p;
@@ -41,13 +50,14 @@ public class SelectPaths extends DefaultSetting {
     }
 
     private void frame() {
-        System.out.println("After Selecting Paths : ");
+        log.info("After Selecting Paths : ");
 
         reRankContainerPaths();
 
         // reduce: total path cost > penalty cost
-        if( WhetherCuttingOverCostPaths )
+        if( WhetherCuttingOverCostPaths ) {
             reduceOverCostPaths();
+        }
 
 
         reduceContainerPaths(reducePathPercentage);
@@ -123,28 +133,28 @@ public class SelectPaths extends DefaultSetting {
         for (int i = 0; i < requestSet.size(); i++) {
             Request request = requestSet.get(i);
 
-            int num_laden = request.getNumberOfLadenPath();
-            int num_empty = request.getNumberOfEmptyPath();
+            int numberOfLadenPath = request.getNumberOfLadenPath();
+            int numberOfEmptyPath = request.getNumberOfEmptyPath();
 
-            int[] laden_paths = request.getLadenPaths();
-            int[] empty_paths = request.getEmptyPaths();
-            int[] laden_indexes = request.getLadenPathIndexes();
-            int[] empty_indexes = request.getEmptyPathIndexes();
+            int[] ladenPaths = request.getLadenPaths();
+            int[] emptyPaths = request.getEmptyPaths();
+            int[] ladenPathIndexes = request.getLadenPathIndexes();
+            int[] emptyPathIndexes = request.getEmptyPathIndexes();
 
-            int new_num_laden = (int) Math.ceil(num_laden * (1 - percent));
-            int new_num_empty = (int) Math.ceil(num_empty * (1 - percent));
+            int newNumLaden = (int) Math.ceil(numberOfLadenPath * (1 - percent));
+            int newNumEmpty = (int) Math.ceil(numberOfEmptyPath * (1 - percent));
 
-            request.setNumberOfLadenPath(new_num_laden);
-            request.setNumberOfEmptyPath(new_num_empty);
+            request.setNumberOfLadenPath(newNumLaden);
+            request.setNumberOfEmptyPath(newNumEmpty);
 
-            if(new_num_laden > 0 ){
-                request.setLadenPaths(Arrays.copyOfRange(laden_paths, 0, new_num_laden));
-                request.setLadenPathIndexes(Arrays.copyOfRange(laden_indexes, 0, new_num_laden));
+            if(newNumLaden > 0 ){
+                request.setLadenPaths(Arrays.copyOfRange(ladenPaths, 0, newNumLaden));
+                request.setLadenPathIndexes(Arrays.copyOfRange(ladenPathIndexes, 0, newNumLaden));
             }
 
-            if(new_num_empty > 0){
-                request.setEmptyPaths(Arrays.copyOfRange(empty_paths, 0, new_num_empty));
-                request.setEmptyPathIndexes(Arrays.copyOfRange(empty_indexes, 0, new_num_empty));
+            if(newNumEmpty > 0){
+                request.setEmptyPaths(Arrays.copyOfRange(emptyPaths, 0, newNumEmpty));
+                request.setEmptyPathIndexes(Arrays.copyOfRange(emptyPathIndexes, 0, newNumEmpty));
             }
 
             requestSet.set(i, request);
@@ -158,60 +168,53 @@ public class SelectPaths extends DefaultSetting {
         for (int i = 0; i < requestSet.size(); i++) {
             Request request = requestSet.get(i);
 
-            double penalty_cost = p.getPenaltyCostForDemand()[i];
+            double penaltyCost = p.getPenaltyCostForDemand()[i];
 
             // cut laden paths
-            int longest_trans_time = 0;
-            int num_laden = request.getNumberOfLadenPath();
-            int[] laden_paths = request.getLadenPaths();
-            int[] laden_indexes = request.getLadenPathIndexes();
-            for (int path_index = 0; path_index < num_laden; path_index++) {
-                int j = laden_indexes[path_index];
-                if(p.getLadenPathCost()[j] >= penalty_cost){
+            int longestTransTime = 0;
+            int numberOfLadenPath = request.getNumberOfLadenPath();
+            int[] ladenPaths = request.getLadenPaths();
+            int[] ladenPathIndexes = request.getLadenPathIndexes();
+            for (int pathIndex = 0; pathIndex < numberOfLadenPath; pathIndex++) {
+                int j = ladenPathIndexes[pathIndex];
+                if(p.getLadenPathCost()[j] >= penaltyCost){
 
-                    laden_paths[path_index] = laden_paths[num_laden - 1];
-                    laden_indexes[path_index] = laden_indexes[num_laden - 1];
-                    num_laden --;
-                    path_index --;
+                    ladenPaths[pathIndex] = ladenPaths[numberOfLadenPath - 1];
+                    ladenPathIndexes[pathIndex] = ladenPathIndexes[numberOfLadenPath - 1];
+                    numberOfLadenPath --;
+                    pathIndex --;
                 }
                 else {
-                    if(p.getTravelTimeOnPath()[j] > longest_trans_time){
-                        longest_trans_time = p.getTravelTimeOnPath()[j];
+                    if(p.getTravelTimeOnPath()[j] > longestTransTime){
+                        longestTransTime = p.getTravelTimeOnPath()[j];
                     }
                 }
             }
-            if(num_laden != request.getNumberOfLadenPath()){
-                request.setNumberOfLadenPath(num_laden);
-                request.setLadenPaths(Arrays.copyOfRange(laden_paths, 0, num_laden));
-                request.setLadenPathIndexes(Arrays.copyOfRange(laden_indexes, 0, num_laden));
+            if(numberOfLadenPath != request.getNumberOfLadenPath()){
+                request.setNumberOfLadenPath(numberOfLadenPath);
+                request.setLadenPaths(Arrays.copyOfRange(ladenPaths, 0, numberOfLadenPath));
+                request.setLadenPathIndexes(Arrays.copyOfRange(ladenPathIndexes, 0, numberOfLadenPath));
             }
 
 
             // cut empty paths
-            int num_empty = request.getNumberOfEmptyPath();
-            int[] empty_paths = request.getEmptyPaths();
-            int[] empty_indexes = request.getEmptyPathIndexes();
-            for (int path_index = 0; path_index < num_empty; path_index++) {
-                int j = empty_indexes[path_index];
-                if(p.getEmptyPathCost()[j] >= penalty_cost || p.getEmptyPathCost()[j] > p.getRentalCost() * longest_trans_time){
-                    empty_paths[path_index] = empty_paths[num_empty - 1];
-                    empty_indexes[path_index] = empty_indexes[num_empty - 1];
-                    num_empty --;
-                    path_index --;
+            int numberOfEmptyPath = request.getNumberOfEmptyPath();
+            int[] emptyPaths = request.getEmptyPaths();
+            int[] emptyPathIndexes = request.getEmptyPathIndexes();
+            for (int pathIndex = 0; pathIndex < numberOfEmptyPath; pathIndex++) {
+                int j = emptyPathIndexes[pathIndex];
+                if(p.getEmptyPathCost()[j] >= penaltyCost || p.getEmptyPathCost()[j] > p.getRentalCost() * longestTransTime){
+                    emptyPaths[pathIndex] = emptyPaths[numberOfEmptyPath - 1];
+                    emptyPathIndexes[pathIndex] = emptyPathIndexes[numberOfEmptyPath - 1];
+                    numberOfEmptyPath --;
+                    pathIndex --;
                 }
             }
-            if(num_empty != request.getNumberOfEmptyPath()){
-                        request.setNumberOfEmptyPath(num_empty);
-                        request.setEmptyPaths(Arrays.copyOfRange(empty_paths, 0, num_empty));
-                        request.setEmptyPathIndexes(Arrays.copyOfRange(empty_indexes, 0, num_empty));
+            if(numberOfEmptyPath != request.getNumberOfEmptyPath()){
+                        request.setNumberOfEmptyPath(numberOfEmptyPath);
+                        request.setEmptyPaths(Arrays.copyOfRange(emptyPaths, 0, numberOfEmptyPath));
+                        request.setEmptyPathIndexes(Arrays.copyOfRange(emptyPathIndexes, 0, numberOfEmptyPath));
             }
-
-            /*System.out.println("Request :" + i+ ": " + request.getNumberOfLadenPath() + " " + request.getNumberOfEmptyPath());
-            System.out.print(penalty_cost + ">");
-            for (int j = 0; j < request.getLadenPathIndexes().length; j++) {
-                System.out.print(p.getLadenPathCost()[request.getLadenPathIndexes()[j]] + "\t");
-            }
-            System.out.println();*/
 
             requestSet.set(i, request);
         }

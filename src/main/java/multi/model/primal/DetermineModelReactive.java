@@ -1,4 +1,4 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.IloException;
 import ilog.concert.IloIntVar;
@@ -8,18 +8,21 @@ import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
-import multi.Request;
-import multi.model.BasePrimalModel;
+import multi.network.Request;
 import multi.network.TravelingArc;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class DetermineModelReactive extends BasePrimalModel {
     public DetermineModelReactive(InputData in, Parameter p) {
         super();
         this.in = in;
         this.p = p;
-        this.ModelName = "DMR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "DMR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
         try{
             if(WhetherPrintProcess){
                 log.info("=========DetermineModel (Reactive Strategy)==========");
@@ -188,8 +191,6 @@ public class DetermineModelReactive extends BasePrimalModel {
             // phi
             for(int k=0;k<OD.getNumberOfLadenPath();k++)
             {
-                int j = OD.getLadenPathIndexes()[k];
-
                 left.addTerm(1, xVar.get(i)[k]);
                 left.addTerm(1, yVar.get(i)[k]);
             }

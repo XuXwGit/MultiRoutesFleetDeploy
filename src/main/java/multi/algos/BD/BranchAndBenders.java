@@ -1,11 +1,19 @@
-package multi;
+package multi.algos.BD;
 
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.*;
+import multi.model.dual.DualSubProblem;
+import multi.model.primal.MasterProblem;
 
 import java.io.IOException;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class BranchAndBenders extends BD {
     public BranchAndBenders(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -55,7 +63,7 @@ public class BranchAndBenders extends BD {
                 setLowerBound(mp.getObjVal());
             }
 
-            dsp.changeObjectiveVCoefficients(mp.getVVarValue());
+            dsp.changeObjectiveVvarsCoefficients(mp.getVVarValue());
             double start2 = System.currentTimeMillis();
             dsp.solveModel();
             double end2 = System.currentTimeMillis();

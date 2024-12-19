@@ -1,4 +1,4 @@
-package multi.model;
+package multi.model.primal;
 
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
@@ -6,12 +6,15 @@ import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.InputData;
 import multi.Parameter;
-import multi.model.BasePrimalModel;
 
 import java.io.IOException;
 import java.util.Arrays;
 
-
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class DetermineModel extends BasePrimalModel {
 	private final String modelType;
@@ -20,8 +23,8 @@ public class DetermineModel extends BasePrimalModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.Model = "DM";
-		this.ModelName = Model + "-R"+ in.getShipRouteSet().size()
+		this.model = "DM";
+		this.modelName = model + "-R"+ in.getShipRouteSet().size()
 				+ "-T" + p.getTimeHorizon()
 				+ "-"+ FleetType
 				+ "-S" + randomSeed
@@ -58,8 +61,8 @@ public class DetermineModel extends BasePrimalModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.Model = "DM";
-		this.ModelName = Model + "-R"
+		this.model = "DM";
+		this.modelName = model + "-R"
 				+ in.getShipRouteSet().size()
 				+ "-T" + p.getTimeHorizon()
 				+ "-"+ FleetType
@@ -95,11 +98,11 @@ public class DetermineModel extends BasePrimalModel {
 
 	@Override
 	protected void setObjectives() throws IloException {
-		IloLinearNumExpr Obj = cplex.linearNumExpr();
-		Obj = GetVesselOperationCostObj(Obj);
-		Obj = GetRequestTransCostObj(Obj);
+		IloLinearNumExpr obj = cplex.linearNumExpr();
+		obj = GetVesselOperationCostObj(obj);
+		obj = GetRequestTransCostObj(obj);
 
-		cplex.addMinimize(Obj);
+		cplex.addMinimize(obj);
 	}
 
 	@Override
@@ -108,54 +111,59 @@ public class DetermineModel extends BasePrimalModel {
 		// each ship route assigned to one vessel
 		long start = System.currentTimeMillis();
 		setConstraint1();
-		//log.info("Set Constraint1 Time = "+ (System.currentTimeMillis() - start));
+		log.debug("Set Constraint1 Time = "+ (System.currentTimeMillis() - start));
 		start = System.currentTimeMillis();
 
 		// Demand Equation Constraints
 		setConstraint2();
-		//log.info("Set Constraint2 Time = "+ (System.currentTimeMillis() - start));
+		log.debug("Set Constraint2 Time = "+ (System.currentTimeMillis() - start));
 		start = System.currentTimeMillis();
 
 		// Transport Capacity Constraints
 		setConstraint3();
-		//log.info("Set Constraint3 Time = "+ (System.currentTimeMillis() - start));
+		log.debug("Set Constraint3 Time = "+ (System.currentTimeMillis() - start));
 		start = System.currentTimeMillis();
 
 		// Containers Flow Conservation Constraints
 		setConstraint4();
-		//log.info("Set Constraint4 Time = "+ (System.currentTimeMillis() - start));
+		log.debug("Set Constraint4 Time = "+ (System.currentTimeMillis() - start));
 	}
 
-	// (2)
-	// Each Route should be assigned only one Vessel
+	/**
+	 * (2) Each Route should be assigned only one Vessel
+	 */
 	private void setConstraint1() throws IloException
 	{
 		setVesselConstraint();
 	}
 
-	// (3)
-	// Demand Equation Constraints
+	/**
+	 *  (3) Set the demand equation constraints
+	 */
 	private void setConstraint2() throws IloException
 	{
 		double [] uValueDouble = new double[p.getDemand().length];
 
-		if(modelType.equals("UseMaxValue")) {
+		if("UseMaxValue".equals(modelType)) {
 			Arrays.fill(uValueDouble, 1.0);
 		}
 
 		setDemandConstraint(xVar, yVar, gVar, uValueDouble);
 	}
 
-	// (4)
-	// Capacity Constraint on each travel arc
+	/**
+	 * (4) Capacity Constraint on each travel arc
+	 */
 	private void setConstraint3() throws IloException
 	{
 		setCapacityConstraint();
 	}
 
-	// (29)
-	// Containers flow conservation
-	// Containers of each port p at each time t
+	/**
+	 *  (29)
+	 *   Containers flow conservation
+	 *   Containers of each port p at each time t
+	 */
 	private void setConstraint4() throws IloException
 	{
 		setEmptyConservationConstraint();
@@ -165,8 +173,9 @@ public class DetermineModel extends BasePrimalModel {
 	{
 		try
 		{
-			if (WhetherExportModel)
+			if (WhetherExportModel) {
 				exportModel();
+			}
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())
 			{

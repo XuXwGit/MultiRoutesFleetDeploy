@@ -4,6 +4,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 public class Scenario {
 	public Scenario() {
 	}
@@ -31,8 +36,12 @@ public class Scenario {
 	// Getters and setters
 	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || getClass() != o.getClass()) return false;
+		if (this == o) {
+			return true;
+		}
+		if (o == null || getClass() != o.getClass()) {
+			return false;
+		}
 		Scenario scenario = (Scenario) o;
 		return Arrays.equals(request, scenario.request) &&
 				Objects.equals(worseRequestSet, scenario.worseRequestSet);

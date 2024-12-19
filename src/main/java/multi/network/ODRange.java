@@ -1,10 +1,22 @@
-package multi;
+package multi.network;
 /*
 this class include the lower and upper bound
 of demand and freight (unit penalty cost)
 for a group pairs (origin group and destination group)
  */
 
+
+import lombok.Getter;
+import lombok.Setter;
+
+
+/**
+* @Author: XuXw
+* @Description: TODO
+* @DateTime: 2024/12/4 22:06
+*/
+@Getter
+@Setter
 public class ODRange {
     public ODRange(int originGroup,
                    int destinationGroup,
@@ -18,30 +30,6 @@ public class ODRange {
         this.demandUpperBound = demandUpperBound;
         this.freightLowerBound = freightLowerBound;
         this.freightUpperBound = freightUpperBound;
-    }
-
-    public int getOriginGroup() {
-        return originGroup;
-    }
-
-    public int getDestinationGroup() {
-        return destinationGroup;
-    }
-
-    public int getDemandLowerBound() {
-        return demandLowerBound;
-    }
-
-    public int getDemandUpperBound() {
-        return demandUpperBound;
-    }
-
-    public int getFreightLowerBound() {
-        return freightLowerBound;
-    }
-
-    public int getFreightUpperBound() {
-        return freightUpperBound;
     }
 
     private final int originGroup;

@@ -6,20 +6,31 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
 
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
 @Slf4j
 public class DefaultSetting {
 	//////////////////////////////////
 	/* Numerical Experiment Test */
 	// Vessel Capacity / Nums
 	public static String VesselCapacityRange = "I";
-	// use heterogeneous / homogeneous fleet
-	// Homo / Hetero
+
+	/**
+	 * use heterogeneous / homogeneous fleet
+	 * Homo / Hetero
+	 */
 	public static String FleetType = "Homo";
 	//////////////////////////////////
 
 
 	//////////////////////////////////
-	/* Strategy DefaultSetting*/
+
+	/**
+	 * Strategy DefaultSetting
+	 */
 	public static double reducePathPercentage = 0;
 	public static int MaxLadenPathsNum = 5;
 	public static int MaxEmptyPathsNum = 5;
@@ -105,7 +116,9 @@ public class DefaultSetting {
 	public static boolean WhetherExportModel = true;
 	// whether print output log
 	public static boolean WhetherCloseOutputLog = true;
-	// MIP solve Gap limit
+	/**
+	 * MIP solve Gap limit
+	 */
 	public static double MIPGapLimit = 1e-3;
 	// MIP solve Time limit
 	public static double MIPTimeLimit = 36000; //s
@@ -117,7 +130,7 @@ public class DefaultSetting {
 	//////////////////////////////////
 	/* Algo DefaultSetting*/
 	public static int maxIterationNum = 100;
-	public static int maxIterationTime = 3600; //s
+	public static int maxIterationTime = 3600;
 	public static double boundGapLimit = 1.0;
 	public static boolean WhetherSetInitialSolution = false;
 	public static boolean WhetherAddInitializeSce = false;
@@ -146,7 +159,11 @@ public class DefaultSetting {
 
 
 	//////////////////////////////////
-	// print progress bar
+
+	/**
+	 *  print progress bar with percentage in console
+	 * @Param : progress length
+	 */
 	protected static void drawProgressBar(int progress) {
 		int completedBars = progress * ProgressBarWidth / 100;
 		StringBuilder progressBar = new StringBuilder();
@@ -164,28 +181,14 @@ public class DefaultSetting {
 		progressBar.append("] ").append(progress).append("%");
 		// 先清除整行再打印进度条
 		progressBar.append("\r");
-		System.out.print(progressBar.toString());
+		System.out.print(progressBar);
 		System.out.flush();
 	}
 
-	// other print/record methods
+	/**
+	 * Prints the basic  settings to the experiment
+	 */
 	public static void printSettings(){
-		//		System.out.print("======================"+ "Settings" + "======================\n");
-		//		System.out.print("FleetType = " + FleetType + "\n");
-		//		System.out.print("Vessel Set = " + VesselCapacityRange + "\n");
-		//		System.out.print("Random Distribution = " + distributionType + "\n");
-		//		System.out.print("MIPGapLimit = " + MIPGapLimit + "\n");
-		//		System.out.print("MIPTimeLimit = " + MIPTimeLimit + "s"+ "\n");
-		//		System.out.print("MaxThreads = " + MaxThreads + "\n");
-		//		System.out.print("MaxWorkMem = " + MaxWorkMem +"M"+ "\n");
-		//		System.out.print("NumSampleScenes = " + numSampleScenes + "\n");
-		//		System.out.print("maxIterationNum = " + maxIterationNum + "\n");
-		//		System.out.print("maxIterationTime = " + maxIterationTime +"s"+ "\n");
-		//		System.out.print("boundGapLimit = " + boundGapLimit + "\n");
-		//		System.out.print("RandomSeed = "+randomSeed + "\n");
-		//		System.out.print("WhetherLoadHistorySolution = " + UseHistorySolution + "\n");
-		//		System.out.print("WhetherAddInitializeSce = " + WhetherAddInitializeSce + "\n");
-
 		log.info("======================"+ "Settings" + "======================");
 		log.info("FleetType = " + FleetType);
 		log.info("Vessel Set = " + VesselCapacityRange);
@@ -202,6 +205,11 @@ public class DefaultSetting {
 		log.info("WhetherLoadHistorySolution = " + UseHistorySolution);
 		log.info("WhetherAddInitializeSce = " + WhetherAddInitializeSce);
 	}
+
+	/**
+	 * Writes the basic settings to the experiment
+	 * @Params:  fileWriter
+	 */
 	public static void writeSettings(FileWriter fileWriter) {
 		try {
 			fileWriter.write("======================"+ "Settings" + "======================\n");

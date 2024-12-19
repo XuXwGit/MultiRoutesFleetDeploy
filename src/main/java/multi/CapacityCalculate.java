@@ -2,15 +2,25 @@ package multi;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
+import lombok.extern.slf4j.Slf4j;
+import multi.model.primal.BasePrimalModel;
+import multi.network.Request;
 
 import java.util.ArrayList;
 
+
+/**
+ * @Author: XuXw
+ * @Description: Todo
+ * @DateTime: 2024/12/4 21:54
+ */
+@Slf4j
 public class CapacityCalculate extends BasePrimalModel {
     public CapacityCalculate(InputData in, Parameter p) {
         super();
         this.in = in;
         this.p = p;
-        this.ModelName = "CC" + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "CC" + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
         try{
             cplex = new IloCplex();
             publicSetting(cplex);
@@ -317,8 +327,9 @@ public class CapacityCalculate extends BasePrimalModel {
     {
         try
         {
-            if (WhetherExportModel)
+            if (WhetherExportModel) {
                 exportModel();
+            }
             if (cplex.solve())
             {
 //                printDetail();
@@ -332,18 +343,18 @@ public class CapacityCalculate extends BasePrimalModel {
                 }
                 else
                 {
-                    System.out.println("Exit an error");
+                    log.info("Exit an error");
                 }
                 printSolution();
             }
             else
             {
-                System.out.println("No Solution");
+                log.info("No Solution");
             }
         }
         catch (IloException ex)
         {
-            System.out.println("Concert Error: " + ex);
+            log.info("Concert Error: " + ex);
         }
     }
 
@@ -371,7 +382,7 @@ public class CapacityCalculate extends BasePrimalModel {
     private int[][] minV;
     private int[][] maxV;
     public void printSolution()    {
-        System.out.println("Vessel Decision vVar : ");
+        log.info("Vessel Decision vVar : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             System.out.print(p.getShippingRouteSet()[r]+":\t");
@@ -382,16 +393,14 @@ public class CapacityCalculate extends BasePrimalModel {
                     System.out.print("("+minV[r][w] + "~" + maxV[r][w] + ")\t");
                 }
             }
-            System.out.println();
         }
-        System.out.println();
     }
     public void printDetail() throws IloException {
         for (int i = 0; i < p.getDemand().length; i++) {
             System.out.print("Demand"+(i+1)
                     +"("+in.getRequestSet().get(i).getOriginPort()
                     +"->"+in.getRequestSet().get(i).getDestinationPort()+")"
-                    +"("+in.getRequestSet().get(i).getW_i_Earliest()
+                    +"("+in.getRequestSet().get(i).getEarliestPickupTime()
                     +"->"+in.getRequestSet().get(i).getLatestDestinationTime()+")"
                     +":\t"
                     +p.getDemand()[i]+" \t=\t");
@@ -409,7 +418,7 @@ public class CapacityCalculate extends BasePrimalModel {
             System.out.print(totalX+"\t\t");
             System.out.print(totalY+"\t\t");
 
-            System.out.println(cplex.getValue(gVar[i]) + "\t");
+            log.info(cplex.getValue(gVar[i]) + "\t");
 
         }
     }
