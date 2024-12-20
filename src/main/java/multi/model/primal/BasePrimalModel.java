@@ -146,22 +146,22 @@ public class BasePrimalModel extends BaseModel {
     public boolean checkVesselConstraint(double[][] vValueDouble) {
         if("Homo".equals(FleetType)){
             if(!checkVesselConstraint11_1(vValueDouble)){
-                log.info("Error in Vessel Constraint 1");
+                log.info("Error in VesselType Constraint 1");
                 return false;
             }
         }
         else if ("Hetero".equals(FleetType)) {
             if(!checkVesselConstraint11_2(vValueDouble)){
-                log.info("Error in Vessel Constraint 1");
+                log.info("Error in VesselType Constraint 1");
                 return false;
             }
             // two additional constraint
             if(!checkVesselConstraint12(vValueDouble)){
-                log.info("Error in Vessel Constraint 2");
+                log.info("Error in VesselType Constraint 2");
                 return false;
             }
             if(!checkVesselConstraint13(vValueDouble)){
-                log.info("Error in Vessel Constraint 3");
+                log.info("Error in VesselType Constraint 3");
                 return false;
             }
         }
@@ -827,7 +827,7 @@ public class BasePrimalModel extends BaseModel {
     }
     protected void writeSolution(FileWriter fileWriter){
         try {
-            fileWriter.write("Vessel Solution:\t");
+            fileWriter.write("VesselType Solution:\t");
             for (int r = 0; r < getSolution().length; r++) {
                 if(r!=0){
                     fileWriter.write(",");
@@ -990,7 +990,7 @@ public class BasePrimalModel extends BaseModel {
     }
     protected  void printSolution(){
         log.info("Objective ="+String.format("%.2f", getObjVal()));
-        System.out.print("Vessel Decision vVar : ");
+        System.out.print("VesselType Decision vVar : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++) {
             System.out.print(p.getShippingRouteSet()[r]);
             System.out.print(":");

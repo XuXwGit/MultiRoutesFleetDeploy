@@ -9,6 +9,7 @@ import multi.algos.BD.SOwithBD;
 import multi.algos.CCG.CCG;
 import multi.algos.CCG.CCGwithPAP;
 import multi.algos.CCG.CCGwithPAP_Reactive;
+import multi.algos.OLP.GenerateOnlineData;
 import multi.model.primal.DetermineModel;
 import multi.model.primal.DetermineModelReactive;
 
@@ -43,9 +44,9 @@ public class PerformanceExperiment {
         fileWriter = new FileWriter(file, true);
 
         // instance:
-        // 1-> data1 : R=2,P=10,V=10 /small scale with 2 ship routes
-        // 2-> data2 : R=8,P=29,V=40 /large scale with 8 ship routes
-        // 3-> data3 : R=3,P=21,V=35 /middle scale with 3 ship routes
+        //      1-> data1 : R=2,P=10,V=10 /small scale with 2 ship routes
+        //      2-> data2 : R=8,P=29,V=40 /large scale with 8 ship routes
+        //      3-> data3 : R=3,P=21,V=35 /middle scale with 3 ship routes
         String fileName = DefaultSetting.DataPath;
         if(instance == 1){
             fileName += "data1/";
@@ -66,14 +67,16 @@ public class PerformanceExperiment {
         //print_strategy_status(fileName);
 
         // experiment type
-        // 1: compare the performance of the four algorithms (CCG/BD/CCG&PAP/BD&PAP)
-        // 2: compare the empty container reposition strategy with reactive strategy
-        // 3: compare different laden/empty paths select strategy
-        // 4: compare different fleet composition: Homo V\S Hetero
-        // 5: compare different vessel capacity range
-        // 6: compare different demand distribution
-        // 7: compare mean-performance and worst-case performance
-        // 8: compare two-stage robust with two-stage stochastic programming
+        //      1: compare the performance of the four algorithms (CCG/BD/CCG&PAP/BD&PAP)
+        //      2: compare the empty container reposition strategy with reactive strategy
+        //      3: compare different laden/empty paths select strategy
+        //      4: compare different fleet composition: Homo V\S Hetero
+        //      5: compare different vessel capacity range
+        //      6: compare different demand distribution
+        //      7: compare mean-performance and worst-case performance
+        //      8: compare two-stage robust with two-stage stochastic programming
+        //      9: compare classic benders and benders with pareto cut to solve two-stage robust problem
+        //      10: Online container routing and allocation through online algorithm
         log.info("Experiment " + type + ": ");
         if(type == 1){
             log.info("Compare the performance of the four algorithms (CCG/BD/CCG&PAP/BD&PAP)");
@@ -100,8 +103,11 @@ public class PerformanceExperiment {
             log.info("Compare two-stage robust with two-stage stochastic programming");
             experiment_test8(fileName);
         }else if (type == 9){
-            log.info("Compare two-stage robust with two-stage stochastic programming");
+            log.info("Compare classic benders and benders with pareto cut to solve two-stage robust problem");
             experiment_test9(fileName);
+        }else if(type == 10){
+            log.info("Online container routing and allocation through online algorithm");
+            experiment_test10(fileName);
         }
 
         fileWriter.close();
@@ -118,46 +124,29 @@ public class PerformanceExperiment {
             inputData.showStatus();
             new SelectPaths(inputData, para, 0.4);
 
-            //DetermineModel de = new DetermineModel(inputData, para);
-            //de.solveModel();
-            //DualSubProblem dsp = new DualSubProblem(inputData, para, para.getTau());
-            //dsp.changeObjectiveVCoefficients(de.getVVarValue());
-            //dsp.solveModel();
-
             CCG ccg = new CCG(inputData, para);
             CCGwithPAP ccgp = new CCGwithPAP(inputData, para);
-            // BDwithPAP bdp = new BDwithPAP(inputData, para, para.getTau());
             BD bd = new BD(inputData, para);
             DetermineModel dm = new DetermineModel(inputData, para);
-            // BDwithPareto bdpa = new BDwithPareto(inputData, para, para.getTau());
-
 
             log.info("=====================================================================");
 
             log.info("Algorithm :" + "\t"
-                    //+ "BD&Pareto"+ "\t"
-                    //+ "BD&PAP"+ "\t"
                     + "BD" + "\t"
                     + "CCG&PAP" + "\t"
                     + "CCG" + "\t"
             );
             log.info("SolveTime :" + "\t"
-                    //+ bdpa.getSolveTime() + "\t"
-                    // + bdp.getSolveTime() + "\t"
                     + bd.getSolveTime() + "\t"
                     + ccgp.getSolveTime() + "\t"
                     + ccg.getSolveTime() + "\t"
             );
             log.info("Objective  :" + "\t"
-                    //+ String.format("%.2f", bdpa.getObj()) + "\t"
-                    // + String.format("%.2f", bdp.getObjVal())+ "\t"
                     + String.format("%.2f", bd.getObjVal())+ "\t"
                     + String.format("%.2f", ccgp.getObjVal()) + "\t"
                     + String.format("%.2f", ccg.getObjVal()) + "\t"
             );
             log.info("Iteration    :" + "\t"
-                    //+ bdpa.getIter() + "\t"
-                    // + bdp.getIter()+ "\t"
                     + bd.getIter()+ "\t"
                     + ccgp.getIter() + "\t"
                     + ccg.getIter() + "\t"
@@ -172,32 +161,24 @@ public class PerformanceExperiment {
                 inputData.writeStatus(fileWriter);
 
                 fileWriter.write("Algorithm :" + "\t"
-                        //+ "BD&Pareto"+ "\t"
-                        // + "BD&PAP"+ "\t"
                         + "BD" + "\t"
                         + "CCG&PAP" + "\t"
                         + "CCG" + "\t"
                         + "\n"
                 );
                 fileWriter.write("SolveTime :" + "\t"
-                        //+ bdpa.getSolveTime() + "\t"
-                        // + bdp.getSolveTime() + "\t"
                         + bd.getSolveTime() + "\t"
                         + ccgp.getSolveTime() + "\t"
                         + ccg.getSolveTime() + "\t"
                         + "\n"
                 );
                 fileWriter.write("Objective  :" + "\t"
-                        //+ String.format("%.2f", bdpa.getObj()) + "\t"
-                        // + String.format("%.2f", bdp.getObjVal())+ "\t"
                         + String.format("%.2f", bd.getObjVal())+ "\t"
                         + String.format("%.2f", ccgp.getObjVal()) + "\t"
                         + String.format("%.2f", ccg.getObjVal()) + "\t"
                         + "\n"
                 );
                 fileWriter.write("Iteration    :" + "\t"
-                        //+ bdpa.getIter() + "\t"
-                        //+ bdp.getIter()+ "\t"
                         + bd.getIter()+ "\t"
                         + ccgp.getIter() + "\t"
                         + ccg.getIter() + "\t"
@@ -680,6 +661,30 @@ public class PerformanceExperiment {
 
             log.info("BD with Pareto Cut: \t" + bdpa.getObjVal() + "\t" + bdpa.getSolveTime() + "\t" + bdpa.getIter());
             log.info("BD : \t" + bd.getObjVal() + "\t" + bd.getSolveTime() + "\t" + bd.getIter());
+        }
+    }
+
+    static private void experiment_test10(String fileName) throws IOException, IloException {
+        log.info("========================== Begin Performance Test =========================");
+        log.info("=============================" + "Experiment 10" + "=============================");
+
+        String filename = fileName+"/";
+        DefaultSetting.writeSettings(fileWriter);
+        DefaultSetting.printSettings();
+        for (int T : timeHorizonSet) {
+
+            log.info("TimeHorizon : " + T + "\n");
+            log.info("UncertainDegree : " + uncertainDegree + "\n");
+            InputData inputData = new InputData();
+            new ReadData(filename, inputData, T);
+            Parameter para = new Parameter();
+            new GenerateParameter(para, inputData, T, uncertainDegree);
+            inputData.showStatus();
+            new SelectPaths(inputData, para, 0.4);
+
+            new GenerateOnlineData(inputData, para);
+
+
         }
     }
 }

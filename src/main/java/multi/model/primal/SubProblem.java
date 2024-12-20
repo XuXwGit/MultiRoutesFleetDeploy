@@ -132,7 +132,7 @@ public class SubProblem extends BasePrimalModel
 		}
 	}
 
-	// Vessel Capacity Constraint :
+	// VesselType Capacity Constraint :
 	// C-6------β
 	// C-6<= 0
 	private void setConstraint2() throws IloException {

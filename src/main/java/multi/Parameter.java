@@ -5,6 +5,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * @Author: XuXw
@@ -53,6 +54,7 @@ public class Parameter extends DefaultSetting {
 	private double [] emptyPathCost;
 	private double [] maximumDemandVariation;
 	private double[][] sampleScenes;
+	private Map<Integer, Integer> arcCapacity;
 
 	public Parameter() {
 	}

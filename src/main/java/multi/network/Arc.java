@@ -23,6 +23,6 @@ public class Arc {
     private int originTime;
     private int destinationTime;
 
-    // "TravelingArc" or "TransshipArc"
+    // "Traveling Arc" or "Transship Arc"
     private String arcType;
 }

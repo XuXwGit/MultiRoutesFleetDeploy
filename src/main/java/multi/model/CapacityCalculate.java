@@ -1,8 +1,10 @@
-package multi;
+package multi.model;
 
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.InputData;
+import multi.Parameter;
 import multi.model.primal.BasePrimalModel;
 import multi.network.Request;
 
@@ -159,7 +161,7 @@ public class CapacityCalculate extends BasePrimalModel {
         }
     }
 
-    //(22) Vessel Capacity Constraint
+    //(22) VesselType Capacity Constraint
     private void setConstraint2() throws IloException    {
         // ∀<n,n'>∈A'
         for(int nn = 0; nn<p.getTravelingArcsSet().length; nn++)
@@ -382,7 +384,7 @@ public class CapacityCalculate extends BasePrimalModel {
     private int[][] minV;
     private int[][] maxV;
     public void printSolution()    {
-        log.info("Vessel Decision vVar : ");
+        log.info("VesselType Decision vVar : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             System.out.print(p.getShippingRouteSet()[r]+":\t");

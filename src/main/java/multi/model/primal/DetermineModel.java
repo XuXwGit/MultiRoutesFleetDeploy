@@ -130,7 +130,7 @@ public class DetermineModel extends BasePrimalModel {
 	}
 
 	/**
-	 * (2) Each Route should be assigned only one Vessel
+	 * (2) Each Route should be assigned only one VesselType
 	 */
 	private void setConstraint1() throws IloException
 	{

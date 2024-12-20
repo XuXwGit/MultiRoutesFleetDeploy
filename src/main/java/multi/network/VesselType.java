@@ -10,10 +10,10 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class Vessel {
+public class VesselType {
 	private int id;
 	private int capacity;
 	private double cost;
-	private int route;
-	private int max_num;
+	private int routeID;
+	private int maxNum;
 }

@@ -25,7 +25,7 @@ public class InputData {
 	private int totalEmptyPathsNum;
 	private double[][] sampleScenes;
 	private Map<String, Port> portSet;
-	private List<Vessel> vesselSet;
+	private List<VesselType> vesselTypeSet;
 	private Map<Integer, Node> nodeSet;
 	private Map<Integer, Arc> arcSet;
 	private List<TravelingArc> travelingArcSet;
@@ -34,7 +34,7 @@ public class InputData {
 	private List<LadenPath> ladenPathSet;
 	private List<EmptyPath> emptyPathSet;
 	private List<Request> requestSet;
-	private List<ShipRoute> shipRouteSet;
+	private Map<Integer, ShipRoute> shipRouteSet;
 	private List<ContainerPath> containerPaths;
 	private Map<Integer, ContainerPath> containerPathSet;
 	private Map<String, int[]> historySolutionSet;
@@ -57,7 +57,7 @@ public class InputData {
 				+ "ShipRoute = " + this.getShipRouteSet().size() + "\t"
 				+ "Ports = " + this.getPortSet().size() + "\t"
 				+ "VesselPaths = " + this.getVesselPathSet().size() + "\t"
-				+ "VesselTypes = " + this.getVesselSet().size() + "\t" + "\n"
+				+ "VesselTypes = " + this.getVesselTypeSet().size() + "\t" + "\n"
 
 				+ "Requests = " + this.getRequestSet().size() + "\t"
 				+ "Paths = " + this.getContainerPaths().size() + "\t"
@@ -75,7 +75,7 @@ public class InputData {
 				+ "ShipRoute = " + this.getShipRouteSet().size() + "\t"
 				+ "Ports = " + this.getPortSet().size() + "\t"
 				+ "VesselPaths = " + this.getVesselPathSet().size() + "\t"
-				+ "VesselTypes = " + this.getVesselSet().size() + "\t" + "\n"
+				+ "VesselTypes = " + this.getVesselTypeSet().size() + "\t" + "\n"
 
 				+ "Requests = " + this.getRequestSet().size() + "\t"
 				+ "Paths = " + this.getContainerPaths().size() + "\t"

@@ -301,7 +301,7 @@ public class ReadData extends DefaultSetting {
 	{
 		String[][] result = read_to_string(filePath + "Shipingroute.txt");
 
-		List<ShipRoute> shipRoutes=new ArrayList<>();
+		Map<Integer, ShipRoute> shipRoutes = new HashMap<>();
 
 		for (int i=1;i<result.length;i++)
 		{
@@ -334,7 +334,7 @@ public class ReadData extends DefaultSetting {
 			// set after initialization vessel paths
 			ff.setNumVesselPaths(0);
 
-			shipRoutes.add(ff);
+			shipRoutes.put(ff.getShipRouteID(), ff);
 		}
 		inputdata.setShipRouteSet(shipRoutes);
 	}
@@ -516,19 +516,25 @@ public class ReadData extends DefaultSetting {
 
 		String[][] result = read_to_string(filename);
 
-		List <Vessel> VesselSet =new ArrayList<>();
+		List <VesselType> vesselTypeSet =new ArrayList<>();
 		for (int i=1;i<result.length;i++)
 		{
-			Vessel ff=new Vessel();
+			VesselType ff=new VesselType();
 
 			ff.setId(Integer.parseInt(result[i][0]));
 			ff.setCapacity(Integer.parseInt(result[i][1]));
 			ff.setCost(Double.parseDouble(result[i][2]) * 1000000);
-			ff.setRoute(Integer.parseInt(result[i][3]));
-			ff.setMax_num(Integer.parseInt(result[i][4]));
-			VesselSet.add(ff);
+			ff.setRouteID(Integer.parseInt(result[i][3]));
+			ff.setMaxNum(Integer.parseInt(result[i][4]));
+
+			vesselTypeSet.add(ff);
+
+			if (inputdata.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels() == null) {
+				inputdata.getShipRouteSet().get(ff.getRouteID()).setAvailableVessels(new HashMap<>());
+			}
+			inputdata.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels().put(ff.getId(), ff);
 		}
-		inputdata.setVesselSet(VesselSet);
+		inputdata.setVesselTypeSet(vesselTypeSet);
 	}
 
 	/**
@@ -767,12 +773,12 @@ public class ReadData extends DefaultSetting {
 				vesselPath.add(ff);
 
 				// update vessel paths in the route
-				if(inputdata.getShipRouteSet().get(ff.getRouteID()-1).getVesselPaths() == null)
+				if(inputdata.getShipRouteSet().get(ff.getRouteID()).getVesselPaths() == null)
 				{
-					inputdata.getShipRouteSet().get(ff.getRouteID()-1).setVesselPaths(new ArrayList<>());
+					inputdata.getShipRouteSet().get(ff.getRouteID()).setVesselPaths(new ArrayList<>());
 				}
-				inputdata.getShipRouteSet().get(ff.getRouteID()-1).setNumVesselPaths(inputdata.getShipRouteSet().get(ff.getRouteID()-1).getNumVesselPaths()+1);
-				inputdata.getShipRouteSet().get(ff.getRouteID()-1).getVesselPaths().add(ff);
+				inputdata.getShipRouteSet().get(ff.getRouteID()).setNumVesselPaths(inputdata.getShipRouteSet().get(ff.getRouteID()).getNumVesselPaths()+1);
+				inputdata.getShipRouteSet().get(ff.getRouteID()).getVesselPaths().add(ff);
 			}
 		}
 		inputdata.setVesselPathSet(vesselPath);
@@ -857,7 +863,7 @@ public class ReadData extends DefaultSetting {
 			ff.setArcID(Integer.parseInt(result[i][0]));
 			ff.setTravelingArcID(Integer.parseInt(result[i][0]));
 
-			ff.setRoute(Integer.parseInt(result[i][1]));
+			ff.setRouteID(Integer.parseInt(result[i][1]));
 
 			// origin node
 			ff.setOriginNodeID(Integer.parseInt(result[i][2]));
@@ -876,7 +882,7 @@ public class ReadData extends DefaultSetting {
 			ff.setDestinationNode(inputdata.getNodeSet().get(ff.getDestinationNodeID()));
 
 			//The front input data about round_trip is error
-			ShipRoute r = inputdata.getShipRouteSet().get(ff.getRouteIndex());
+			ShipRoute r = inputdata.getShipRouteSet().get(ff.getRouteID());
 			int index = r.getCallIndexOfPort(ff.getOriginPort());
 			int round_trip = (ff.getOriginTime() - r.getTimePointsOfCall()[index])/7 + 1;
 			ff.setRoundTrip(round_trip);

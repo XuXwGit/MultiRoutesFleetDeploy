@@ -32,8 +32,29 @@ public class ShipRoute {
 	private String [] portsOfCall;
 	private int[] timePointsOfCall;
 
+	/**
+	 *  key : Rotation index in the planning horizon
+	 *	value : VesselPath
+	 */
 	private int numVesselPaths;
 	private List<VesselPath> vesselPaths;
+
+	/**
+	 assignment of vessel type
+	 */
+	private VesselType vesselType;
+
+	/**
+	 * key : Rotation index in the planning horizon, eg: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+	 * value : VesselType Object, eg: V1, V2, V3, V4, V5, V1, V2, V3, V4, V5
+	 */
+	private Map<Integer, VesselType> fleet;
+
+	/**
+	 *  key : vesselID
+	 *	value : VesselType Object
+	 */
+	private Map<Integer, VesselType> availableVessels;
 
 	public ShipRoute() {
 	}

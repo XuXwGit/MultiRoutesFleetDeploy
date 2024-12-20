@@ -160,7 +160,7 @@ public class DetermineModelReactive extends BasePrimalModel {
     }
 
     // (2)
-    // Each Route should be assigned only one Vessel
+    // Each Route should be assigned only one VesselType
     private void setConstraint1() throws IloException
     {
         // r \in R
@@ -424,7 +424,7 @@ public class DetermineModelReactive extends BasePrimalModel {
     }
     public void printSolution(){
         log.info("Master Objective ="+String.format("%.2f", getObjVal()));
-        System.out.print("Vessel Decision vVar (MP) : ");
+        System.out.print("VesselType Decision vVar (MP) : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             System.out.print(p.getShippingRouteSet()[r]+"(");

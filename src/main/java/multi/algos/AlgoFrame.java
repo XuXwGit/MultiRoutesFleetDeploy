@@ -464,7 +464,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         }
     }
     public void printSolution(int[][] vValue) throws IloException {
-        log.info("Vessel Decision vVar : ");
+        log.info("VesselType Decision vVar : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             System.out.print(p.getShippingRouteSet()[r]);
@@ -500,7 +500,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         }
     }
     public void writeSolution(int[][] vValue, FileWriter fileWriter) throws IloException, IOException {
-        fileWriter.write("Vessel Decision vVar : " + "\n");
+        fileWriter.write("VesselType Decision vVar : " + "\n");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             fileWriter.write(p.getShippingRouteSet()[r] + ": ");

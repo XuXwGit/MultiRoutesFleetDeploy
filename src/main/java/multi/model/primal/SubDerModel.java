@@ -144,7 +144,7 @@ public class SubDerModel extends BasePrimalModel {
 		}
 	}
 
-	//(22) Vessel Capacity Constraint
+	//(22) VesselType Capacity Constraint
 	private void setConstraint2() throws IloException
 	{
 		// ∀<n,n'>∈A'

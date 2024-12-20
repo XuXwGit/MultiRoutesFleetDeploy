@@ -15,7 +15,7 @@ import java.util.Random;
 public class DefaultSetting {
 	//////////////////////////////////
 	/* Numerical Experiment Test */
-	// Vessel Capacity / Nums
+	// VesselType Capacity / Nums
 	public static String VesselCapacityRange = "I";
 
 	/**
@@ -191,7 +191,7 @@ public class DefaultSetting {
 	public static void printSettings(){
 		log.info("======================"+ "Settings" + "======================");
 		log.info("FleetType = " + FleetType);
-		log.info("Vessel Set = " + VesselCapacityRange);
+		log.info("VesselType Set = " + VesselCapacityRange);
 		log.info("Random Distribution = " + distributionType);
 		log.info("MIPGapLimit = " + MIPGapLimit);
 		log.info("MIPTimeLimit = " + MIPTimeLimit + "s");
@@ -214,7 +214,7 @@ public class DefaultSetting {
 		try {
 			fileWriter.write("======================"+ "Settings" + "======================\n");
 			fileWriter.write("FleetType = " + FleetType + "\n");
-			fileWriter.write("Vessel Set = " + VesselCapacityRange + "\n");
+			fileWriter.write("VesselType Set = " + VesselCapacityRange + "\n");
 			fileWriter.write("Random Distribution = " + distributionType + "\n");
 			fileWriter.write("MIPGapLimit = " + MIPGapLimit + "\n");
 			fileWriter.write("MIPTimeLimit = " + MIPTimeLimit  + "s" + "\n");

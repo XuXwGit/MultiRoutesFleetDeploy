@@ -226,8 +226,11 @@ public class GenerateParameter extends DefaultSetting {
 							- groupRangeRange.getFreightLowerBound())
 									*getRandDouble());
 			penaltyCostForDemand [x] = penaltyCostForDemand [x] * penaltyCoefficient;
+			rr.setPenaltyCost(penaltyCostForDemand[x]);
 			// variable demand = 0.05 * normal demand
 			demandMaximum[x]=demand[x]*uncertainDegree;
+			rr.setMeanDemand(demand[x]);
+			rr.setVarianceDemand(demandMaximum[x]);
 
 			x=x+1;
 		}
@@ -246,7 +249,7 @@ public class GenerateParameter extends DefaultSetting {
 		int [] vesselRoute =new int [in.getShipRouteSet().size()];
 		int [] roundTrips = new int[in.getShipRouteSet().size()];
 		int x=0;
-		for(ShipRoute ss:in.getShipRouteSet())
+		for(ShipRoute ss:in.getShipRouteSet().values())
 		{
 			vesselRoute[x]=ss.getShipRouteID();
 			roundTrips[x] = ss.getNumRoundTrips();
@@ -259,17 +262,17 @@ public class GenerateParameter extends DefaultSetting {
 		// set vessel type
 		// v[x][r] == 1: vessel x is for ship route r
 		// v[x][r] == 0: otherwise
-		int[] vessel =new int [in.getVesselSet().size()];
-		int[] vesselCapacity =new int [in.getVesselSet().size()];
-		double [] vesselOperationCost =new double [in.getVesselSet().size()];
-		int [][] vesselTypeAndShippingRoute =new int[in.getVesselSet().size()][in.getShipRouteSet().size()];
+		int[] vessel =new int [in.getVesselTypeSet().size()];
+		int[] vesselCapacity =new int [in.getVesselTypeSet().size()];
+		double [] vesselOperationCost =new double [in.getVesselTypeSet().size()];
+		int [][] vesselTypeAndShippingRoute =new int[in.getVesselTypeSet().size()][in.getShipRouteSet().size()];
 		int [] shippingRouteVesselNum = new int[p.getShippingRouteSet().length];
 		Arrays.fill(shippingRouteVesselNum, 0);
 		int x=0;
-		for(Vessel v : in.getVesselSet())
+		for(VesselType v : in.getVesselTypeSet())
 		{
-			vesselTypeAndShippingRoute[x][v.getRoute()-1]=1;
-			shippingRouteVesselNum[v.getRoute()-1] += 1;
+			vesselTypeAndShippingRoute[x][v.getRouteID()-1]=1;
+			shippingRouteVesselNum[v.getRouteID()-1] += 1;
 			vessel[x]=v.getId();
 			vesselCapacity[x]=v.getCapacity();
 			vesselOperationCost[x]=v.getCost();
@@ -408,7 +411,7 @@ public class GenerateParameter extends DefaultSetting {
 
 			if ( DebugEnable && GenerateParamEnable)
 			{
-				log.info("RouteID = "+in.getTravelingArcSet().get(nn).getRoute() +'\t'
+				log.info("RouteID = "+in.getTravelingArcSet().get(nn).getRouteID() +'\t'
 						+"TravelArcID = " + in.getTravelingArcSet().get(nn).getTravelingArcID() +'\t'
 						+"(" + in.getTravelingArcSet().get(nn).getOriginPort().toString()
 						+"," + in.getTravelingArcSet().get(nn).getDestinationPort().toString() +")" +'\t'

@@ -12,12 +12,8 @@ import lombok.Setter;
 @Getter
 public class TravelingArc extends Arc{
 	private int travelingArcID;
-	private int route;
+	private int routeID;
 
 	private int roundTrip;
 	private int travelingTime;
-
-	public int getRouteIndex(){
-		return getRoute() - 1;
-	}
 }

@@ -19,7 +19,11 @@ import java.util.List;
 public class Request {
 	private int requestID;
 	private int arrivalTime;
-	private int demand;
+
+	private double meanDemand;
+	private double varianceDemand;
+
+	private double penaltyCost;
 
 	private Port origin;
 	private Port destination;
@@ -35,6 +39,7 @@ public class Request {
 	private int[] ladenPaths;
 	private int[] ladenPathIndexes;
 	private int numberOfLadenPath;
+
 	private List<ContainerPath> emptyPathSet;
 	private int [] emptyPaths;
 	private int[] emptyPathIndexes;

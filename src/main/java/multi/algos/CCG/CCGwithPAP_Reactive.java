@@ -191,7 +191,7 @@ public class CCGwithPAP_Reactive  extends CCG {
     public void printSolution(){
         log.info("Master Objective ="+String.format("%.2f", getObjVal()));
 
-        System.out.print("Vessel Decision vVar (MP) : ");
+        System.out.print("VesselType Decision vVar (MP) : ");
         for(int r = 0; r<p.getShippingRouteSet().length; r++)
         {
             System.out.print(p.getShippingRouteSet()[r]+"(");
