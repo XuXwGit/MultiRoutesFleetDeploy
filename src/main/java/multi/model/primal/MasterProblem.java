@@ -33,7 +33,7 @@ public class MasterProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		try{
 			cplex = _cplex;
 			publicSetting(cplex);
@@ -47,7 +47,7 @@ public class MasterProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "MP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		try{
 			cplex = new IloCplex();
 			publicSetting(cplex);
@@ -710,12 +710,12 @@ public class MasterProblem extends BasePrimalModel
 				// r(w) = r
 				for(int h=0;h<p.getVesselSet().length;++h)
 				{
-					if(FleetType.equals("Homo")){
+					if(DefaultSetting.FleetType.equals("Homo")){
 						// vValue[h][r] : come from solution of master problem
 						left.addTerm(p.getArcAndVesselPath()[n][w]*p.getShipRouteAndVesselPath()[r][w]
 										*p.getVesselTypeAndShipRoute()[h][r]*p.getVesselCapacity()[h]*beta_value[n]
 								, vVar[h][r]);
-					} else if (FleetType.equals("Hetero")) {
+					} else if (DefaultSetting.FleetType.equals("Hetero")) {
 						// vValue[h][w] : come from solution of master problem
 						left.addTerm(p.getArcAndVesselPath()[n][w]
 										*p.getVesselCapacity()[h]*beta_value[n]
@@ -758,12 +758,12 @@ public class MasterProblem extends BasePrimalModel
 					// r(w) = r
 					for(int h=0;h<p.getVesselSet().length;++h)
 					{
-						if(FleetType.equals("Homo")){
+						if(DefaultSetting.FleetType.equals("Homo")){
 							// vValue[h][r] : come from solution of master problem
 							left.addTerm(p.getArcAndVesselPath()[n][w]*p.getShipRouteAndVesselPath()[r][w]
 											*p.getVesselTypeAndShipRoute()[h][r]*p.getVesselCapacity()[h]*beta_value[n]
 									, vVar[h][r]);
-						} else if (FleetType.equals("Hetero")) {
+						} else if (DefaultSetting.FleetType.equals("Hetero")) {
 							// vValue[h][w] : come from solution of master problem
 							left.addTerm(p.getArcAndVesselPath()[n][w]
 											*p.getVesselCapacity()[h]*beta_value[n]
@@ -861,7 +861,7 @@ public class MasterProblem extends BasePrimalModel
 	{
 		try
 		{
-			if (WhetherExportModel)
+			if (DefaultSetting.WhetherExportModel)
 				exportModel();
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())
@@ -876,12 +876,12 @@ public class MasterProblem extends BasePrimalModel
 				setSolveTime(endTime - startTime);
 				setObjGap(cplex.getMIPRelativeGap());
 
-				if(WhetherPrintVesselDecision){
+				if(DefaultSetting.WhetherPrintVesselDecision){
 					printMPSolution();
 				}
 
 				// print master problem solution
-				if (DebugEnable && MasterEnable )
+				if (DefaultSetting.DebugEnable && DefaultSetting.MasterEnable )
 				{
 					log.info("------------------------------------------------------------------------");
 					log.info("SolveTime = "+getSolveTime());
@@ -903,7 +903,7 @@ public class MasterProblem extends BasePrimalModel
 	{
 		try
 		{
-			if (WhetherExportModel)
+			if (DefaultSetting.WhetherExportModel)
 				exportModel();
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())
@@ -931,7 +931,7 @@ public class MasterProblem extends BasePrimalModel
 				setSolveTime(endTime - startTime);
 
 				// print master problem solution
-				if (DebugEnable && MasterEnable )
+				if (DefaultSetting.DebugEnable && DefaultSetting.MasterEnable )
 				{
 					log.info("------------------------------------------------------------------------");
 					log.info("SolveTime = "+getSolveTime());

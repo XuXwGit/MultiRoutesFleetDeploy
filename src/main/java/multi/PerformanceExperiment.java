@@ -1,6 +1,7 @@
 package multi;
 
 import ilog.concert.IloException;
+import ilog.cplex.IloCplexModeler.Exception;
 import lombok.extern.slf4j.Slf4j;
 import multi.algos.BD.BD;
 import multi.algos.BD.BDwithPAP;
@@ -97,6 +98,14 @@ public class PerformanceExperiment {
         else if (instance == 3) {
             //timeHorizonSet = new int[]{180, 165, 150, 135, 120, 105, 90};
             timeHorizonSet = new int[]{90, 105, 120, 135, 150, 165, 180};
+        }
+        else if (instance == 4) {
+            //timeHorizonSet = new int[]{180, 165, 150, 135, 120, 105, 90};
+            timeHorizonSet = new int[]{60, 75, 90, 105, 120, 135, 150, 165, 180};
+        }
+        else if (instance == 5) {
+            //timeHorizonSet = new int[]{180, 165, 150, 135, 120, 105, 90};
+            timeHorizonSet = new int[]{60, 75, 90, 105, 120, 135, 150, 165, 180};
         }
 
         //print_strategy_status(fileName);
@@ -738,7 +747,12 @@ public class PerformanceExperiment {
             new DetermineModel(inputData, para);
 
             new SOwithBD(inputData, para);
-            new SOwithSAA(inputData, para);
+
+            try {
+                new SOwithSAA(inputData, para);
+            } catch (Exception e) {
+                System.out.println("error in solve SAA");
+            }
 
             log.info("=====================================================================");
         }

@@ -3,6 +3,7 @@ package multi.model;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.model.primal.BasePrimalModel;
@@ -22,7 +23,7 @@ public class CapacityCalculate extends BasePrimalModel {
         super();
         this.in = in;
         this.p = p;
-        this.modelName = "CC" + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "CC" + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
         try{
             cplex = new IloCplex();
             publicSetting(cplex);
@@ -329,7 +330,7 @@ public class CapacityCalculate extends BasePrimalModel {
     {
         try
         {
-            if (WhetherExportModel) {
+            if (DefaultSetting.WhetherExportModel) {
                 exportModel();
             }
             if (cplex.solve())

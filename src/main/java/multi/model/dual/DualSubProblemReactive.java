@@ -3,6 +3,7 @@ package multi.model.dual;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.network.Request;
@@ -33,7 +34,7 @@ public class DualSubProblemReactive extends BaseDualModel
         this.in = in;
         this.p = p;
         this.tau=tau;
-        this.modelName = "DSPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "DSPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
         this.vVarValue1= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
         this.vVarValue2= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
         try{
@@ -442,7 +443,7 @@ public class DualSubProblemReactive extends BaseDualModel
 
     public void solveModel() {
         try {
-            if (WhetherExportModel)
+            if (DefaultSetting.WhetherExportModel)
                 exportModel();
             long startTime = System.currentTimeMillis();
             if (cplex.solve()) {
@@ -465,7 +466,7 @@ public class DualSubProblemReactive extends BaseDualModel
 
 //                printSolution();
 
-                    if (DebugEnable && DualSubEnable) {
+                    if (DefaultSetting.DebugEnable && DefaultSetting.DualSubEnable) {
                         log.info("------------------------------------------------------------------------");
                         log.info("SolveTime = " + (endTime - startTime));
                         printSolution();

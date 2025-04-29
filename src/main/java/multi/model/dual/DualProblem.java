@@ -26,7 +26,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		if(DefaultSetting.FleetType == "Hetero"){
 			this.vVarValue = new int[p.getVesselSet().length][p.getVesselPathSet().length];
 		}else{
@@ -45,7 +45,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = new double[p.getDemand().length];
 		try{
@@ -60,7 +60,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = uValue;
 		try{
@@ -76,7 +76,7 @@ public class DualProblem extends BaseDualModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "DP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue = vValue;
 		this.uValue = IntArrayWrapper.IntArrayToDoubleArray(uValue);
 		try{
@@ -135,7 +135,7 @@ public class DualProblem extends BaseDualModel {
 		setConstraint3();
 		setConstraint4();
 
-		if (UseParetoOptimalCut){
+		if (DefaultSetting.UseParetoOptimalCut){
 			setParetoConstraint();
 		}
 	}
@@ -153,7 +153,7 @@ public class DualProblem extends BaseDualModel {
 	public void changeParetoConstr(int[][] vValue, double[] uValue, double dspObjVal) throws IloException {
 		objExpr = getObjExpr(vValue, uValue);
 		CObj.setExpr(objExpr);
-		CObj.setBounds(dspObjVal - boundGapLimit, dspObjVal + boundGapLimit);
+		CObj.setBounds(dspObjVal - DefaultSetting.boundGapLimit, dspObjVal + DefaultSetting.boundGapLimit);
 	}
 
 	// C1------X
@@ -179,7 +179,7 @@ public class DualProblem extends BaseDualModel {
 	public void solveModel() {
 		try
 		{
-			if (WhetherExportModel) {
+			if (DefaultSetting.WhetherExportModel) {
 				exportModel();
 			}
 			long startTime = System.currentTimeMillis();

@@ -136,6 +136,7 @@ public class BaseDualModel extends BaseModel {
         double[][] vVarValueDouble = IntArray2DWrapper.Int2DArrayToDouble2DArray(vVarValue);
         return getDetermineObj(vVarValueDouble);
     }
+    
     protected IloLinearNumExpr getDetermineObj(double[][] vVarValue) throws IloException {
         IloLinearNumExpr objExpr = cplex.linearNumExpr();
 
@@ -164,12 +165,14 @@ public class BaseDualModel extends BaseModel {
             {
                 objExpr.addTerm(-p.getInitialEmptyContainer()[pp], gammaVar[pp][t]);
                 if(DefaultSetting.AllowFoldableContainer){
-                    objExpr.addTerm(-p.getInitialEmptyContainer()[pp] * 0.5, gamma2Var[pp][t]);
+                    objExpr.addTerm(-p.getInitialEmptyContainer()[pp] * DefaultSetting.DefaultFoldContainerPercent, gamma2Var[pp][t]);
                 }
             }
         }
         return objExpr;
     }
+
+
     /**
      * 设置自有集装箱运输路径的对偶约束(对应数学模型中的X_iφ约束)
      *
@@ -312,7 +315,7 @@ public class BaseDualModel extends BaseModel {
     protected void setDualConstraintZ() throws IloException {
         // 添加Z_iθ约束: ∑ξ_nn'θ*β_nn' + ∑(γ_pt相关项) ≤ c5θ
         // 对应tex中的Z_iθ约束
-        if(WhetherUseMultiThreads){
+        if(DefaultSetting.WhetherUseMultiThreads){
            // long start = System.currentTimeMillis();
             setDualConstraintZwithMultiThreads();
             //log.info("            Set DualConstraintZ Time(Multi Threads) = "+ (System.currentTimeMillis() - start));
@@ -678,7 +681,7 @@ public class BaseDualModel extends BaseModel {
                     // r(w) = r
                     for(int h=0;h<p.getVesselSet().length;++h)
                     {
-                        if("Homo".equals(FleetType)){
+                        if("Homo".equals(DefaultSetting.FleetType)){
                             if(p.getArcAndVesselPath()[n][w]*p.getShipRouteAndVesselPath()[r][w]
                                     *p.getVesselTypeAndShipRoute()[h][r]*p.getVesselCapacity()[h] > 0){
                                 // vValue[h][r] : come from solution of master problem
@@ -686,7 +689,7 @@ public class BaseDualModel extends BaseModel {
                                                 *p.getVesselTypeAndShipRoute()[h][r]*p.getVesselCapacity()[h]*betaValue[n]
                                         , vVars[h][r]);
                             }
-                        } else if ("Hetero".equals(FleetType)) {
+                        } else if ("Hetero".equals(DefaultSetting.FleetType)) {
                             // vValue[h][w] : come from solution of master problem
                             left.addTerm(p.getArcAndVesselPath()[n][w]
                                             *p.getVesselCapacity()[h]*betaValue[n]

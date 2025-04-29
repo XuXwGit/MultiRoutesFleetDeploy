@@ -3,6 +3,7 @@ package multi.model.primal;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.IntArrayWrapper;
 import multi.Parameter;
@@ -27,7 +28,7 @@ public class SubProblemReactive extends BasePrimalModel
         super();
         this.in = in;
         this.p = p;
-        this.modelName = "SPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "SPR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
         this.vVarValue1= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
         this.vVarValue2= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
         this.uValue = new double[p.getDemand().length];
@@ -337,7 +338,7 @@ public class SubProblemReactive extends BasePrimalModel
     public void solveModel()	{
         try
         {
-            if (WhetherExportModel) {
+            if (DefaultSetting.WhetherExportModel) {
                 exportModel();
             }
             long startTime = System.currentTimeMillis();

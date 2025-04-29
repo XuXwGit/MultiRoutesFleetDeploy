@@ -105,10 +105,10 @@ public class BasePrimalModel extends BaseModel {
 
 
     protected void setVesselConstraint() throws IloException {
-        if(FleetType.equals("Homo")){
+        if(DefaultSetting.FleetType.equals("Homo")){
             setVesselConstraint11_1();
         }
-        else if (FleetType.equals("Hetero")) {
+        else if (DefaultSetting.FleetType.equals("Hetero")) {
             setVesselConstraint11_2();
             // two additional constraint
             setVesselConstraint12();
@@ -201,13 +201,13 @@ public class BasePrimalModel extends BaseModel {
     }
 
     public boolean checkVesselConstraint(double[][] vValueDouble) {
-        if("Homo".equals(FleetType)){
+        if("Homo".equals(DefaultSetting.FleetType)){
             if(!checkVesselConstraint11_1(vValueDouble)){
                 log.info("Error in VesselType Constraint 1");
                 return false;
             }
         }
-        else if ("Hetero".equals(FleetType)) {
+        else if ("Hetero".equals(DefaultSetting.FleetType)) {
             if(!checkVesselConstraint11_2(vValueDouble)){
                 log.info("Error in VesselType Constraint 1");
                 return false;
@@ -240,7 +240,7 @@ public class BasePrimalModel extends BaseModel {
                 // r(h) == r
                 left += (p.getVesselTypeAndShipRoute()[h][r] * vValueDouble[h][r]);
             }
-            if (left - 1 > MIPGapLimit || left - 1 < -MIPGapLimit)
+            if (left - 1 > DefaultSetting.MIPGapLimit || left - 1 < -DefaultSetting.MIPGapLimit)
                 return false;
         }
         return true;
@@ -256,7 +256,7 @@ public class BasePrimalModel extends BaseModel {
                 // r(h) == r
                 left += (1 * vValueDouble[h][w]);
             }
-            if (left - 1 > MIPGapLimit || left - 1 < -MIPGapLimit)
+            if (left - 1 > DefaultSetting.MIPGapLimit || left - 1 < -DefaultSetting.MIPGapLimit)
                 return false;
         }
         return true;
@@ -305,7 +305,7 @@ public class BasePrimalModel extends BaseModel {
                     double left = 0;
                     left += (1 * vValueDouble[h][w]);
                     left += (-1 * vValueDouble[h][w+n_r]);
-                    if (left > MIPGapLimit || left < -MIPGapLimit)
+                    if (left > DefaultSetting.MIPGapLimit || left < -DefaultSetting.MIPGapLimit)
                         return false;
                 }
             }
@@ -425,7 +425,7 @@ public class BasePrimalModel extends BaseModel {
             {
                 int r = in.getVesselPathSet().get(w).getRouteID() - 1;
 
-                if(FleetType.equals("Homo")){
+                if(DefaultSetting.FleetType.equals("Homo")){
                     // h \in H_r
                     // r(h) = r : p.getVesselTypeAndShippingRoute()[h][r] == 1
                     for(int h = 0; h < p.getVesselSet().length; ++h){
@@ -436,7 +436,7 @@ public class BasePrimalModel extends BaseModel {
                                 vVar[h][r]
                         );
                     }
-                } else if (FleetType.equals("Hetero")) {
+                } else if (DefaultSetting.FleetType.equals("Hetero")) {
                     // h \in H
                     for(int h = 0; h < p.getVesselSet().length; ++h)
                     {
@@ -491,7 +491,7 @@ public class BasePrimalModel extends BaseModel {
             {
                 int r = in.getVesselPathSet().get(w).getRouteID() - 1;
 
-                if(FleetType.equals("Homo")){
+                if(DefaultSetting.FleetType.equals("Homo")){
                     // h \in H_r
                     // r(h) = r : p.getVesselTypeAndShippingRoute()[h][r] == 1
                     for(int h = 0; h < p.getVesselSet().length; ++h){
@@ -502,7 +502,7 @@ public class BasePrimalModel extends BaseModel {
                                 vVar[h][r]
                         );
                     }
-                } else if (FleetType.equals("Hetero")) {
+                } else if (DefaultSetting.FleetType.equals("Hetero")) {
                     // h \in H
                     for(int h = 0; h < p.getVesselSet().length; ++h)
                     {
@@ -526,12 +526,12 @@ public class BasePrimalModel extends BaseModel {
         }else{
             setEmptyConservationConstraint(xVar, z1Var, 1);
             if(DefaultSetting.AllowFoldableContainer){
-                setEmptyConservationConstraint(x1Var, z2Var, 0.5);
+                setEmptyConservationConstraint(x1Var, z2Var, DefaultSetting.DefaultFoldContainerPercent);
             }            
         }
     }
     protected void setEmptyConservationConstraint(List<IloNumVar[]> xVar, List<IloNumVar[]> zVar, double initial_port_container_coeff) throws IloException {
-        if(WhetherUseMultiThreads){
+        if(DefaultSetting.WhetherUseMultiThreads){
             //long start = System.currentTimeMillis();
             setEmptyConservationConstraintWithMultiThread(xVar, zVar);
             //log.info("Set Empty Conservation Constraint Time(Multi Threads) = "+ (System.currentTimeMillis() - start));
@@ -815,14 +815,14 @@ public class BasePrimalModel extends BaseModel {
                 // r(��) == r
                 int r = in.getVesselPathSet().get(w).getRouteID() - 1;
 
-                if(FleetType.equals("Homo")) {
+                if(DefaultSetting.FleetType.equals("Homo")) {
                     // vesselTypeAndShipRoute == 1 : r(h) = r
                     operation_cost += (p.getVesselTypeAndShipRoute()[h][r]
                             * p.getShipRouteAndVesselPath()[r][w]
                             * p.getVesselOperationCost()[h]
                             * vValue[h][r]);
                 }
-                else if (FleetType.equals("Hetero")) {
+                else if (DefaultSetting.FleetType.equals("Hetero")) {
                     operation_cost += (p.getVesselOperationCost()[h]
                             * vValue[h][w]);
                 }
@@ -894,10 +894,10 @@ public class BasePrimalModel extends BaseModel {
         // first-stage variable :
         // v[h][r] : binary variable ���� whether vessel type h is assigned to shipping route r
         // eta : auxiliary decision variable ���� the upper bound of second-stage objective under all scene
-        if(FleetType.equals("Homo")){
+        if(DefaultSetting.FleetType.equals("Homo")){
             vVar =new IloIntVar [p.getVesselSet().length] [p.getShippingRouteSet().length];
             vVarValue = new int[p.getVesselSet().length][p.getShippingRouteSet().length];
-        } else if (FleetType.equals("Hetero")) {
+        } else if (DefaultSetting.FleetType.equals("Hetero")) {
             vVar =new IloIntVar [p.getVesselSet().length] [p.getVesselPathSet().length];
             vVarValue = new int[p.getVesselSet().length] [p.getVesselPathSet().length];
         }
@@ -909,13 +909,13 @@ public class BasePrimalModel extends BaseModel {
         String varName;
         for(int h=0;h<p.getVesselSet().length;++h)
         {
-            if(FleetType.equals("Homo")){
+            if(DefaultSetting.FleetType.equals("Homo")){
                 for(int r = 0; r<p.getShippingRouteSet().length; r++)
                 {
                     varName = "V("+(p.getVesselSet()[h])+")("+(p.getShippingRouteSet()[r])+")";
                     vVar[h][r]=cplex.boolVar(varName);
                 }
-            } else if (FleetType.equals("Hetero")) {
+            } else if (DefaultSetting.FleetType.equals("Hetero")) {
                 for(int w = 0; w < p.getVesselPathSet().length; ++w)
                 {
                     varName = "V("+(p.getVesselSet()[h])+")("+(p.getVesselPathSet()[w])+")";
@@ -1063,14 +1063,14 @@ public class BasePrimalModel extends BaseModel {
                 // r(��) == r
                 int r = in.getVesselPathSet().get(w).getRouteID() - 1;
 
-                if(FleetType.equals("Homo")) {
+                if(DefaultSetting.FleetType.equals("Homo")) {
                     // vesselTypeAndShipRoute == 1 : r(h) = r
                     Obj.addTerm(p.getVesselTypeAndShipRoute()[h][r]
                                     * p.getShipRouteAndVesselPath()[r][w]
                                     * p.getVesselOperationCost()[h]
                             , vVar[h][r]);
                 }
-                else if (FleetType.equals("Hetero")) {
+                else if (DefaultSetting.FleetType.equals("Hetero")) {
                     Obj.addTerm(p.getVesselOperationCost()[h]
                             , vVar[h][w]);
                 }
@@ -1236,9 +1236,9 @@ public class BasePrimalModel extends BaseModel {
         setSolution(solution);
     }
     protected void setVVarsSolution() throws IloException {
-        if(FleetType.equals("Homo")){
+        if(DefaultSetting.FleetType.equals("Homo")){
             setHomoVesselSolution();
-        } else if (FleetType.equals("Hetero")) {
+        } else if (DefaultSetting.FleetType.equals("Hetero")) {
             setHeteroVesselSolution();
         }
         else{
@@ -1247,12 +1247,12 @@ public class BasePrimalModel extends BaseModel {
     }
     protected double calculateSampleMeanPerformance(int[][] vValue) throws IOException, IloException {
         String filename = model + "-R"+ in.getShipRouteSet().size()
-                + "-T" + p.getTimeHorizon() + "-"+ FleetType
+                + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType
                 + "-Tau" + p.getTau()
                 + "-U" + p.getUncertainDegree()
-                + "-S" + randomSeed
+                + "-S" + DefaultSetting.randomSeed
                 + "-SampleTestResult"+ ".txt";
-        File file = new File(RootPath + AlgoLogPath + filename);
+        File file = new File(DefaultSetting.RootPath + DefaultSetting.AlgoLogPath + filename);
         if (!file.exists()) {
             try {
                 file.createNewFile();
@@ -1271,17 +1271,17 @@ public class BasePrimalModel extends BaseModel {
         double mp_operation_cost = getOperationCost(vValue);
 
 
-        double[] sample_sub_opera_costs = new double[numSampleScenes];
-        double[] sample_laden_costs = new double[numSampleScenes];
-        double[] sample_empty_costs = new double[numSampleScenes];
-        double[] sample_rental_costs = new double[numSampleScenes];
-        double[] sample_penalty_costs = new double[numSampleScenes];
+        double[] sample_sub_opera_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_laden_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_empty_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_rental_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_penalty_costs = new double[DefaultSetting.numSampleScenes];
 
         double sum_sub_opera_costs = 0;
         double worst_total_cost = 0;
         double worst_second_cost = 0;
         SubProblem sp = new SubProblem(in, p, vValue);
-        for (int sce = 0; sce < numSampleScenes; sce++) {
+        for (int sce = 0; sce < DefaultSetting.numSampleScenes; sce++) {
             sp.changeDemandConstraintCoefficients(p.getSampleScenes()[sce]);
             sp.solveModel();
 
@@ -1297,7 +1297,7 @@ public class BasePrimalModel extends BaseModel {
                 worst_second_cost = sample_sub_opera_costs[sce];
             }
 
-            drawProgressBar((sce) * 100 / numSampleScenes);
+            DefaultSetting.drawProgressBar((sce) * 100 / DefaultSetting.numSampleScenes);
 
             filewriter.write(sce + "\t" + mp_operation_cost + "\t"
                     + sample_sub_opera_costs[sce] + "\t"
@@ -1311,16 +1311,16 @@ public class BasePrimalModel extends BaseModel {
         }
         this.setWorstPerformance(worst_total_cost);
         this.setWorstSecondStageCost(worst_second_cost);
-        this.setMeanPerformance(mp_operation_cost + sum_sub_opera_costs / numSampleScenes);
-        this.setMeanSecondStageCost(sum_sub_opera_costs / numSampleScenes);
+        this.setMeanPerformance(mp_operation_cost + sum_sub_opera_costs / DefaultSetting.numSampleScenes);
+        this.setMeanSecondStageCost(sum_sub_opera_costs / DefaultSetting.numSampleScenes);
 
         filewriter.close();
 
-        return mp_operation_cost + sum_sub_opera_costs/ numSampleScenes;
+        return mp_operation_cost + sum_sub_opera_costs/ DefaultSetting.numSampleScenes;
     }
     protected double calculateMeanPerformance() throws IOException, IloException {
         log.info("Calculating Mean Performance ...");
-        if(UseHistorySolution)
+        if(DefaultSetting.UseHistorySolution)
         {
             if((in.getHistorySolutionSet().get(modelName) != (null))) {
                 calculateSampleMeanPerformance(solutionToVValue(in.getHistorySolutionSet().get(modelName)));
@@ -1337,12 +1337,12 @@ public class BasePrimalModel extends BaseModel {
     }
     public int[][] solutionToVValue(int[] solution){
         int[][] vValue = new int[0][];
-        if(FleetType.equals("Homo")){
+        if(DefaultSetting.FleetType.equals("Homo")){
             vValue = new int[p.getVesselSet().length][p.getShippingRouteSet().length];
             for(int r = 0; r<p.getShippingRouteSet().length; r++) {
                 vValue[solution[r] - 1][r] = 1;
             }
-        } else if (FleetType.equals("Hetero")) {
+        } else if (DefaultSetting.FleetType.equals("Hetero")) {
             vValue = new int[p.getVesselSet().length][p.getVesselPathSet().length];
             for(int w=0;w<p.getVesselPathSet().length;++w) {
                 vValue[solution[w]-1][w] = 1;
@@ -1362,7 +1362,7 @@ public class BasePrimalModel extends BaseModel {
             System.out.print(p.getShippingRouteSet()[r]);
             System.out.print(":");
 
-            if(FleetType.equals("Homo")){
+            if(DefaultSetting.FleetType.equals("Homo")){
                 for(int h=0;h<p.getVesselSet().length;++h)
                 {
                     if(vVarValue[h][r] != 0)
@@ -1370,7 +1370,7 @@ public class BasePrimalModel extends BaseModel {
                         System.out.print(p.getVesselSet()[h]+"\t");
                     }
                 }
-            } else if (FleetType.equals("Hetero")) {
+            } else if (DefaultSetting.FleetType.equals("Hetero")) {
                 for(int w=0;w<p.getVesselPathSet().length;++w){
                     if (p.getShipRouteAndVesselPath()[r][w] != 1)
                     {

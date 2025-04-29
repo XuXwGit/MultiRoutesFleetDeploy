@@ -69,10 +69,10 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
-		if(FleetType.equals("Homo")){
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
+		if(DefaultSetting.FleetType.equals("Homo")){
 			vVarValue = new int[p.getVesselSet().length][p.getShippingRouteSet().length];
-		} else if (FleetType.equals("Hetero")) {
+		} else if (DefaultSetting.FleetType.equals("Hetero")) {
 			vVarValue = new int[p.getVesselSet().length] [p.getVesselPathSet().length];
 		}
 		else{
@@ -91,7 +91,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = new double[p.getDemand().length];
 		try{
@@ -106,7 +106,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = uValue;
 		try{
@@ -121,7 +121,7 @@ public class SubProblem extends BasePrimalModel
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.vVarValue= vVarValue;
 		this.uValue = IntArrayWrapper.IntArrayToDoubleArray(uValue);
 		try{
@@ -225,7 +225,7 @@ public class SubProblem extends BasePrimalModel
 	public void solveModel()	{
 		try
 		{
-			if (WhetherExportModel)
+			if (DefaultSetting.WhetherExportModel)
 				exportModel();
 			// solve the model
 			long startTime = System.currentTimeMillis();
@@ -314,7 +314,7 @@ public class SubProblem extends BasePrimalModel
 	}
 
 	public void writeDualSolution() throws IOException, IloException {
-		File file = new File(RootPath + SolutionPath + "SP-Dual-Solution"
+		File file = new File(DefaultSetting.RootPath + DefaultSetting.SolutionPath + "SP-Dual-Solution"
 				+"(R="+in.getShipRouteSet().size()+")"
 				+"(T="+(p.getTimePointSet().length-1)+")"
 				+"(U="+p.getUncertainDegree()+")"
@@ -460,7 +460,7 @@ public class SubProblem extends BasePrimalModel
 		setTotalCost(TotalLadenCost + TotalEmptyCost + TotalRentalCost + TotalPenaltyCost);
 	}
 	public void writeSolution() throws IOException, IloException {
-		String filename = RootPath + SolutionPath + "SP-Solution"
+		String filename = DefaultSetting.RootPath + DefaultSetting.SolutionPath + "SP-Solution"
 				+"(R="+in.getShipRouteSet().size()+")"
 				+"(T="+(p.getTimePointSet().length-1)+")"
 				+"(U="+p.getUncertainDegree()+")"
@@ -497,7 +497,7 @@ public class SubProblem extends BasePrimalModel
 			Request od = in.getRequestSet().get(i);
 			double totalRequestCost = 0;
 
-			if(WhetherWriteFileLog){
+			if(DefaultSetting.WhetherWriteFileLog){
 				fileWriter2.write("Request"+od.getRequestID()
 						+"("+od.getOriginPort()+"->"+od.getDestinationPort()+")"
 						+"("+String.format("%.2f", (p.getDemand()[i] + p.getMaximumDemandVariation()[i] * uValue[i]))+")"
@@ -566,7 +566,7 @@ public class SubProblem extends BasePrimalModel
 			TotalOtherCost += totalRequestCost;
 		}
 
-		if(WhetherPrintRequestDecision){
+		if(DefaultSetting.WhetherPrintRequestDecision){
 			log.info("TotalLadenCost = " + "\t"
 					+"TotalEmptyCost = " + "\t"
 					+"TotalRentalCost = " + "\t"
@@ -600,7 +600,7 @@ public class SubProblem extends BasePrimalModel
 	}
 
 	public void writePortContainers() throws IOException, IloException {
-		String filename = RootPath + SolutionPath
+		String filename = DefaultSetting.RootPath + DefaultSetting.SolutionPath
 				+ "SP"+"_Port-Containers"
 				+"(T="+(p.getTimePointSet().length-1)+")"
 				+".txt";

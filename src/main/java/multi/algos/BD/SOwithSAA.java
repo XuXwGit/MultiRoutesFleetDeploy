@@ -50,7 +50,9 @@ public class SOwithSAA extends AlgoFrame {
         initialModel();
 
         mp.solveModel();
-
+        
+        upperBound = mp.getObjVal();
+        
         setAlgoResult();
         end();
     }

@@ -6,6 +6,7 @@ import ilog.concert.IloLinearIntExpr;
 import ilog.concert.IloLinearNumExpr;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.network.Request;
@@ -22,9 +23,9 @@ public class DetermineModelReactive extends BasePrimalModel {
         super();
         this.in = in;
         this.p = p;
-        this.modelName = "DMR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+        this.modelName = "DMR"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
         try{
-            if(WhetherPrintProcess){
+            if(DefaultSetting.WhetherPrintProcess){
                 log.info("=========DetermineModel (Reactive Strategy)==========");
             }
             cplex = new IloCplex();
@@ -38,12 +39,12 @@ public class DetermineModelReactive extends BasePrimalModel {
             double end = System.currentTimeMillis();
             setSolveTime(end - start);
 
-            if(WhetherPrintProcess){
+            if(DefaultSetting.WhetherPrintProcess){
                 log.info("BuildTime = "+ (begin - start) +"\t\t"
                         + "SolveTime = " + (end - start));
                 log.info("Determine Objective = " +String.format("%.2f", getObjVal()));
             }
-            if(WhetherPrintProcess){
+            if(DefaultSetting.WhetherPrintProcess){
                 printSolution();
             }
             log.info("================================");
@@ -375,7 +376,7 @@ public class DetermineModelReactive extends BasePrimalModel {
     {
         try
         {
-            if (WhetherExportModel)
+            if (DefaultSetting.WhetherExportModel)
                 exportModel();
             long startTime = System.currentTimeMillis();
             if (cplex.solve())
@@ -403,7 +404,7 @@ public class DetermineModelReactive extends BasePrimalModel {
                 setSolveTime(endTime - startTime);
                 setObjGap(cplex.getMIPRelativeGap());
 
-                if(WhetherPrintProcess){
+                if(DefaultSetting.WhetherPrintProcess){
                     printSolution();
                 }
             }

@@ -3,6 +3,7 @@ package multi.model.primal;
 import ilog.concert.*;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.network.Request;
@@ -18,7 +19,7 @@ public class SubDerModel extends BasePrimalModel {
 		super();
 		this.in = in;
 		this.p = p;
-		this.modelName = "SDP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
+		this.modelName = "SDP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
 		this.uValueDouble = new double [p.getDemand().length];
 		try{
 			cplex = new IloCplex();
@@ -321,7 +322,7 @@ public class SubDerModel extends BasePrimalModel {
 	{
 		try
 		{
-			if (WhetherExportModel)
+			if (DefaultSetting.WhetherExportModel)
 				exportModel();
 			long startTime = System.currentTimeMillis();
 			if (cplex.solve())

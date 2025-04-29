@@ -38,7 +38,7 @@ import java.nio.file.Paths;
 @Slf4j
 @Getter
 @Setter
-public class BaseModel  extends DefaultSetting {
+public class BaseModel{
     protected InputData in;
     protected Parameter p;
     protected IloCplex cplex;
@@ -82,10 +82,10 @@ public class BaseModel  extends DefaultSetting {
             cplex.setWarning(null);
         }
 
-        cplex.setParam(IloCplex.Param.WorkMem, MaxWorkMem);
-        cplex.setParam(IloCplex.Param.TimeLimit, MIPTimeLimit);
-        cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, MIPGapLimit);
-        cplex.setParam(IloCplex.Param.Threads, MaxThreads);
+        cplex.setParam(IloCplex.Param.WorkMem, DefaultSetting.MaxWorkMem);
+        cplex.setParam(IloCplex.Param.TimeLimit, DefaultSetting.MIPTimeLimit);
+        cplex.setParam(IloCplex.Param.MIP.Tolerances.MIPGap, DefaultSetting.MIPGapLimit);
+        cplex.setParam(IloCplex.Param.Threads, DefaultSetting.MaxThreads);
     }
 
     public BaseModel() {
@@ -145,14 +145,14 @@ public class BaseModel  extends DefaultSetting {
                 // h \in Hr
                 for(int h=0;h<p.getVesselSet().length;h++)
                 {
-                    if("Homo".equals(FleetType)){
+                    if("Homo".equals(DefaultSetting.FleetType)){
                         // vValue[v][r] : come from solution of master problem
                         capacities[n] += p.getArcAndVesselPath()[n][w]
                                 *p.getShipRouteAndVesselPath()[r][w]
                                 *p.getVesselTypeAndShipRoute()[h][r]
                                 *p.getVesselCapacity()[h]
                                 * vValue[h][r];
-                    } else if ("Hetero".equals(FleetType)) {
+                    } else if ("Hetero".equals(DefaultSetting.FleetType)) {
                         // vValue[v][r] : come from solution of master problem
                         capacities[n] += p.getArcAndVesselPath()[n][w]
                                 *p.getVesselCapacity()[h]
@@ -171,7 +171,7 @@ public class BaseModel  extends DefaultSetting {
         return getCapacityOnArcs(vValueDouble);
     }
     protected void exportModel() throws IloException {
-        String modelFilePath = RootPath + ExportModelPath;
+        String modelFilePath = DefaultSetting.RootPath + DefaultSetting.ExportModelPath;
         try {
             // 使用Paths.get()方法创建Path对象
             Path path = Paths.get(modelFilePath);

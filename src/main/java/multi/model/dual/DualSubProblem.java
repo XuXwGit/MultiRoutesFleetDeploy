@@ -5,6 +5,7 @@ import ilog.cplex.IloCplex;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.Scenario;
@@ -39,11 +40,11 @@ public class DualSubProblem extends BaseDualModel
 		this.in = in;
 		this.p = p;
 		this.tau=p.getTau();
-		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
-		if("Homo".equals(FleetType)){
+		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
+		if("Homo".equals(DefaultSetting.FleetType)){
 			// V[h][r]
 			vVarValue= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
-		} else if ("Hetero".equals(FleetType)) {
+		} else if ("Hetero".equals(DefaultSetting.FleetType)) {
 			// V[h][w]
 			this.vVarValue= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
 		}
@@ -65,11 +66,11 @@ public class DualSubProblem extends BaseDualModel
 		this.in = in;
 		this.p = p;
 		this.tau=tau;
-		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed;
-		if("Homo".equals(FleetType)){
+		this.modelName = "DSP"+ "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed;
+		if("Homo".equals(DefaultSetting.FleetType)){
 			// V[h][r]
 			vVarValue= new int[p.getVesselSet().length] [p.getShippingRouteSet().length];
-		} else if ("Hetero".equals(FleetType)) {
+		} else if ("Hetero".equals(DefaultSetting.FleetType)) {
 			// V[h][w]
 			this.vVarValue= new int[p.getVesselSet().length] [p.getVesselPathSet().length];
 		}
@@ -264,7 +265,7 @@ public class DualSubProblem extends BaseDualModel
 	public void solveModel()	{
 		try
 		{
-			if (WhetherExportModel) {
+			if (DefaultSetting.WhetherExportModel) {
 				exportModel();
 			}
 			long startTime = System.currentTimeMillis();
@@ -298,7 +299,7 @@ public class DualSubProblem extends BaseDualModel
 				Scene.setWorseRequestSet(requestList);
 				setScene(Scene);
 
-				if (DebugEnable && DualSubEnable)
+				if (DefaultSetting.DebugEnable && DefaultSetting.DualSubEnable)
 				{
 					log.info("------------------------------------------------------------------------");
 					log.info("SolveTime = "+(endTime - startTime) + "ms");

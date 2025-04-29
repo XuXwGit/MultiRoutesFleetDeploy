@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.PublicKey;
 import java.util.Random;
 
 /**
@@ -48,15 +49,16 @@ public class DefaultSetting {
 	//////////////////////////////////
 	/* Default Data Parameter Setting */
 	// default unit rental cost : 50
-	public int DefaultUnitRentalCost = 50;
+	public static int DefaultUnitRentalCost = 50;
 	// default unit demurrage cost : 175 / 100
-	public int DefaultLadenDemurrageCost = 175;
-	public int DefaultEmptyDemurrageCost = 100;
+	public static int DefaultLadenDemurrageCost = 175;
+	public static int DefaultEmptyDemurrageCost = 100;
 	// default unit loading/discharge/transshipment cost : 20/20/30
-	public int DefaultUnitLoadingCost = 20;
-	public int DefaultUnitDischargeCost = 20;
-	public int DefaultUnitTransshipmentCost = 30;
-	public int DefaultTurnOverTime = 14;
+	public static int DefaultUnitLoadingCost = 20;
+	public static int DefaultUnitDischargeCost = 20;
+	public static int DefaultUnitTransshipmentCost = 30;
+	public static int DefaultTurnOverTime = 14;
+	public static double DefaultFoldContainerPercent = 0.5;
 	//////////////////////////////////
 
 

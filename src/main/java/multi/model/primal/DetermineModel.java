@@ -54,12 +54,12 @@ public class DetermineModel extends BasePrimalModel {
 		this.model = "DM";
 		this.modelName = model + "-R"+ in.getShipRouteSet().size()
 				+ "-T" + p.getTimeHorizon()
-				+ "-"+ FleetType
-				+ "-S" + randomSeed
-				+ "-V" + VesselCapacityRange;
+				+ "-"+ DefaultSetting.FleetType
+				+ "-S" + DefaultSetting.randomSeed
+				+ "-V" + DefaultSetting.VesselCapacityRange;
 		this.modelType = "UseMeanValue";
 		try{
-			if(WhetherPrintProcess || WhetherPrintIteration){
+			if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
 				log.info("=========DetermineModel==========");
 			}
 
@@ -76,7 +76,7 @@ public class DetermineModel extends BasePrimalModel {
 			end = System.currentTimeMillis();
 			log.info("SolveTime = "+ ( end - start));
 
-			if(WhetherCalculateMeanPerformance){
+			if(DefaultSetting.WhetherCalculateMeanPerformance){
 				calculateMeanPerformance();
 			}
 		}catch (IloException e) {
@@ -94,12 +94,12 @@ public class DetermineModel extends BasePrimalModel {
 		this.modelName = model + "-R"
 				+ in.getShipRouteSet().size()
 				+ "-T" + p.getTimeHorizon()
-				+ "-"+ FleetType
-				+ "-S" + randomSeed
-				+ "-V" + VesselCapacityRange + "-" + modelType;
+				+ "-"+ DefaultSetting.FleetType
+				+ "-S" + DefaultSetting.randomSeed
+				+ "-V" + DefaultSetting.VesselCapacityRange + "-" + modelType;
 		this.modelType = modelType;
 		try{
-			if(WhetherPrintProcess || WhetherPrintIteration){
+			if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
 				log.info("=========DetermineModel==========");
 			}
 			cplex = new IloCplex();
@@ -219,7 +219,7 @@ public class DetermineModel extends BasePrimalModel {
 
 				log.info("SolveTime = " + getSolveTime());
 
-				if(WhetherPrintProcess){
+				if(DefaultSetting.WhetherPrintProcess){
 					printSolution();
 				}
 
