@@ -1,12 +1,9 @@
 package multi.algos.BD;
 
 import ilog.concert.IloException;
-import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
 import multi.*;
 import multi.algos.AlgoFrame;
-import multi.model.primal.DetermineModel;
-import multi.model.dual.DualProblem;
 import multi.model.primal.MasterProblem;
 
 import java.io.IOException;
@@ -24,7 +21,11 @@ public class SOwithSAA extends AlgoFrame {
         this.p = p;
         this.tau = p.getTau();
         this.Algo = "SO&SAA";
-        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+                                        + "-T" + p.getTimeHorizon() 
+                                        + "-"+ DefaultSetting.FleetType 
+                                        + "-S" + DefaultSetting.randomSeed 
+                                        + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
 

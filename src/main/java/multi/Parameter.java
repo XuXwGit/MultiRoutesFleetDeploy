@@ -30,7 +30,7 @@ import java.util.Map;
 @Slf4j
 @Getter
 @Setter
-public class Parameter extends DefaultSetting {
+public class Parameter {
 	/**
 	 * 时间范围(天)
 	 */
@@ -204,14 +204,14 @@ public class Parameter extends DefaultSetting {
 				// r(��) == r
 				int r = this.getVesselPathShipRouteIndex()[w];
 
-				if("Homo".equals(FleetType)) {
+				if("Homo".equals(DefaultSetting.FleetType)) {
 					// vesselTypeAndShipRoute == 1 : r(h) = r
 					operation_cost += (this.getVesselTypeAndShipRoute()[h][r]
 							* this.getShipRouteAndVesselPath()[r][w]
 							* this.getVesselOperationCost()[h]
 							* vValue[h][r]);
 				}
-				else if ("Hetero".equals(FleetType)) {
+				else if ("Hetero".equals(DefaultSetting.FleetType)) {
 					operation_cost += (this.getVesselOperationCost()[h]
 							* vValue[h][w]);
 				}
@@ -221,12 +221,12 @@ public class Parameter extends DefaultSetting {
 	}
 	public int[][] solutionToVValue(int[] solution){
 		int[][] vValue = new int[0][];
-		if("Homo".equals(FleetType)){
+		if("Homo".equals(DefaultSetting.FleetType)){
 			vValue = new int[this.getVesselSet().length][this.getShippingRouteSet().length];
 			for(int r = 0; r<this.getShippingRouteSet().length; r++) {
 				vValue[solution[r] - 1][r] = 1;
 			}
-		} else if ("Hetero".equals(FleetType)) {
+		} else if ("Hetero".equals(DefaultSetting.FleetType)) {
 			vValue = new int[this.getVesselSet().length][this.getVesselPathSet().length];
 			for(int w=0;w<this.getVesselPathSet().length;++w)
 			{

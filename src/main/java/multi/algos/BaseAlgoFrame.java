@@ -31,7 +31,7 @@ import java.io.IOException;
 @Getter
 @Setter
 
-public class BaseAlgoFrame extends DefaultSetting {
+public class BaseAlgoFrame{
     protected InputData in;
     protected Parameter p;
     private double gap;
@@ -42,8 +42,8 @@ public class BaseAlgoFrame extends DefaultSetting {
 
     public BaseAlgoFrame() {
     }
-    protected double [] upper =new double [maxIterationNum+1];
-    protected double [] lower =new double [maxIterationNum+1];
+    protected double [] upper =new double [DefaultSetting.maxIterationNum+1];
+    protected double [] lower =new double [DefaultSetting.maxIterationNum+1];
 
     protected double upperBound = Long.MAX_VALUE;
     protected double lowerBound = Long.MIN_VALUE;
@@ -70,7 +70,7 @@ public class BaseAlgoFrame extends DefaultSetting {
     }
 
     protected void printIterTitle(FileWriter fileWriter, double bulidModelTime) throws IOException {
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info("BuildModelTime = "+String.format("%.2f", bulidModelTime));
             log.info("k"+"\t\t"
                     +"LB"+"\t\t"
@@ -79,7 +79,7 @@ public class BaseAlgoFrame extends DefaultSetting {
             );
         }
 
-        if(WhetherWriteFileLog){
+        if(DefaultSetting.WhetherWriteFileLog){
             fileWriter.write("k"+"\t\t"
                     +"LB"+"\t\t"
                     +"UB"+"\t\t"
@@ -91,14 +91,14 @@ public class BaseAlgoFrame extends DefaultSetting {
     }
 
     protected void printIteration(FileWriter fileWriter, double lb, double ub, double totalTime) throws IOException {
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info(iteration+"\t\t"
                     +String.format("%.2f", lb)+"\t\t"
                     +String.format("%.2f", ub)+"\t\t"
                     +String.format("%.2f", totalTime)+"\t\t"
             );
         }
-        if(WhetherWriteFileLog){
+        if(DefaultSetting.WhetherWriteFileLog){
             fileWriter.write(iteration+"\t\t"
                     +String.format("%.2f", lb) +"\t\t"
                     +String.format("%.2f", ub)+"\t\t"
@@ -110,7 +110,7 @@ public class BaseAlgoFrame extends DefaultSetting {
     }
 
     protected void printIteration(FileWriter fileWriter, double lb, double ub, double mpTime, double spTime, double totalTime) throws IOException {
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info(iteration+"\t\t"
                     +String.format("%.2f", lb)+"\t\t"
                     +String.format("%.2f", ub)+"\t\t"
@@ -119,7 +119,7 @@ public class BaseAlgoFrame extends DefaultSetting {
                     +String.format("%.2f", totalTime)+"\t\t"
             );
         }
-        if(WhetherWriteFileLog){
+        if(DefaultSetting.WhetherWriteFileLog){
             fileWriter.write(iteration+"\t\t"
                     +String.format("%.2f", lb) +"\t\t"
                     +String.format("%.2f", ub)+"\t\t"

@@ -72,10 +72,10 @@ public class AlgoFrame extends BaseAlgoFrame {
 
         int flag = 0;
         double start0 = System.currentTimeMillis();
-        while(upperBound - lowerBound > boundGapLimit
+        while(upperBound - lowerBound > DefaultSetting.boundGapLimit
                 && flag == 0
-                && iteration<maxIterationNum
-                && (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+                && iteration<DefaultSetting.maxIterationNum
+                && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         )
         {
             double start1 = System.currentTimeMillis();
@@ -121,7 +121,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         end();
     }
     protected void createFileWriter(String fileName) throws IOException {
-        String logPath = RootPath + AlgoLogPath;
+        String logPath = DefaultSetting.RootPath + DefaultSetting.AlgoLogPath;
 
         Path dirPath = Paths.get(logPath);
         if (!Files.exists(dirPath)) {
@@ -143,7 +143,7 @@ public class AlgoFrame extends BaseAlgoFrame {
             }
         }
         fileWriter = new FileWriter(file, true);
-        writeSettings(fileWriter);
+        DefaultSetting.writeSettings(fileWriter);
         fileWriter.write("=====================================================================");
         fileWriter.write("\n");
         in.writeStatus(fileWriter);
@@ -185,11 +185,11 @@ public class AlgoFrame extends BaseAlgoFrame {
         dsp =new DualSubProblem(in, p, tau);
         mp=new MasterProblem(in, p);
 
-        if(WhetherAddInitializeSce){
+        if(DefaultSetting.WhetherAddInitializeSce){
             mp.addScene(sce.get(0));
         }
 
-        if(WhetherSetInitialSolution){
+        if(DefaultSetting.WhetherSetInitialSolution){
             DetermineModel dm = new DetermineModel(in, p);
             mp.setInitialSolution(dm.getVVarValue());
         }
@@ -198,7 +198,7 @@ public class AlgoFrame extends BaseAlgoFrame {
     }
     protected void calculateMeanPerformance() throws IOException, IloException {
         log.info("Calculating Mean Performance ...");
-        if(UseHistorySolution)
+        if(DefaultSetting.UseHistorySolution)
         {
             if((in.getHistorySolutionSet().get(AlgoID) != (null))) {
                 calculateSampleMeanPerformance(p.solutionToVValue(in.getHistorySolutionSet().get(AlgoID)));
@@ -300,18 +300,18 @@ public class AlgoFrame extends BaseAlgoFrame {
         setSolution(mp.getVVarValue());
         writeSolution(mp.getVVarValue(), fileWriter);
 
-        if(WhetherPrintProcess){
+        if(DefaultSetting.WhetherPrintProcess){
             printSolution(vValue);
         }
 
-        if(WhetherCalculateMeanPerformance){
+        if(DefaultSetting.WhetherCalculateMeanPerformance){
             calculateMeanPerformance();
         }
     }
 
     protected void end() throws IOException, IloException {
 
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info(Algo + " Objective = "+ String.format("%.2f",getObjVal()));
             log.info(Algo + " SolveTime = "+getSolveTime()+ "ms");
             log.info("==================================");
@@ -336,12 +336,12 @@ public class AlgoFrame extends BaseAlgoFrame {
     protected double calculateSampleMeanPerformance(int[][] vValue) throws IloException, IOException {
         String filename = Algo + "-R"+ in.getShipRouteSet().size()
                 + "-T" + p.getTimeHorizon()
-                + "-"+ FleetType
+                + "-"+ DefaultSetting.FleetType
                 + "-Tau" + p.getTau()
                 + "-U" + p.getUncertainDegree()
-                + "-S" + randomSeed
+                + "-S" + DefaultSetting.randomSeed
                 + "-SampleTestResult"+ ".txt";
-        File file = new File(RootPath + AlgoLogPath + filename);
+        File file = new File(DefaultSetting.RootPath + DefaultSetting.AlgoLogPath + filename);
         if (!file.exists()) {
             try {
                 file.createNewFile();
@@ -356,17 +356,17 @@ public class AlgoFrame extends BaseAlgoFrame {
 
         double mp_operation_cost = p.getOperationCost(vValue);
 
-        double[] sample_sub_opera_costs = new double[numSampleScenes];
-        double[] sample_laden_costs = new double[numSampleScenes];
-        double[] sample_empty_costs = new double[numSampleScenes];
-        double[] sample_rental_costs = new double[numSampleScenes];
-        double[] sample_penalty_costs = new double[numSampleScenes];
+        double[] sample_sub_opera_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_laden_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_empty_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_rental_costs = new double[DefaultSetting.numSampleScenes];
+        double[] sample_penalty_costs = new double[DefaultSetting.numSampleScenes];
 
         double sum_sub_opera_costs = 0;
         double worst_total_cost = 0;
         double worst_second_cost = 0;
         SubProblem sp = new SubProblem(in, p, vValue);
-        for (int sce = 0; sce < numSampleScenes; sce++) {
+        for (int sce = 0; sce < DefaultSetting.numSampleScenes; sce++) {
             sp.changeDemandConstraintCoefficients(p.getSampleScenes()[sce]);
             sp.solveModel();
 
@@ -382,7 +382,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                 worst_second_cost = sample_sub_opera_costs[sce];
             }
 
-            drawProgressBar((sce) * 100 / numSampleScenes);
+            DefaultSetting.drawProgressBar((sce) * 100 / DefaultSetting.numSampleScenes);
 
             filewriter.write(sce + "\t" + mp_operation_cost + "\t"
                     + sample_sub_opera_costs[sce] + "\t"
@@ -396,18 +396,18 @@ public class AlgoFrame extends BaseAlgoFrame {
         }
         this.setWorstPerformance(worst_total_cost);
         this.setWorstSecondStageCost(worst_second_cost);
-        this.setMeanPerformance(mp_operation_cost + sum_sub_opera_costs / numSampleScenes);
-        this.setMeanSecondStageCost(sum_sub_opera_costs / numSampleScenes);
+        this.setMeanPerformance(mp_operation_cost + sum_sub_opera_costs / DefaultSetting.numSampleScenes);
+        this.setMeanSecondStageCost(sum_sub_opera_costs / DefaultSetting.numSampleScenes);
 
         filewriter.close();
 
 
-        return mp_operation_cost + sum_sub_opera_costs/ numSampleScenes;
+        return mp_operation_cost + sum_sub_opera_costs/ DefaultSetting.numSampleScenes;
     }
 
 
     protected void printIterTitle(FileWriter fileWriter, double bulidModelTime) throws IOException {
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info("BuildModelTime = "+String.format("%.2f", bulidModelTime));
             log.info("k"+"\t\t"
                     +"LB"+"\t\t"
@@ -419,7 +419,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                     +"MP-Status"
             );
         }
-        if(WhetherWriteFileLog){
+        if(DefaultSetting.WhetherWriteFileLog){
             fileWriter.write("k"+"\t\t"
                     +"LB"+"\t\t"
                     +"UB"+"\t\t"
@@ -438,7 +438,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                                double dsp_time, double mp_time, double total_time,
                                String dspSolveStatusString, double dspMipGap,
                                String mpSolveStatusString, double mpMipGap) throws IOException {
-        if(WhetherPrintProcess || WhetherPrintIteration){
+        if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
             log.info(iteration+"\t\t"
                     +String.format("%.2f", LB)+"\t\t"
                     +String.format("%.2f", UB)+"\t\t"
@@ -449,7 +449,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                     +mpSolveStatusString+"("+String.format("%.4f", mpMipGap)+")"
             );
         }
-        if(WhetherWriteFileLog){
+        if(DefaultSetting.WhetherWriteFileLog){
             fileWriter.write(iteration+"\t\t"
                     +String.format("%.2f", LB) +"\t\t"
                     +String.format("%.2f", UB)+"\t\t"
@@ -470,7 +470,7 @@ public class AlgoFrame extends BaseAlgoFrame {
             System.out.print(p.getShippingRouteSet()[r]);
             System.out.print(":");
 
-            if("Homo".equals(FleetType)){
+            if("Homo".equals(DefaultSetting.FleetType)){
                 for(int h=0;h<p.getVesselSet().length;++h)
                 {
                     if(vValue[h][r] != 0)
@@ -478,7 +478,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                         System.out.print(p.getVesselSet()[h]+"\t");
                     }
                 }
-            } else if ("Hetero".equals(FleetType)) {
+            } else if ("Hetero".equals(DefaultSetting.FleetType)) {
                 for(int w=0;w<p.getVesselPathSet().length;++w)
                 {
                     if (p.getShipRouteAndVesselPath()[r][w] != 1)
@@ -505,7 +505,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         {
             fileWriter.write(p.getShippingRouteSet()[r] + ": ");
 
-            if("Homo".equals(FleetType)){
+            if("Homo".equals(DefaultSetting.FleetType)){
                 for(int h=0;h<p.getVesselSet().length;++h)
                 {
                     if(vValue[h][r] != 0)
@@ -513,7 +513,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                         fileWriter.write(p.getVesselSet()[h]+"\t");
                     }
                 }
-            } else if ("Hetero".equals(FleetType)) {
+            } else if ("Hetero".equals(DefaultSetting.FleetType)) {
                 for(int w=0;w<p.getVesselPathSet().length;++w)
                 {
                     if (p.getShipRouteAndVesselPath()[r][w] != 1)

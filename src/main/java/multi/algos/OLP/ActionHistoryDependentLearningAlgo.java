@@ -10,7 +10,7 @@ import java.util.Arrays;
 
 /**
  * @Author: xuxw
- * @Description: TODO
+ * @Description: 在线学习算法
  * @DateTime: 2024/12/6 1:04
  **/
 public class ActionHistoryDependentLearningAlgo extends OnlineAlgoFrame{

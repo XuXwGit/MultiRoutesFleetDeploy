@@ -17,18 +17,18 @@ import static java.lang.Integer.parseInt;
 * @DateTime: 2024/12/4 22:11
 */
 @Slf4j
-public class ReadData extends DefaultSetting {
-	private final InputData inputdata;
+public class ReadData{
+	private final InputData inputData;
 	private final int timeHorizon;
 	private final String filePath;
 	public ReadData(String path, InputData inputdata, int timeHorizon) {
 		super();
-		this.filePath = RootPath + path;
-		this.inputdata = inputdata;
+		this.filePath = DefaultSetting.RootPath + path;
+		this.inputData = inputdata;
 		this.timeHorizon = timeHorizon;
 		frame();
 
-		if(WhetherPrintDataStatus){
+		if(DefaultSetting.WhetherPrintDataStatus){
 			inputdata.showStatus();
 		}
 	}
@@ -38,7 +38,7 @@ public class ReadData extends DefaultSetting {
 		log.info("========"+ "Start to read data" + "========");
 		double start = System.currentTimeMillis();
 
-		inputdata.setTimeHorizon(timeHorizon);
+		inputData.setTimeHorizon(timeHorizon);
 		// 1. read shipping network data (include ports and ship routes)
 		readPorts();
 		readShipRoutes();
@@ -64,10 +64,10 @@ public class ReadData extends DefaultSetting {
 		readRequests();
 
 		// 6. read history solution and sample scenes
-		if(UseHistorySolution) {
+		if(DefaultSetting.UseHistorySolution) {
 			readHistorySolution();
 		}
-		if(WhetherLoadSampleTests) {
+		if(DefaultSetting.WhetherLoadSampleTests) {
 			readSampleScenes();
 		}
 
@@ -164,7 +164,7 @@ public class ReadData extends DefaultSetting {
 			String key = result[i][0] + result[i][1];
 			rangeMap.put(key, ff);
 		}
-		inputdata.setGroupRangeMap(rangeMap);
+		inputData.setGroupRangeMap(rangeMap);
 	}
 
 	/**
@@ -225,7 +225,7 @@ public class ReadData extends DefaultSetting {
 
 				List<Port> transshipmentPorts = new ArrayList<>();
 				for (int j = 0; j < trans_port.length; j++) {
-					transshipmentPorts.add(inputdata.getPortSet().get(trans_port[j]));
+					transshipmentPorts.add(inputData.getPortSet().get(trans_port[j]));
 				}
 				ff.setTransshipmentPorts(transshipmentPorts);
 
@@ -248,7 +248,7 @@ public class ReadData extends DefaultSetting {
 			// set the Port Sequence in ContainerPath
 			List<Port> portsInPath = new ArrayList<>();
 			for (int j = 0; j < port_path.length; j++) {
-				portsInPath.add(inputdata.getPortSet().get(port_path[j]));
+				portsInPath.add(inputData.getPortSet().get(port_path[j]));
 			}
 			ff.setPortsInPath(portsInPath);
 
@@ -267,7 +267,7 @@ public class ReadData extends DefaultSetting {
 			// set the arcs sequence
 			List<Arc> arcs = new ArrayList<>();
 			for (int j = 0; j < arcIDs.length; j++) {
-				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
+				arcs.add(inputData.getArcSet().get(arcIDs[j]));
 			}
 			ff.setArcs(arcs);
 
@@ -280,8 +280,8 @@ public class ReadData extends DefaultSetting {
 		}
 
 		// set the ContainerPath set
-		inputdata.setContainerPaths(containerPathList);
-		inputdata.setContainerPathSet(containerPaths);
+		inputData.setContainerPaths(containerPathList);
+		inputData.setContainerPathSet(containerPaths);
 	}
 
 	/**
@@ -320,7 +320,7 @@ public class ReadData extends DefaultSetting {
 			int[] time_calls = new int[S_time_calls.length];
 			for (int t = 0; t < S_time_calls.length; t++) {
 				time_calls[t] = Integer.parseInt(S_time_calls[t]);
-				port_calls_map.put(time_calls[t], inputdata.getPortSet().get(port_calls[t]));
+				port_calls_map.put(time_calls[t], inputData.getPortSet().get(port_calls[t]));
 			}
 
 			ff.setPorts(route_ports);
@@ -336,7 +336,7 @@ public class ReadData extends DefaultSetting {
 
 			shipRoutes.put(ff.getShipRouteID(), ff);
 		}
-		inputdata.setShipRouteSet(shipRoutes);
+		inputData.setShipRouteSet(shipRoutes);
 	}
 
 	/**
@@ -389,15 +389,15 @@ public class ReadData extends DefaultSetting {
 			List<ContainerPath> ladenPathSet = new ArrayList<>();
 			for (int j = 0; j < ff.getNumberOfLadenPath(); j++) {
 				laden_paths[j] = Integer.parseInt(s_laden_paths[j]);
-				ladenPathSet.add(inputdata.getContainerPathSet().get(laden_paths[j]));
+				ladenPathSet.add(inputData.getContainerPathSet().get(laden_paths[j]));
 
 				if(ff.getNumberOfLadenPath() != 0)
 				{
 					int flag = 0;
 
 					// get the path index according to path ID
-					for (int k = 0; k < inputdata.getContainerPaths().size(); k++) {
-						if(laden_paths[j] == inputdata.getContainerPaths().get(k).getContainerPathID())
+					for (int k = 0; k < inputData.getContainerPaths().size(); k++) {
+						if(laden_paths[j] == inputData.getContainerPaths().get(k).getContainerPathID())
 						{
 							laden_path_indexes[j] = k;
 							flag = 1;
@@ -431,13 +431,13 @@ public class ReadData extends DefaultSetting {
 			List<ContainerPath> emptyPathSet = new ArrayList<>();
 			for (int j = 0; j < ff.getNumberOfEmptyPath(); j++) {
 				empty_paths[j] = Integer.parseInt(s_empty_paths[j]);
-				emptyPathSet.add(inputdata.getContainerPathSet().get(empty_paths[j]));
+				emptyPathSet.add(inputData.getContainerPathSet().get(empty_paths[j]));
 				if(empty_paths[0] != 0)
 				{
 					int flag = 0;
 					// get the path index according to path ID
-					for (int k = 0; k < inputdata.getContainerPaths().size(); k++) {
-						if(empty_paths[j] == inputdata.getContainerPaths().get(k).getContainerPathID())
+					for (int k = 0; k < inputData.getContainerPaths().size(); k++) {
+						if(empty_paths[j] == inputData.getContainerPaths().get(k).getContainerPathID())
 						{
 							empty_path_indexes[j] = k;
 							flag = 1;
@@ -459,7 +459,7 @@ public class ReadData extends DefaultSetting {
 			// set originGroup and destinationGroup
 			int groupO = 0;
 			int groupD = 0;
-			for(Port pp:inputdata.getPortSet().values())
+			for(Port pp:inputData.getPortSet().values())
 			{
 				if(pp.getPort().equals(ff.getOriginPort()))
 				{
@@ -480,12 +480,12 @@ public class ReadData extends DefaultSetting {
 			//! solution : not import
 			if(ff.getLatestDestinationTime()<=timeHorizon
 					&& ff.getNumberOfLadenPath() != 0){
-				if(WhetherAllowSameRegionTrans || ff.getOriginGroup() != ff.getDestinationGroup()) {
+				if(DefaultSetting.WhetherAllowSameRegionTrans || ff.getOriginGroup() != ff.getDestinationGroup()) {
 					request.add(ff);
 				}
 			}
 		}
-		inputdata.setRequestSet(request);
+		inputData.setRequestSet(request);
 	}
 
 
@@ -506,11 +506,11 @@ public class ReadData extends DefaultSetting {
 	private void readVessels()
 	{
 		String filename = filePath;
-		if("I".equals(VesselCapacityRange)){
+		if("I".equals(DefaultSetting.VesselCapacityRange)){
 			filename += "Vessels.txt";
-		}else if("II".equals(VesselCapacityRange)) {
+		}else if("II".equals(DefaultSetting.VesselCapacityRange)) {
 			filename += "Vessels-II.txt";
-		}else if("III".equals(VesselCapacityRange)) {
+		}else if("III".equals(DefaultSetting.VesselCapacityRange)) {
 			filename += "Vessels-III.txt";
 		}
 
@@ -529,12 +529,12 @@ public class ReadData extends DefaultSetting {
 
 			vesselTypeSet.add(ff);
 
-			if (inputdata.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels() == null) {
-				inputdata.getShipRouteSet().get(ff.getRouteID()).setAvailableVessels(new HashMap<>());
+			if (inputData.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels() == null) {
+				inputData.getShipRouteSet().get(ff.getRouteID()).setAvailableVessels(new HashMap<>());
 			}
-			inputdata.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels().put(ff.getId(), ff);
+			inputData.getShipRouteSet().get(ff.getRouteID()).getAvailableVessels().put(ff.getId(), ff);
 		}
-		inputdata.setVesselTypeSet(vesselTypeSet);
+		inputData.setVesselTypeSet(vesselTypeSet);
 	}
 
 	/**
@@ -567,7 +567,7 @@ public class ReadData extends DefaultSetting {
 
 			portSet.put(ff.getPort(), ff);
 		}
-		inputdata.setPortSet(portSet);
+		inputData.setPortSet(portSet);
 	}
 
 	/**
@@ -597,7 +597,7 @@ public class ReadData extends DefaultSetting {
 			// set Request ID, 	Origin Port, 	Earliest Setup Time
 			int requestID = Integer.parseInt(result[i][0]);
 			String originPortString = result[i][1];
-			Port originPort = inputdata.getPortSet().get(originPortString);
+			Port originPort = inputData.getPortSet().get(originPortString);
 			int originTime = Integer.parseInt(result[i][2]);
 			int numOfEmptyPath = Integer.parseInt(result[i][3]);
 			if(numOfEmptyPath == 0)
@@ -618,7 +618,7 @@ public class ReadData extends DefaultSetting {
 				// if the Request ID has laden path : add corresponding empty paths
 				// otherwise : no need for empty path
 				int index = 0;
-				for (LadenPath ll : inputdata.getLadenPathSet()) {
+				for (LadenPath ll : inputData.getLadenPathSet()) {
 					if (ll.getRequestID() == ff.getRequestID()) {
 						index = index + 1;
 					}
@@ -629,7 +629,7 @@ public class ReadData extends DefaultSetting {
 				}
 			}
 		}
-		inputdata.setEmptyPathSet(emptyPaths);
+		inputData.setEmptyPathSet(emptyPaths);
 	}
 
 	/**
@@ -690,7 +690,7 @@ public class ReadData extends DefaultSetting {
 
 			// get ContainerPath ID
 			ff.setPathID(Integer.parseInt(result[i][10]));
-			ff.setContainerPath(inputdata.getContainerPathSet().get(ff.getPathID()));
+			ff.setContainerPath(inputData.getContainerPathSet().get(ff.getPathID()));
 
 			// get port path sequence
 			String [] portPath = result[i][11].split(",");
@@ -702,7 +702,7 @@ public class ReadData extends DefaultSetting {
 			List<Arc> arcs = new ArrayList<>();
 			for (int j = 0; j < arcIDs.length; j++) {
 				arcIDs[j] = Integer.parseInt(s_arcIDs[j]);
-				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
+				arcs.add(inputData.getArcSet().get(arcIDs[j]));
 			}
 			ff.setArcsID(arcIDs);
 			ff.setArcs(arcs);
@@ -712,7 +712,7 @@ public class ReadData extends DefaultSetting {
 				ladenPaths.add(ff);
 			}
 		}
-		inputdata.setLadenPathSet(ladenPaths);
+		inputData.setLadenPathSet(ladenPaths);
 	}
 
 	/**
@@ -755,13 +755,13 @@ public class ReadData extends DefaultSetting {
 			List<Arc> arcs = new ArrayList<>();
 			for (int j = 0; j < s_arcIDs.length; j++) {
 				arcIDs[j] = Integer.parseInt(s_arcIDs[j]);
-				arcs.add(inputdata.getArcSet().get(arcIDs[j]));
+				arcs.add(inputData.getArcSet().get(arcIDs[j]));
 			}
 			ff.setArcIDs(arcIDs);
 			ff.setArcs(arcs);
 
 			int index=0;
-			for(TravelingArc tt:inputdata.getTravelingArcSet())
+			for(TravelingArc tt:inputData.getTravelingArcSet())
 			{
 				if(tt.getTravelingArcID()==ff.getArcIDs()[ff.getNumberOfArcs()-1])
 				{
@@ -773,15 +773,15 @@ public class ReadData extends DefaultSetting {
 				vesselPath.add(ff);
 
 				// update vessel paths in the route
-				if(inputdata.getShipRouteSet().get(ff.getRouteID()).getVesselPaths() == null)
+				if(inputData.getShipRouteSet().get(ff.getRouteID()).getVesselPaths() == null)
 				{
-					inputdata.getShipRouteSet().get(ff.getRouteID()).setVesselPaths(new ArrayList<>());
+					inputData.getShipRouteSet().get(ff.getRouteID()).setVesselPaths(new ArrayList<>());
 				}
-				inputdata.getShipRouteSet().get(ff.getRouteID()).setNumVesselPaths(inputdata.getShipRouteSet().get(ff.getRouteID()).getNumVesselPaths()+1);
-				inputdata.getShipRouteSet().get(ff.getRouteID()).getVesselPaths().add(ff);
+				inputData.getShipRouteSet().get(ff.getRouteID()).setNumVesselPaths(inputData.getShipRouteSet().get(ff.getRouteID()).getNumVesselPaths()+1);
+				inputData.getShipRouteSet().get(ff.getRouteID()).getVesselPaths().add(ff);
 			}
 		}
-		inputdata.setVesselPathSet(vesselPath);
+		inputData.setVesselPathSet(vesselPath);
 	}
 
 	/**
@@ -812,13 +812,13 @@ public class ReadData extends DefaultSetting {
 
 			ff.setOriginNodeID(Integer.parseInt(result[i][2]));
 			ff.setOriginTime(Integer.parseInt(result[i][3]));
-			ff.setOriginNode(inputdata.getNodeSet().get(ff.getOriginNodeID()));
+			ff.setOriginNode(inputData.getNodeSet().get(ff.getOriginNodeID()));
 
 			ff.setTransshipTime(Integer.parseInt(result[i][4]));
 
 			ff.setDestinationNodeID(Integer.parseInt(result[i][5]));
 			ff.setDestinationTime(Integer.parseInt(result[i][6]));
-			ff.setDestinationNode(inputdata.getNodeSet().get(ff.getDestinationNodeID()));
+			ff.setDestinationNode(inputData.getNodeSet().get(ff.getDestinationNodeID()));
 
 			ff.setFromRoute(Integer.parseInt(result[i][7]));
 			ff.setToRoute(Integer.parseInt(result[i][8]));
@@ -827,14 +827,14 @@ public class ReadData extends DefaultSetting {
 			{
 				transshipArcs.add(ff);
 
-				if(inputdata.getArcSet() == null){
-					inputdata.setArcSet(new HashMap<>());
+				if(inputData.getArcSet() == null){
+					inputData.setArcSet(new HashMap<>());
 				}
-				inputdata.getArcSet().putIfAbsent(ff.getArcID(), ff);
+				inputData.getArcSet().putIfAbsent(ff.getArcID(), ff);
 			}
 
 		}
-		inputdata.setTransshipArcSet(transshipArcs);
+		inputData.setTransshipArcSet(transshipArcs);
 	}
 
 	/**
@@ -870,7 +870,7 @@ public class ReadData extends DefaultSetting {
 			ff.setOriginCall(Integer.parseInt(result[i][3]));
 			ff.setOriginPort((result[i][4]));
 			ff.setOriginTime(Integer.parseInt(result[i][6]));
-			ff.setOriginNode(inputdata.getNodeSet().get(ff.getOriginNodeID()));
+			ff.setOriginNode(inputData.getNodeSet().get(ff.getOriginNodeID()));
 
 			ff.setTravelingTime(Integer.parseInt(result[i][7]));
 
@@ -879,10 +879,10 @@ public class ReadData extends DefaultSetting {
 			ff.setDestinationCall(Integer.parseInt(result[i][9]));
 			ff.setDestinationPort((result[i][10]));
 			ff.setDestinationTime(Integer.parseInt(result[i][11]));
-			ff.setDestinationNode(inputdata.getNodeSet().get(ff.getDestinationNodeID()));
+			ff.setDestinationNode(inputData.getNodeSet().get(ff.getDestinationNodeID()));
 
 			//The front input data about round_trip is error
-			ShipRoute r = inputdata.getShipRouteSet().get(ff.getRouteID());
+			ShipRoute r = inputData.getShipRouteSet().get(ff.getRouteID());
 			int index = r.getCallIndexOfPort(ff.getOriginPort());
 			int round_trip = (ff.getOriginTime() - r.getTimePointsOfCall()[index])/7 + 1;
 			ff.setRoundTrip(round_trip);
@@ -891,13 +891,13 @@ public class ReadData extends DefaultSetting {
 					<= timeHorizon)
 			{
 				travelingArcs.add(ff);
-				if(inputdata.getArcSet() == null){
-					inputdata.setArcSet(new HashMap<>());
+				if(inputData.getArcSet() == null){
+					inputData.setArcSet(new HashMap<>());
 				}
-				inputdata.getArcSet().putIfAbsent(ff.getArcID(), ff);
+				inputData.getArcSet().putIfAbsent(ff.getArcID(), ff);
 			}
 		}
-		inputdata.setTravelingArcSet(travelingArcs);
+		inputData.setTravelingArcSet(travelingArcs);
 	}
 
 	/**
@@ -935,19 +935,19 @@ public class ReadData extends DefaultSetting {
 			ff.setRoute(parseInt(result[i][mapToIndex.get("Route")].trim()));
 			ff.setCall(parseInt(result[i][mapToIndex.get("Call")].trim()));
 			ff.setPortString(result[i][mapToIndex.get("Port")].trim());
-			ff.setPort(inputdata.getPortSet().get(ff.getPortString()));
+			ff.setPort(inputData.getPortSet().get(ff.getPortString()));
 			ff.setRoundTrip(parseInt(result[i][mapToIndex.get("Round_trip")].trim()));
 			ff.setTime(parseInt(result[i][mapToIndex.get("Time")].trim()));
 			if(ff.getTime()<timeHorizon){
 				nodeMap.put(ff.getNodeID(), ff);
 			}
 		}
-		inputdata.setNodeSet(nodeMap);
+		inputData.setNodeSet(nodeMap);
 	}
 	private void readHistorySolution()
 	{
-		String[][] result = read_to_string(RootPath + SolutionPath +"AlgoSolutions"
-				+ "-R" + inputdata.getShipRouteSet().size() + ".txt");
+		String[][] result = read_to_string(DefaultSetting.RootPath + DefaultSetting.SolutionPath +"AlgoSolutions"
+				+ "-R" + inputData.getShipRouteSet().size() + ".txt");
 
 		// get the history solution
 		/* eg:
@@ -976,7 +976,7 @@ public class ReadData extends DefaultSetting {
 			historySolution.put(key, solution);
 		}
 
-		inputdata.setHistorySolutionSet(historySolution);
+		inputData.setHistorySolutionSet(historySolution);
 	}
 
 	/**
@@ -990,13 +990,13 @@ public class ReadData extends DefaultSetting {
 	 * @return
 	 **/
 	private void readSampleScenes(){
-		int tau = (int) Math.sqrt(inputdata.getRequestSet().size());
-		String samplefilename = "R"+ inputdata.getShipRouteSet().size() + "-T"
-				+ inputdata.getTimeHorizon() + "-Tau"+ tau + "-S" + randomSeed + "-SampleTestSet"+ ".txt";
+		int tau = (int) Math.sqrt(inputData.getRequestSet().size());
+		String samplefilename = "R"+ inputData.getShipRouteSet().size() + "-T"
+				+ inputData.getTimeHorizon() + "-Tau"+ tau + "-S" + DefaultSetting.randomSeed + "-SampleTestSet"+ ".txt";
 		String[][] result = read_to_string(filePath +samplefilename);
-		double[][] sampleScenes = new double[numSampleScenes][inputdata.getRequestSet().size()];
+		double[][] sampleScenes = new double[DefaultSetting.numSampleScenes][inputData.getRequestSet().size()];
 
-		for(int i=0;i<numSampleScenes;i++) {
+		for(int i=0;i<DefaultSetting.numSampleScenes;i++) {
 			String[] s_solution = result[i][1].split(",");
 			int[] solution = new int[s_solution.length];
 			for (int j = 0; j < s_solution.length; j++) {
@@ -1004,6 +1004,6 @@ public class ReadData extends DefaultSetting {
 				sampleScenes[i][solution[j]] = 1;
 			}
 		}
-		inputdata.setSampleScenes(sampleScenes);
+		inputData.setSampleScenes(sampleScenes);
 	}
 }

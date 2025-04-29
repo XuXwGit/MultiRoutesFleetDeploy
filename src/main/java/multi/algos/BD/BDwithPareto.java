@@ -3,6 +3,7 @@ package multi.algos.BD;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.model.primal.DetermineModel;
@@ -25,7 +26,12 @@ public class BDwithPareto extends BD {
 		this.p = p;
 		this.tau = p.getTau();
 		this.Algo = "BD&Pareto";
-		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+		this.AlgoID = Algo 
+						+ "-R"+ in.getShipRouteSet().size() 
+						+ "-T" + p.getTimeHorizon() 
+						+ "-"+ DefaultSetting.FleetType 
+						+ "-S" + DefaultSetting.randomSeed 
+						+ "-V" + DefaultSetting.VesselCapacityRange;
 		frame();
 	}
 	public BDwithPareto(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -34,7 +40,11 @@ public class BDwithPareto extends BD {
 		this.p = p;
 		this.tau = tau;
 		this.Algo = "BD&Pareto";
-		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+										+ "-T" + p.getTimeHorizon() 
+										+ "-"+ DefaultSetting.FleetType 
+										+ "-S" + DefaultSetting.randomSeed 
+										+ "-V" + DefaultSetting.VesselCapacityRange;
 		frame();
 	}
 
@@ -48,11 +58,11 @@ public class BDwithPareto extends BD {
 
 		dp.changeObjectiveVvarsCoefficients(corePoint);
 
-		if(WhetherAddInitializeSce){
+		if(DefaultSetting.WhetherAddInitializeSce){
 			mp.addScene(sce.get(0));
 		}
 
-		if(WhetherSetInitialSolution){
+		if(DefaultSetting.WhetherSetInitialSolution){
 			DetermineModel dm = new DetermineModel(in, p);
 			mp.setInitialSolution(dm.getVVarValue());
 		}
@@ -61,27 +71,27 @@ public class BDwithPareto extends BD {
 	@Override
 	protected void frame() throws IloException, IOException {
 		initialize();
-		if(WhetherCalculateMeanPerformance && UseHistorySolution){
+		if(DefaultSetting.WhetherCalculateMeanPerformance && DefaultSetting.UseHistorySolution){
 			calculateMeanPerformance();
 			return;
 		}
 
-		if(WhetherAddInitializeSce) {
+		if(DefaultSetting.WhetherAddInitializeSce) {
 			initializeSce(sce);
 		}
 
-		if("Homo".equals(FleetType)){
+		if("Homo".equals(DefaultSetting.FleetType)){
 			corePoint = new double[p.getVesselSet().length][p.getShippingRouteSet().length];
-			if (UseParetoOptimalCut){
+			if (DefaultSetting.UseParetoOptimalCut){
 				for (int h = 0; h < p.getVesselSet().length; h++) {
 					for (int r = 0; r < p.getShippingRouteSet().length; r++) {
 						corePoint[h][r] = (double)1 / ( p.getShippingRouteVesselNum()[r]) * p.getVesselTypeAndShipRoute()[h][r];
 					}
 				}
 			}
-		} else if ("Hetero".equals(FleetType)) {
+		} else if ("Hetero".equals(DefaultSetting.FleetType)) {
 			corePoint = new double [p.getVesselSet().length][p.getVesselPathSet().length];
-			if (UseParetoOptimalCut){
+			if (DefaultSetting.UseParetoOptimalCut){
 				for (int h = 0; h < p.getVesselSet().length; h++) {
 					for (int w = 0; w < p.getVesselPathSet().length; w++) {
 						int r = in.getVesselPathSet().get(w).getRouteID() - 1;
@@ -113,10 +123,10 @@ public class BDwithPareto extends BD {
 		mp.addScene(sce.get(iteration));*/
 		int flag = 0;
 		double start0 = System.currentTimeMillis();
-		while(upperBound - lowerBound > boundGapLimit
+		while(upperBound - lowerBound > DefaultSetting.boundGapLimit
 				&& flag == 0
-				&& iteration<maxIterationNum
-				&& (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+				&& iteration<DefaultSetting.maxIterationNum
+				&& (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
 		)
 		{
 			double start1 = System.currentTimeMillis();

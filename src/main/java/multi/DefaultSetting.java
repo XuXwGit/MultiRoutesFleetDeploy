@@ -169,7 +169,7 @@ public class DefaultSetting {
 	 *  print progress bar with percentage in console
 	 * @Param : progress length
 	 */
-	protected static void drawProgressBar(int progress) {
+	public static void drawProgressBar(int progress) {
 		int completedBars = progress * ProgressBarWidth / 100;
 		StringBuilder progressBar = new StringBuilder();
 		progressBar.append("\r[");

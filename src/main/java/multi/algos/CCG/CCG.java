@@ -3,6 +3,7 @@ package multi.algos.CCG;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.Scenario;
@@ -24,7 +25,11 @@ public class CCG extends AlgoFrame {
 		this.p = p;
 		this.tau = p.getTau();
 		this.Algo = "CCG";
-		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+										+ "-T" + p.getTimeHorizon() 
+										+ "-"+ DefaultSetting.FleetType 
+										+ "-S" + DefaultSetting.randomSeed 
+										+ "-V" + DefaultSetting.VesselCapacityRange;
 		frame();
 	}
 	public CCG(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -33,7 +38,11 @@ public class CCG extends AlgoFrame {
 		this.p = p;
 		this.tau = tau;
 		this.Algo = "CCG";
-		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+		this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+										+ "-T" + p.getTimeHorizon() 
+										+ "-"+ DefaultSetting.FleetType 
+										+ "-S" + DefaultSetting.randomSeed 
+										+ "-V" + DefaultSetting.VesselCapacityRange;
 		frame();
 	}
 
@@ -44,12 +53,12 @@ public class CCG extends AlgoFrame {
 	protected void frame() throws IloException, IOException {
 		initialize();
 
-		if(WhetherCalculateMeanPerformance && UseHistorySolution){
+		if(DefaultSetting.WhetherCalculateMeanPerformance && DefaultSetting.UseHistorySolution){
 			calculateMeanPerformance();
 			return;
 		}
 
-		if(WhetherAddInitializeSce) {
+		if(DefaultSetting.WhetherAddInitializeSce) {
 			initializeSce(sce);
 		}
 
@@ -63,10 +72,10 @@ public class CCG extends AlgoFrame {
 
 		int flag = 0;
 		double start0 = System.currentTimeMillis();
-		while(upperBound - lowerBound > boundGapLimit
+		while(upperBound - lowerBound > DefaultSetting.boundGapLimit
 				&& flag == 0
-				&& iteration<maxIterationNum
-				&& (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+				&& iteration<DefaultSetting.maxIterationNum
+				&& (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
 		){
 			// add new scene to Master Problem
 			if (iteration != 0)

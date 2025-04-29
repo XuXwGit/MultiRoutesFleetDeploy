@@ -26,7 +26,11 @@ public class BDwithPapReactive extends BD {
         this.p = p;
         this.tau = p.getTau();
         this.Algo = "BD&PAP-Reactive";
-        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+                                        + "-T" + p.getTimeHorizon() 
+                                        + "-"+ DefaultSetting.FleetType 
+                                        + "-S"+ DefaultSetting.randomSeed 
+                                        + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
     public BDwithPapReactive(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -37,9 +41,9 @@ public class BDwithPapReactive extends BD {
         this.Algo = "BD&PAP-Reactive";
         this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size()
                 + "-T" + p.getTimeHorizon()
-                + "-"+ FleetType
-                + "-S" + randomSeed
-                + "-V" + VesselCapacityRange;
+                + "-"+ DefaultSetting.FleetType
+                + "-S" + DefaultSetting.randomSeed
+                + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
     @Override
@@ -49,11 +53,11 @@ public class BDwithPapReactive extends BD {
         dsp =new DualSubProblemReactive(in, p, tau);
         mp=new MasterProblem(in, p, "Reactive");
 
-        if(WhetherAddInitializeSce){
+        if(DefaultSetting.WhetherAddInitializeSce){
             mp.addScene(sce.get(0));
         }
 
-        if(WhetherSetInitialSolution){
+        if(DefaultSetting.WhetherSetInitialSolution){
             DetermineModel dm = new DetermineModel(in, p);
             mp.setInitialSolution(dm.getVVarValue());
         }
@@ -65,7 +69,7 @@ public class BDwithPapReactive extends BD {
     protected void frame() throws IloException, IOException {
         initialize();
 
-        if(WhetherAddInitializeSce) {
+        if(DefaultSetting.WhetherAddInitializeSce) {
             initializeSce(sce);
         }
 
@@ -87,10 +91,10 @@ public class BDwithPapReactive extends BD {
         int flag = 0;
         mp.addScene(sce.get(iteration));
         double start0 = System.currentTimeMillis();
-        while(upperBound - lowerBound > boundGapLimit
+        while(upperBound - lowerBound > DefaultSetting.boundGapLimit
                 && flag == 0
-                && iteration<maxIterationNum
-                && (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+                && iteration<DefaultSetting.maxIterationNum
+                && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         )
         {
             double start1 = System.currentTimeMillis();
@@ -143,7 +147,7 @@ public class BDwithPapReactive extends BD {
             upper[iteration]=upperBound;
             lower[iteration]=lowerBound;
 
-            if(WhetherPrintProcess || WhetherPrintIteration){
+            if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintIteration){
                 log.info(iteration+"\t\t"
                         +String.format("%.2f", upper[iteration])+"\t\t"
                         +String.format("%.2f", lower[iteration])+"\t\t"
@@ -154,7 +158,7 @@ public class BDwithPapReactive extends BD {
                         +mp.getSolveStatusString()+"("+String.format("%.4f", mp.getObjGap())+")"
                 );
             }
-            if(WhetherWriteFileLog){
+            if(DefaultSetting.WhetherWriteFileLog){
                 fileWriter.write(iteration+"\t\t"
                         +String.format("%.2f", upper[iteration]) +"\t\t"
                         +String.format("%.2f", lower[iteration])+"\t\t"

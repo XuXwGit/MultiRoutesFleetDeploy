@@ -26,7 +26,11 @@ public class SOwithBD extends AlgoFrame {
         this.p = p;
         this.tau = p.getTau();
         this.Algo = "SO&BD";
-        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() 
+                                + "-T" + p.getTimeHorizon() 
+                                + "-"+ DefaultSetting.FleetType 
+                                + "-S" + DefaultSetting.randomSeed 
+                                + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
 
@@ -39,11 +43,11 @@ public class SOwithBD extends AlgoFrame {
         dp = new DualProblem(in, p);
         mp=new MasterProblem(in, p, "Stochastic");
 
-        if(WhetherAddInitializeSce){
+        if(DefaultSetting.WhetherAddInitializeSce){
             mp.addScene(sce.get(0));
         }
 
-        if(WhetherSetInitialSolution){
+        if(DefaultSetting.WhetherSetInitialSolution){
             DetermineModel dm = new DetermineModel(in, p);
             mp.setInitialSolution(dm.getVVarValue());
         }
@@ -54,7 +58,7 @@ public class SOwithBD extends AlgoFrame {
     protected void frame() throws IOException, IloException {
         initialize();
 
-        if(WhetherAddInitializeSce) {
+        if(DefaultSetting.WhetherAddInitializeSce) {
             initializeSce(sce);
         }
 
@@ -66,10 +70,10 @@ public class SOwithBD extends AlgoFrame {
 
         int flag = 0;
         double start0 = System.currentTimeMillis();
-        while(upperBound - lowerBound > boundGapLimit
+        while(upperBound - lowerBound > DefaultSetting.boundGapLimit
                 && flag == 0
-                && iteration<maxIterationNum
-                && (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+                && iteration<DefaultSetting.maxIterationNum
+                && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         )
         {
             double start1 = System.currentTimeMillis();

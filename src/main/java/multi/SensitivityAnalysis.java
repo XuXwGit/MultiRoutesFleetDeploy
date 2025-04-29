@@ -16,7 +16,7 @@ import java.io.IOException;
  * @DateTime: 2024/12/4 21:54
  */
 @Slf4j
-public class SensitivityAnalysis extends DefaultSetting {
+public class SensitivityAnalysis {
     private static int defaultTimeHorizon;
     private double[] uncertainDegreeSet = {0.005, 0.015, 0.025, 0.035,0.045, 0.055, 0.065, 0.075, 0.085, 0.095};
     private double[] containerPathCostSet = {0.80, 0.825, 0.85, 0.875, 0.90, 0.925, 0.95, 0.975,
@@ -46,10 +46,11 @@ public class SensitivityAnalysis extends DefaultSetting {
 
             if(DefaultSetting.WhetherWriteFileLog){
                 File file = new File(
-                RootPath +  TestResultPath
+                DefaultSetting.RootPath +  DefaultSetting.TestResultPath
                         + "SensitivityAnalysis" + instance
                         + "-" + type
-                        + "-" + randomSeed+ ".txt");
+                        + "-" + this.algo
+                        + "-" + DefaultSetting.randomSeed+ ".txt");
                 if (!file.exists()) {
                     try {
                         file.createNewFile();
@@ -61,7 +62,7 @@ public class SensitivityAnalysis extends DefaultSetting {
 
             }
 
-            String fileName = DataPath;
+            String fileName = DefaultSetting.DataPath;
             if(instance == 1){
                 fileName += "data1/";
                 defaultTimeHorizon = 70;
@@ -359,7 +360,7 @@ public class SensitivityAnalysis extends DefaultSetting {
             // initial number of empty container in pp = total demands which origins in port pp * [0.8, 1.0]
             int[] initialEmptyContainer =new int [in.getPortSet().size()];
             int x=0;
-            double alpha=0.8+0.2*random.nextDouble();
+            double alpha=0.8+0.2*DefaultSetting.random.nextDouble();
             int totalOwnedEmptyContainers = 0;
             for(Port pp:in.getPortSet().values())
             {

@@ -24,7 +24,7 @@ public class CCGwithPAP extends CCG {
         this.p = p;
         this.tau = p.getTau();
         this.Algo = "CCG&PAP";
-        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
     public CCGwithPAP(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -33,7 +33,7 @@ public class CCGwithPAP extends CCG {
         this.p = p;
         this.tau = tau;
         this.Algo = "CCG&PAP";
-        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ FleetType + "-S" + randomSeed + "-V" + VesselCapacityRange;
+        this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size() + "-T" + p.getTimeHorizon() + "-"+ DefaultSetting.FleetType + "-S" + DefaultSetting.randomSeed + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
 
@@ -48,7 +48,7 @@ public class CCGwithPAP extends CCG {
         int flag=0;
 
         double time0 = System.currentTimeMillis();
-        WhetherAddInitializeSce = true;
+        DefaultSetting.WhetherAddInitializeSce = true;
         initialModel();
 
         printIterTitle(fileWriter, System.currentTimeMillis() - time0);
@@ -57,10 +57,10 @@ public class CCGwithPAP extends CCG {
                 "--", 0, "--", 0);
 
         double start0 = System.currentTimeMillis();
-        while(upperBound - lowerBound > boundGapLimit
+        while(upperBound - lowerBound > DefaultSetting.boundGapLimit
                 && flag==0
-                && iteration<maxIterationNum
-                && (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+                && iteration<DefaultSetting.maxIterationNum
+                && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         ) {
             // build and solve master model
             // add new scene to Master Problem
@@ -134,14 +134,14 @@ public class CCGwithPAP extends CCG {
         end();
 
 
-        if(CCG_PAP_Use_Sp){
+        if(DefaultSetting.CCG_PAP_Use_Sp){
             Long start1 = System.currentTimeMillis();
             SubProblem sp = new SubProblem(in, p);
             sp.changeConstraintCoefficients(mp.getVVarValue(), dsp.getUValue());
             sp.solveModel();
             sp.end();
 
-            if(WhetherPrintProcess || WhetherPrintSolveTime){
+            if(DefaultSetting.WhetherPrintProcess || DefaultSetting.WhetherPrintSolveTime){
                 Long end1 = System.currentTimeMillis();
                 log.info("SubProblem Time = "+ (end1 - start1));
             }
@@ -158,11 +158,11 @@ protected double initialModel() throws IloException, IOException {
     dsp =new DualSubProblem(in, p, 1);
     mp=new MasterProblem(in, p);
 
-    if(WhetherAddInitializeSce){
+    if(DefaultSetting.WhetherAddInitializeSce){
         mp.addScene(sce.get(0));
     }
 
-    if(WhetherSetInitialSolution){
+    if(DefaultSetting.WhetherSetInitialSolution){
         DetermineModel dm = new DetermineModel(in, p);
         mp.setInitialSolution(dm.getVVarValue());
     }

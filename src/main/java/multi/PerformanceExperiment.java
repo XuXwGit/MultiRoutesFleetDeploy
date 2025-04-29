@@ -31,6 +31,8 @@ import java.io.IOException;
  * 1. 小规模实例(data1): 2条航线,10个港口,10艘船
  * 2. 中规模实例(data3): 3条航线,21个港口,35艘船
  * 3. 大规模实例(data2): 8条航线,29个港口,40艘船
+ * 4.
+ * 5.
  *
  * @Author: XuXw
  * @DateTime: 2024/12/4 17:28
@@ -734,7 +736,6 @@ public class PerformanceExperiment {
             new SelectPaths(inputData, para, 0.4);
 
             new DetermineModel(inputData, para);
-            // de.solveModel();
 
             new SOwithBD(inputData, para);
             new SOwithSAA(inputData, para);

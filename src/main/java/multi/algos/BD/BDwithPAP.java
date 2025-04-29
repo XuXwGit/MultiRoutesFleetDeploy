@@ -3,6 +3,7 @@ package multi.algos.BD;
 import ilog.concert.IloException;
 import ilog.cplex.IloCplex;
 import lombok.extern.slf4j.Slf4j;
+import multi.DefaultSetting;
 import multi.InputData;
 import multi.Parameter;
 import multi.Scenario;
@@ -25,9 +26,9 @@ public class BDwithPAP extends BD {
         this.Algo = "BD&PAP";
         this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size()
                 + "-T" + p.getTimeHorizon()
-                + "-"+ FleetType
-                + "-S" + randomSeed
-                + "-V" + VesselCapacityRange;
+                + "-"+ DefaultSetting.FleetType
+                + "-S" + DefaultSetting.randomSeed
+                + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
     public BDwithPAP(InputData in, Parameter p, int tau) throws IloException, IOException {
@@ -38,21 +39,21 @@ public class BDwithPAP extends BD {
         this.Algo = "BD&PAP";
         this.AlgoID = Algo + "-R"+ in.getShipRouteSet().size()
                 + "-T" + p.getTimeHorizon()
-                + "-"+ FleetType
-                + "-S" + randomSeed
-                + "-V" + VesselCapacityRange;
+                + "-"+ DefaultSetting.FleetType
+                + "-S" + DefaultSetting.randomSeed
+                + "-V" + DefaultSetting.VesselCapacityRange;
         frame();
     }
 
     @Override
     protected void frame() throws IloException, IOException {
         initialize();
-        if(WhetherCalculateMeanPerformance && UseHistorySolution){
+        if(DefaultSetting.WhetherCalculateMeanPerformance && DefaultSetting.UseHistorySolution){
             calculateMeanPerformance();
             return;
         }
 
-        if(WhetherAddInitializeSce) {
+        if(DefaultSetting.WhetherAddInitializeSce) {
             initializeSce(sce);
         }
 
@@ -77,10 +78,10 @@ public class BDwithPAP extends BD {
         /*mp.addScene(sce.get(iteration));*/
         int flag = 0;
         double start0 = System.currentTimeMillis();
-        while(upperBound - lowerBound > boundGapLimit
+        while(upperBound - lowerBound > DefaultSetting.boundGapLimit
                 && flag == 0
-                && iteration<maxIterationNum
-                && (System.currentTimeMillis() - start0)/1000 < maxIterationTime
+                && iteration<DefaultSetting.maxIterationNum
+                && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         )
         {
             double start1 = System.currentTimeMillis();
