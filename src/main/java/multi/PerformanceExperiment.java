@@ -105,7 +105,7 @@ public class PerformanceExperiment {
         }
         else if (instance == 5) {
             //timeHorizonSet = new int[]{180, 165, 150, 135, 120, 105, 90};
-            timeHorizonSet = new int[]{60, 75, 90, 105, 120, 135, 150, 165, 180};
+            timeHorizonSet = new int[]{49};
         }
 
         //print_strategy_status(fileName);
@@ -736,25 +736,29 @@ public class PerformanceExperiment {
     static private void experimentTest10(String filename) throws IloException, IOException {
         log.info("========================== Begin Performance Test =========================");
         log.info("==============================" + "Experiment 10" + "=============================");
-        for (int t : timeHorizonSet) {
-            InputData inputData = new InputData();
-            new ReadData(filename, inputData, t);
-            Parameter para = new Parameter();
-            new GenerateParameter(para, inputData, t, uncertainDegree);
-            inputData.showStatus();
-            new SelectPaths(inputData, para, 0.4);
+        double[] foldCOntainerPercentSets = {0.1, 0.25, 0.5, 0.75, 1.0};
+        for(double fcp: foldCOntainerPercentSets){
+            log.info("Fold Initial Container Percent: "+ fcp);
+            DefaultSetting.DefaultFoldContainerPercent = fcp;
+            for (int t : timeHorizonSet) {
+                InputData inputData = new InputData();
+                new ReadData(filename, inputData, t);
+                Parameter para = new Parameter();
+                new GenerateParameter(para, inputData, t, uncertainDegree);
+                inputData.showStatus();
 
-            new DetermineModel(inputData, para);
+                new DetermineModel(inputData, para);
 
-            new SOwithBD(inputData, para);
+                new SOwithBD(inputData, para);
 
-            try {
-                new SOwithSAA(inputData, para);
-            } catch (Exception e) {
-                System.out.println("error in solve SAA");
-            }
+                try {
+                    new SOwithSAA(inputData, para);
+                } catch (Exception e) {
+                    System.out.println("error in solve SAA");
+                }
 
-            log.info("=====================================================================");
+                log.info("=====================================================================");
+            }            
         }
     }
 }

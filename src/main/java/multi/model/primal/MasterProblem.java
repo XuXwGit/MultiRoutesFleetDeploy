@@ -553,12 +553,13 @@ public class MasterProblem extends BasePrimalModel
 		if(DefaultSetting.IsEmptyReposition){
             setEmptyConservationConstraint(xs.get("x"), xs.get("z"), 1);
         }else{
-            setEmptyConservationConstraint(xs.get("x"), xs.get("z1"), 1);
+            setEmptyConservationConstraint(xs.get("x"), xs.get("z1"), 1 - DefaultSetting.DefaultFoldContainerPercent);
             if(DefaultSetting.AllowFoldableContainer){
-                setEmptyConservationConstraint(xs.get("x1"), xs.get("z2"), 0.5);
-            }            
+                setEmptyConservationConstraint(xs.get("x1"), xs.get("z2"), DefaultSetting.DefaultFoldContainerPercent);
+            }
         }
 	}
+
 	private void setConstraint6(List<IloNumVar[]> xVar, List<IloNumVar[]> zVar) throws IloException	{
 		setEmptyConservationConstraint(xVar, zVar, 1);
 	}
@@ -623,16 +624,18 @@ public class MasterProblem extends BasePrimalModel
 		double[] request = scene_k.getRequest();
 
 		if(this.type.equals("Stochastic")){
-			setConstraint0(scene_k_xs, gVar_k, scene_k.getId());
+			// SO
+			setConstraint0(scene_k_xs, gVar_k, scene_k.getId()); //割平面
 		}else{
-			setConstraint0(scene_k_xs, gVar_k);
+			// RO
+			setConstraint0(scene_k_xs, gVar_k); // 割平面
 		}
 		// setConstraint4(xxVar_k, yyVar_k, gVar_k, request);
-		setConstraint4(scene_k_xs, gVar_k, request);
+		setConstraint4(scene_k_xs, gVar_k, request); // 需求约束
 		// setConstraint5(xxVar_k, yyVar_k, zzVar_k); 
 		setConstraint5(scene_k_xs);  	// 对应约束条件(6): 船舶容量约束
-		// setConstraint6(xxVar_k, zzVar_k);   // 对应约束条件(5): 空集装箱平衡约束
-		setConstraint6(scene_k_xs);
+		// setConstraint6(xxVar_k, zzVar_k);  
+		setConstraint6(scene_k_xs);     // 对应约束条件(5): 空集装箱平衡约束
 	}
 	
 	/**

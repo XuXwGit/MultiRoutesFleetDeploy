@@ -368,7 +368,7 @@ public class BaseDualModel extends BaseModel {
                                             &&in.getTravelingArcSet().get(nn).getDestinationTime()>=1)
                                     {
                                         left.addTerm(p.getArcAndPath()[nn][j],gammaVar[pp][t]);
-                                        left2.addTerm(p.getArcAndPath()[nn][j],gammaVar[pp][t]);
+                                        left2.addTerm(p.getArcAndPath()[nn][j],gamma2Var[pp][t]);
                                     }
                                 }
 
@@ -383,7 +383,7 @@ public class BaseDualModel extends BaseModel {
                                             &&in.getTravelingArcSet().get(nn).getOriginTime()>=1)
                                     {
                                         left.addTerm(-p.getArcAndPath()[nn][j],gammaVar[pp][t]);
-                                        left2.addTerm(-p.getArcAndPath()[nn][j],gammaVar[pp][t]);
+                                        left2.addTerm(-p.getArcAndPath()[nn][j],gamma2Var[pp][t]);
                                     }
                                 }
                             }
@@ -392,8 +392,8 @@ public class BaseDualModel extends BaseModel {
 
                     // left <= c5θ
                     String constrName = "C-Z_" + (i) +"-"+(k);
-                    c3.get(i)[k] = cplex.addLe(left, p.getLadenPathCost()[j], constrName);
-                    c32.get(i)[k] = cplex.addLe(left2, p.getLadenPathCost()[j], constrName);
+                    c3.get(i)[k] = cplex.addLe(left, p.getLadenPathCost()[j] * 0.5, constrName);
+                    c32.get(i)[k] = cplex.addLe(left2, p.getLadenPathCost()[j]  * 0.5 + DefaultSetting.DefaultFoldEmptyCostBias, constrName);
                 }
             }
             else{
@@ -652,9 +652,9 @@ public class BaseDualModel extends BaseModel {
             //t∈ T
             for(int t=1; t<p.getTimePointSet().length; t++)
             {
-                constantItem  += (-p.getInitialEmptyContainer()[pp] * cplex.getValue(gammaVar[pp][t]));
+                constantItem  += (-p.getInitialEmptyContainer()[pp] * (1 - DefaultSetting.DefaultFoldContainerPercent) * cplex.getValue(gammaVar[pp][t]));
                 if(DefaultSetting.AllowFoldableContainer){
-                    constantItem  += (-p.getInitialEmptyContainer()[pp] * cplex.getValue(gamma2Var[pp][t]));
+                    constantItem  += (-p.getInitialEmptyContainer()[pp] * DefaultSetting.DefaultFoldContainerPercent * cplex.getValue(gamma2Var[pp][t]));
                 }
             }
         }

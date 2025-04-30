@@ -316,7 +316,7 @@ public class BasePrimalModel extends BaseModel {
 
     protected void setDemandConstraint(Map<String, List<IloNumVar[]>> xs, 
                                                                 IloNumVar[] gVar, 
-                                                                double[] uValue) 
+                                                                double[] uValue)
                             throws IloException {
         //∀i∈I
         for (int i = 0; i < p.getDemand().length; ++i) {
@@ -524,12 +524,24 @@ public class BasePrimalModel extends BaseModel {
         if(DefaultSetting.IsEmptyReposition){
             setEmptyConservationConstraint(xVar, zVar, 1);
         }else{
-            setEmptyConservationConstraint(xVar, z1Var, 1);
+            setEmptyConservationConstraint(xVar, z1Var, 1 - DefaultSetting.DefaultFoldContainerPercent);
             if(DefaultSetting.AllowFoldableContainer){
                 setEmptyConservationConstraint(x1Var, z2Var, DefaultSetting.DefaultFoldContainerPercent);
-            }            
+            }
         }
     }
+
+    protected void setEmptyConservationConstraint(Map<String, List<IloNumVar[]>> xsMap) throws IloException {
+        if(DefaultSetting.IsEmptyReposition){
+            setEmptyConservationConstraint(xsMap.get("x"), xs.get("z"), 1);
+        }else{
+            setEmptyConservationConstraint(xsMap.get("x"), xsMap.get("z1"), 1 - DefaultSetting.DefaultFoldContainerPercent);
+            if(DefaultSetting.AllowFoldableContainer){
+                setEmptyConservationConstraint(xsMap.get("x1"), xsMap.get("z2"), DefaultSetting.DefaultFoldContainerPercent);
+            }
+        }
+    }
+
     protected void setEmptyConservationConstraint(List<IloNumVar[]> xVar, List<IloNumVar[]> zVar, double initial_port_container_coeff) throws IloException {
         if(DefaultSetting.WhetherUseMultiThreads){
             //long start = System.currentTimeMillis();
@@ -1103,10 +1115,10 @@ public class BasePrimalModel extends BaseModel {
                 int j = od.getLadenPathIndexes()[k];
                 // item3 : Demurrage of self-owned and leased containers and Rental cost on laden paths
                 // x：标准
-                // x1：折叠
                 if(xs.containsKey("x")){
                     Obj.addTerm(p.getLadenPathCost()[j], xVar.get(i)[k]);
                 }
+                // x1：折叠
                 if(xs.containsKey("x1")){
                     Obj.addTerm(p.getLadenPathCost()[j], x1Var.get(i)[k]);
                 }
@@ -1121,7 +1133,7 @@ public class BasePrimalModel extends BaseModel {
                 }
                 // z2：重调度折叠箱
                 if(xs.containsKey("x2")){
-                    Obj.addTerm(p.getLadenPathCost()[j] * 0.5 + 15, z2Var.get(i)[k]);
+                    Obj.addTerm(p.getLadenPathCost()[j] * 0.5 + DefaultSetting.DefaultFoldEmptyCostBias, z2Var.get(i)[k]);
                 }
             }
 
@@ -1130,6 +1142,7 @@ public class BasePrimalModel extends BaseModel {
                 for(int k = 0; k < od.getNumberOfEmptyPath(); ++k)
                 {
                     int j = od.getEmptyPathIndexes()[k];
+                     // z：重定向普通空箱
                     if(xs.containsKey("z")){
                         Obj.addTerm(p.getEmptyPathCost()[j], zVar.get(i)[k]);
                     }
@@ -1178,6 +1191,8 @@ public class BasePrimalModel extends BaseModel {
         // return GetRequestTransCostObj(Obj, xVar, yVar, zVar, gVar);
         return GetRequestTransCostObj(Obj, xs, gVar);
     }
+
+
     public void setInitialSolution(int[][] vVarValue) throws IloException {
         int m = vVar.length;
         int n = vVar[0].length;

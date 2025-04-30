@@ -58,7 +58,8 @@ public class DefaultSetting {
 	public static int DefaultUnitDischargeCost = 20;
 	public static int DefaultUnitTransshipmentCost = 30;
 	public static int DefaultTurnOverTime = 14;
-	public static double DefaultFoldContainerPercent = 0.5;
+	public static double DefaultFoldContainerPercent = 0.15;
+	public static double DefaultFoldEmptyCostBias = 15;
 	//////////////////////////////////
 
 
@@ -96,7 +97,7 @@ public class DefaultSetting {
 	public static boolean WhetherCalculateMeanPerformance = false;
 	public static boolean WhetherWriteSampleTests = true;
 	public static boolean WhetherLoadSampleTests = false;
-	public static int numSampleScenes = 1000;
+	public static int numSampleScenes = 10;
 	public static double log_normal_sigma_factor = 1.0;
 	public static double budgetCoefficient = 1.0;
 	public static double defaultUncertainDegree = 0.15;
