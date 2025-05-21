@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
+import logging
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +26,7 @@ DEFAULT_SHIP_PARAMS = {
 # 全局数据存储
 SHIPS_DATA = []
 ROUTES_DATA = []
+PORTS_DATA = []
 
 Base = declarative_base()
 
@@ -63,6 +65,8 @@ class Port(Base):
 engine = create_engine('sqlite:///ships.db')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+
+logger = logging.getLogger(__name__)
 
 @app.route('/')
 def index():
@@ -110,15 +114,6 @@ def export_data():
         format = request.args.get('format', 'json')
         # 处理导出数据
         return jsonify({'status': 'success', 'message': '数据导出成功'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 400
-
-@app.route('/api/plan-route', methods=['POST'])
-def plan_route():
-    try:
-        data = request.get_json()
-        # 处理航线规划
-        return jsonify({'status': 'success', 'message': '航线规划成功'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
@@ -620,5 +615,37 @@ def get_ports():
     session.close()
     return jsonify(result)
 
+def load_initial_data():
+    """应用启动时加载初始数据"""
+    try:
+        session = Session()
+        # 加载船舶数据
+        ships = session.query(Ship).all()
+        global SHIPS_DATA
+        SHIPS_DATA = [s.__dict__ for s in ships]
+        for ship in SHIPS_DATA:
+            ship.pop('_sa_instance_state', None)
+            
+        # 加载航线数据
+        routes = session.query(Route).all()
+        global ROUTES_DATA
+        ROUTES_DATA = [r.__dict__ for r in routes]
+        for route in ROUTES_DATA:
+            route.pop('_sa_instance_state', None)
+            
+        # 加载港口数据
+        ports = session.query(Port).all()
+        global PORTS_DATA
+        PORTS_DATA = [p.__dict__ for p in ports]
+        for port in PORTS_DATA:
+            port.pop('_sa_instance_state', None)
+            
+        session.close()
+        logger.info("初始数据加载完成")
+    except Exception as e:
+        logger.error(f"初始数据加载失败: {str(e)}")
+
 if __name__ == '__main__':
+    # 启动时加载数据
+    load_initial_data()
     app.run(host='0.0.0.0', port=5000, debug=True) 
