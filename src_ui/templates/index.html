@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>船舶调度系统</title>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- ECharts -->
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+        <!-- 自定义样式 -->
+        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <style>
+                .container {
+                        margin-top: 30px;
+                }
+
+                .ship-card {
+                        margin-bottom: 20px;
+                }
+
+                .data-management {
+                        padding: 20px;
+                }
+
+                .file-format-select {
+                        margin-bottom: 15px;
+                }
+        </style>
+</head>
+
+<body style="background-color: #f4f6fa;">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+                <div class="container-fluid">
+                        <a class="navbar-brand fw-bold" href="/">船舶调度系统</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarNav" aria-label="切换导航">
+                                <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                                <ul class="navbar-nav ms-auto">
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/overview">总览</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/data">数据管理</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/analysis">数据分析</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/optimization">调度优化</a>
+                                        </li>
+                                </ul>
+                        </div>
+                </div>
+        </nav>
+
+        <div class="container py-5">
+                <div class="text-center mb-5">
+                        <h1 class="display-4 fw-bold">船舶调度系统</h1>
+                        <p class="lead text-secondary">智能化船舶调度与可视化平台</p>
+                </div>
+                <div class="row g-4">
+                        <!-- 左侧：船舶列表 -->
+                        <div class="col-lg-4 col-md-5">
+                                <div class="card shadow-sm rounded-4">
+                                        <div class="card-header bg-white border-0 pb-0">
+                                                <h5 class="card-title mb-0">
+                                                        <i class="bi bi-ship fs-4 text-primary me-2"></i>船舶列表</h5>
+                                        </div>
+                                        <div class="card-body pt-2">
+                                                <div id="shipsList" class="row g-3">
+                                                        <!-- 船舶卡片通过JS动态加载 -->
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                        <!-- 右侧：调度概览（只含地图和图表） -->
+                        <div class="col-lg-8 col-md-7">
+                                <div class="card shadow-sm rounded-4 mb-4">
+                                        <div class="card-header bg-white border-0 pb-0">
+                                                <h5 class="card-title mb-0">
+                                                        <i class="bi bi-graph-up-arrow fs-5 text-success me-2"></i>调度概览
+                                                </h5>
+                                        </div>
+                                        <div class="card-body bg-light rounded-3">
+                                                <div class="row g-3">
+                                                        <div class="col-12 mb-3">
+                                                                <div id="mapContainer" style="height: 320px;"></div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                                <div id="scheduleChart" style="height: 180px;"></div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                                <div id="statusChart" style="height: 180px;"></div>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+        </div>
+
+        <!-- 数据管理模态框 -->
+        <div class="modal fade" id="dataManagementModal" tabindex="-1" aria-labelledby="dataManagementModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                                <div class="modal-header">
+                                        <h5 class="modal-title" id="dataManagementModalLabel">数据管理</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                                aria-label="关闭"></button>
+                                </div>
+                                <div class="modal-body">
+                                        <ul class="nav nav-tabs" id="dataManagementTabs" role="tablist">
+                                                <li class="nav-item" role="presentation">
+                                                        <button class="nav-link active" id="import-tab"
+                                                                data-bs-toggle="tab" data-bs-target="#import"
+                                                                type="button" role="tab" aria-controls="import"
+                                                                aria-selected="true">数据导入</button>
+                                                </li>
+                                                <li class="nav-item" role="presentation">
+                                                        <button class="nav-link" id="export-tab" data-bs-toggle="tab"
+                                                                data-bs-target="#export" type="button" role="tab"
+                                                                aria-controls="export"
+                                                                aria-selected="false">数据导出</button>
+                                                </li>
+                                        </ul>
+                                        <div class="tab-content mt-3" id="dataManagementTabContent">
+                                                <!-- 数据导入 -->
+                                                <div class="tab-pane fade show active" id="import" role="tabpanel"
+                                                        aria-labelledby="import-tab">
+                                                        <div class="mb-3">
+                                                                <label for="importType" class="form-label">数据类型</label>
+                                                                <select class="form-select" id="importType"
+                                                                        aria-label="选择数据类型" title="选择数据类型">
+                                                                        <option value="ships">船舶数据</option>
+                                                                        <option value="routes">航线数据</option>
+                                                                </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                                <label for="importFormat"
+                                                                        class="form-label">文件格式</label>
+                                                                <select class="form-select" id="importFormat"
+                                                                        aria-label="选择文件格式" title="选择文件格式">
+                                                                        <option value="csv">CSV</option>
+                                                                        <option value="txt">TXT</option>
+                                                                        <option value="json">JSON</option>
+                                                                </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                                <label for="importFile" class="form-label">选择文件</label>
+                                                                <input class="form-control" type="file" id="importFile"
+                                                                        accept=".csv,.txt,.json" aria-label="选择文件">
+                                                        </div>
+                                                        <button type="button" class="btn btn-primary"
+                                                                onclick="importData()">导入数据</button>
+                                                </div>
+                                                <!-- 数据导出 -->
+                                                <div class="tab-pane fade" id="export" role="tabpanel"
+                                                        aria-labelledby="export-tab">
+                                                        <div class="mb-3">
+                                                                <label for="exportType" class="form-label">数据类型</label>
+                                                                <select class="form-select" id="exportType"
+                                                                        aria-label="选择数据类型" title="选择数据类型">
+                                                                        <option value="ships">船舶数据</option>
+                                                                        <option value="routes">航线数据</option>
+                                                                </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                                <label for="exportFormat"
+                                                                        class="form-label">导出格式</label>
+                                                                <select class="form-select" id="exportFormat"
+                                                                        aria-label="选择导出格式" title="选择导出格式">
+                                                                        <option value="csv">CSV</option>
+                                                                        <option value="txt">TXT</option>
+                                                                        <option value="json">JSON</option>
+                                                                </select>
+                                                        </div>
+                                                        <button type="button" class="btn btn-primary"
+                                                                onclick="exportData()">导出数据</button>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+        </div>
+
+
+        <div class="tab-content" id="mainTabContent">
+                <div class="tab-pane fade show active" id="dashboardTab" role="tabpanel">
+                        <!-- 原来的地图和图表内容 -->
+                </div>
+
+                <div class="tab-pane fade" id="routePlanningTab" role="tabpanel">
+                        <div class="card">
+                                <div class="card-header">航线规划</div>
+                                <div class="card-body">
+                                        <div class="row">
+                                                <div class="col-md-4">
+                                                        <div class="card mb-3">
+                                                                <div class="card-header">规划参数</div>
+                                                                <div class="card-body">
+                                                                        <form id="routePlanForm">
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">起始港口</label>
+                                                                                        <select class="form-select"
+                                                                                                id="startPort"
+                                                                                                title="选择起始港口"
+                                                                                                aria-label="选择起始港口">
+                                                                                                <option
+                                                                                                        value="shanghai">
+                                                                                                        上海港</option>
+                                                                                                <option
+                                                                                                        value="guangzhou">
+                                                                                                        广州港</option>
+                                                                                                <option value="qingdao">
+                                                                                                        青岛港</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">目的港口</label>
+                                                                                        <select class="form-select"
+                                                                                                id="endPort"
+                                                                                                title="选择目的港口"
+                                                                                                aria-label="选择目的港口">
+                                                                                                <option
+                                                                                                        value="singapore">
+                                                                                                        新加坡港</option>
+                                                                                                <option value="dubai">
+                                                                                                        迪拜港</option>
+                                                                                                <option value="busan">
+                                                                                                        釜山港</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">优化目标</label>
+                                                                                        <select class="form-select"
+                                                                                                id="optimizeGoal"
+                                                                                                title="选择优化目标"
+                                                                                                aria-label="选择优化目标">
+                                                                                                <option value="time">
+                                                                                                        最短时间</option>
+                                                                                                <option value="cost">
+                                                                                                        最低成本</option>
+                                                                                                <option value="fuel">
+                                                                                                        最少燃油</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                                <button type="button"
+                                                                                        class="btn btn-primary"
+                                                                                        id="planRouteBtn">规划航线</button>
+                                                                        </form>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                                <div class="col-md-8">
+                                                        <div class="card">
+                                                                <div class="card-header">航线结果</div>
+                                                                <div class="card-body">
+                                                                        <div id="routeMapContainer"
+                                                                                style="height: 400px;"></div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+
+                <div class="tab-pane fade" id="optimizeTab" role="tabpanel">
+                        <div class="card">
+                                <div class="card-header">调度优化</div>
+                                <div class="card-body">
+                                        <div class="row">
+                                                <div class="col-md-4">
+                                                        <div class="card mb-3">
+                                                                <div class="card-header">优化参数</div>
+                                                                <div class="card-body">
+                                                                        <form id="optimizeForm">
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">优化算法</label>
+                                                                                        <select class="form-select"
+                                                                                                id="algorithm"
+                                                                                                title="选择优化算法"
+                                                                                                aria-label="选择优化算法">
+                                                                                                <option value="genetic">
+                                                                                                        遗传算法</option>
+                                                                                                <option value="ant">蚁群算法
+                                                                                                </option>
+                                                                                                <option value="dp">动态规划
+                                                                                                </option>
+                                                                                        </select>
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">优化目标</label>
+                                                                                        <div class="form-check">
+                                                                                                <input class="form-check-input"
+                                                                                                        type="checkbox"
+                                                                                                        id="goal_time"
+                                                                                                        checked>
+                                                                                                <label class="form-check-label"
+                                                                                                        for="goal_time">时间</label>
+                                                                                        </div>
+                                                                                        <div class="form-check">
+                                                                                                <input class="form-check-input"
+                                                                                                        type="checkbox"
+                                                                                                        id="goal_cost"
+                                                                                                        checked>
+                                                                                                <label class="form-check-label"
+                                                                                                        for="goal_cost">成本</label>
+                                                                                        </div>
+                                                                                        <div class="form-check">
+                                                                                                <input class="form-check-input"
+                                                                                                        type="checkbox"
+                                                                                                        id="goal_emissions">
+                                                                                                <label class="form-check-label"
+                                                                                                        for="goal_emissions">碳排放</label>
+                                                                                        </div>
+                                                                                </div>
+                                                                                <div class="mb-3">
+                                                                                        <label
+                                                                                                class="form-label">调度范围</label>
+                                                                                        <select class="form-select"
+                                                                                                id="scope"
+                                                                                                title="选择调度范围"
+                                                                                                aria-label="选择调度范围">
+                                                                                                <option value="all">全部船舶
+                                                                                                </option>
+                                                                                                <option
+                                                                                                        value="selected">
+                                                                                                        选定船舶</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                                <button type="button"
+                                                                                        class="btn btn-primary"
+                                                                                        id="optimizeBtn">开始优化</button>
+                                                                        </form>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                                <div class="col-md-8">
+                                                        <div class="card mb-3">
+                                                                <div class="card-header">优化结果</div>
+                                                                <div class="card-body">
+                                                                        <div id="optimizeResultChart"
+                                                                                style="height: 300px;"></div>
+                                                                </div>
+                                                        </div>
+
+                                                        <div class="card">
+                                                                <div class="card-header">调度计划</div>
+                                                                <div class="card-body">
+                                                                        <table class="table table-striped"
+                                                                                id="scheduleTable">
+                                                                                <thead>
+                                                                                        <tr>
+                                                                                                <th>船舶</th>
+                                                                                                <th>出发港口</th>
+                                                                                                <th>到达港口</th>
+                                                                                                <th>出发时间</th>
+                                                                                                <th>到达时间</th>
+                                                                                        </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                        <!-- 调度结果将动态添加 -->
+                                                                                </tbody>
+                                                                        </table>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+        </div>
+        </div>
+
+        <!-- Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- 自定义脚本 -->
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+        <script>
+                // 导入数据
+                function importData() {
+                        const fileInput = document.getElementById('importFile');
+                        const importType = document.getElementById('importType').value;
+                        const importFormat = document.getElementById('importFormat').value;
+
+                        if (!fileInput.files.length) {
+                                alert('请选择文件');
+                                return;
+                        }
+
+                        const file = fileInput.files[0];
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('format', importFormat);
+
+                        const endpoint = importType === 'ships' ? '/api/import/ships' : '/api/import/routes';
+
+                        fetch(endpoint, {
+                                        method: 'POST',
+                                        body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                        if (data.status === 'success') {
+                                                alert(data.message);
+                                                // 刷新数据展示
+                                                if (importType === 'ships') {
+                                                        if (typeof loadShips === 'function') loadShips();
+                                                        else location.reload();
+                                                } else {
+                                                        if (typeof loadRoutes === 'function') loadRoutes();
+                                                        else location.reload();
+                                                }
+                                        } else {
+                                                alert('导入失败: ' + data.message);
+                                        }
+                                })
+                                .catch(error => {
+                                        alert('导入失败: ' + error);
+                                });
+                }
+        </script>
+</body>
+
+</html>

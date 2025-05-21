@@ -1,0 +1,151 @@
+/* 全局样式 */
+body {
+        background-color: #f4f6fa;
+}
+
+/* 导航栏样式 */
+.navbar {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 卡片样式 */
+.card {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-radius: 1.25rem;
+        border: none;
+        margin-bottom: 1.5rem;
+        transition: box-shadow 0.2s;
+}
+
+.card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+}
+
+.card-header {
+        background-color: #fff;
+        border-bottom: none;
+        border-radius: 1.25rem 1.25rem 0 0;
+        font-weight: 600;
+        font-size: 1.1rem;
+}
+
+.card-title i {
+        vertical-align: middle;
+}
+
+.bg-light {
+        background-color: #f8fafc !important;
+}
+
+/* 船舶列表样式 */
+.list-group-item {
+        cursor: pointer;
+        transition: background-color 0.2s;
+}
+
+.list-group-item:hover {
+        background-color: #f8f9fa;
+}
+
+/* 图表容器样式 */
+#mapContainer,
+#scheduleChart,
+#statusChart {
+        background-color: #fff;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+        .container-fluid {
+                padding: 10px;
+        }
+
+        #mapContainer,
+        #scheduleChart,
+        #statusChart {
+                height: 250px !important;
+        }
+
+        .chart-container {
+                height: 300px;
+        }
+
+        .card-body {
+                padding: 1rem;
+        }
+}
+
+/* 图表容器样式 */
+.chart-container {
+        height: 400px;
+        width: 100%;
+}
+
+/* 数据表格样式 */
+.table {
+        margin-bottom: 0;
+}
+
+.table th {
+        border-top: none;
+        background-color: #f8f9fa;
+}
+
+/* 表单样式 */
+.form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+}
+
+/* 按钮样式 */
+.btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+}
+
+.btn-primary:hover {
+        background-color: #0069d9;
+        border-color: #0062cc;
+}
+
+/* 进度条样式 */
+.progress {
+        height: 0.5rem;
+        margin-bottom: 1rem;
+}
+
+/* 日志容器样式 */
+.log-container {
+        height: 200px;
+        overflow-y: auto;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        padding: 1rem;
+}
+
+#shipsList .card {
+        border-radius: 1rem;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+        margin-bottom: 0.5rem;
+}
+
+#shipsList .card-body {
+        padding: 0.75rem 1rem;
+}
+
+#shipsList .card-title {
+        font-size: 1.1rem;
+        font-weight: 500;
+}
+
+#shipsList .card-text {
+        font-size: 0.95rem;
+        color: #555;
+}
+
+#shipsList .card+.card {
+        border-top: 1px solid #f0f0f0;
+}

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>概览 - 船舶调度系统</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+</head>
+
+<body>
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                        <a class="navbar-brand" href="/">船舶调度系统</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarNav" aria-label="切换导航" title="切换导航">
+                                <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                                <ul class="navbar-nav">
+                                        <li class="nav-item">
+                                                <a class="nav-link active" href="/overview">概览</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/data">数据管理</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/optimization">调度优化</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/analysis">数据分析</a>
+                                        </li>
+                                </ul>
+                        </div>
+                </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+                <!-- 数据概览卡片 -->
+                <div class="row mb-4">
+                        <div class="col-md-3">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <h5 class="card-title">港口数量</h5>
+                                                <h2 class="card-text" id="portCount">0</h2>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="col-md-3">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <h5 class="card-title">航线数量</h5>
+                                                <h2 class="card-text" id="routeCount">0</h2>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="col-md-3">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <h5 class="card-title">船舶数量</h5>
+                                                <h2 class="card-text" id="shipCount">0</h2>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="col-md-3">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <h5 class="card-title">在航船舶</h5>
+                                                <h2 class="card-text" id="activeShipCount">0</h2>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+
+                <!-- 网络拓扑结构展示区 -->
+                <div class="card mt-4">
+                        <div class="card-header bg-white border-0 pb-0">
+                                <h5 class="card-title mb-0"><i class="bi bi-diagram-3 fs-5 text-info me-2"></i>航线网络拓扑
+                                </h5>
+                        </div>
+                        <div class="card-body">
+                                <div class="row">
+                                        <div class="col-md-9">
+                                                <div id="networkChart" style="height: 500px;"></div>
+                                        </div>
+                                        <div class="col-md-3">
+                                                <div id="networkLegend" class="p-3"></div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+
+                <!-- 实时状态 -->
+                <div class="row">
+                        <div class="col-md-6">
+                                <div class="card">
+                                        <div class="card-header">
+                                                <h5 class="card-title mb-0">船舶状态分布</h5>
+                                        </div>
+                                        <div class="card-body">
+                                                <div id="statusChart" style="height: 300px;"></div>
+                                        </div>
+                                </div>
+                        </div>
+                        <div class="col-md-6">
+                                <div class="card">
+                                        <div class="card-header">
+                                                <h5 class="card-title mb-0">航线运输量</h5>
+                                        </div>
+                                        <div class="card-body">
+                                                <div id="throughputChart" style="height: 300px;"></div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+                // 初始化图表
+                function initCharts() {
+                        // 网络拓扑图
+                        const networkChart = echarts.init(document.getElementById('networkChart'));
+                        const networkOption = {
+                                title: {
+                                        text: '航线网络拓扑'
+                                },
+                                tooltip: {},
+                                animationDurationUpdate: 1500,
+                                animationEasingUpdate: 'quinticInOut',
+                                series: [{
+                                        type: 'graph',
+                                        layout: 'force',
+                                        data: [],
+                                        links: [],
+                                        categories: [],
+                                        roam: true,
+                                        label: {
+                                                show: true,
+                                                position: 'right'
+                                        },
+                                        force: {
+                                                repulsion: 100
+                                        }
+                                }]
+                        };
+                        networkChart.setOption(networkOption);
+
+                        // 状态分布图
+                        const statusChart = echarts.init(document.getElementById('statusChart'));
+                        const statusOption = {
+                                title: {
+                                        text: '船舶状态分布'
+                                },
+                                tooltip: {
+                                        trigger: 'item'
+                                },
+                                legend: {
+                                        orient: 'vertical',
+                                        left: 'left'
+                                },
+                                series: [{
+                                        type: 'pie',
+                                        radius: '50%',
+                                        data: [{
+                                                        value: 0,
+                                                        name: '在航'
+                                                },
+                                                {
+                                                        value: 0,
+                                                        name: '停泊'
+                                                },
+                                                {
+                                                        value: 0,
+                                                        name: '维修'
+                                                }
+                                        ],
+                                        emphasis: {
+                                                itemStyle: {
+                                                        shadowBlur: 10,
+                                                        shadowOffsetX: 0,
+                                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                                }
+                                        }
+                                }]
+                        };
+                        statusChart.setOption(statusOption);
+
+                        // 吞吐量图
+                        const throughputChart = echarts.init(document.getElementById('throughputChart'));
+                        const throughputOption = {
+                                title: {
+                                        text: '港口吞吐量'
+                                },
+                                tooltip: {
+                                        trigger: 'axis'
+                                },
+                                xAxis: {
+                                        type: 'category',
+                                        data: []
+                                },
+                                yAxis: {
+                                        type: 'value'
+                                },
+                                series: [{
+                                        data: [],
+                                        type: 'bar'
+                                }]
+                        };
+                        throughputChart.setOption(throughputOption);
+
+                        // 窗口大小改变时重绘图表
+                        window.addEventListener('resize', function () {
+                                networkChart.resize();
+                                statusChart.resize();
+                                throughputChart.resize();
+                        });
+                }
+
+                // 加载数据
+                async function loadData() {
+                        try {
+                                // 获取统计数据
+                                const statsResponse = await fetch('/api/stats');
+                                const stats = await statsResponse.json();
+
+                                // 更新数据卡片
+                                document.getElementById('portCount').textContent = stats.port_count;
+                                document.getElementById('routeCount').textContent = stats.route_count;
+                                document.getElementById('shipCount').textContent = stats.ship_count;
+                                document.getElementById('activeShipCount').textContent = stats
+                                .active_ship_count;
+
+                                // 获取网络拓扑数据
+                                const networkResponse = await fetch('/api/network');
+                                const networkData = await networkResponse.json();
+                                if (!networkData.status || networkData.status !== 'success') return;
+                                // 节点样式美化
+                                networkData.nodes.forEach(node => {
+                                        node.symbol = 'circle';
+                                        node.itemStyle = {
+                                                color: '#5470C6',
+                                                shadowBlur: 10,
+                                                shadowColor: '#b3c6e0'
+                                        };
+                                        node.symbolSize = 50;
+                                });
+                                // ECharts option
+                                const option = {
+                                        backgroundColor: '#fff',
+                                        tooltip: {
+                                                trigger: 'item'
+                                        },
+                                        series: [{
+                                                type: 'graph',
+                                                layout: 'force',
+                                                data: networkData.nodes,
+                                                links: networkData.links,
+                                                roam: true,
+                                                label: {
+                                                        show: true,
+                                                        fontSize: 12
+                                                },
+                                                force: {
+                                                        repulsion: 220,
+                                                        edgeLength: 120
+                                                },
+                                                edgeSymbol: ['none', 'arrow'],
+                                                edgeSymbolSize: 8,
+                                                lineStyle: {
+                                                        width: 2,
+                                                        opacity: 0.7,
+                                                        curveness: 0.2,
+                                                        color: function (params) {
+                                                                return params
+                                                                        .data
+                                                                        .lineStyle ?
+                                                                        params
+                                                                        .data
+                                                                        .lineStyle
+                                                                        .color :
+                                                                        '#aaa';
+                                                        }
+                                                }
+                                        }]
+                                };
+                                const chart = echarts.init(document.getElementById('networkChart'));
+                                chart.setOption(option);
+                                // 右侧图例
+                                let legendHtml = '<div class="fw-bold mb-2">航线图例</div>';
+                                networkData.legend.forEach((item, idx) => {
+                                        legendHtml += `<div style="display:flex;align-items:center;margin-bottom:6px;">
+                                                <span style="display:inline-block;width:18px;height:8px;background:${item.color};margin-right:8px;"></span>
+                                                ${item.name}：${item.ports.join(' → ')}
+                                        </div>`;
+                                });
+                                document.getElementById('networkLegend').innerHTML = legendHtml;
+
+                                // 获取状态分布数据
+                                const statusResponse = await fetch('/api/status');
+                                const statusData = await statusResponse.json();
+                                const statusChart = echarts.getInstanceByDom(document.getElementById(
+                                        'statusChart'));
+                                statusChart.setOption({
+                                        series: [{
+                                                data: statusData
+                                        }]
+                                });
+
+                                // 获取吞吐量数据
+                                const throughputResponse = await fetch('/api/throughput');
+                                const throughputData = await throughputResponse.json();
+                                const throughputChart = echarts.getInstanceByDom(document.getElementById(
+                                        'throughputChart'));
+                                throughputChart.setOption({
+                                        xAxis: {
+                                                data: throughputData.ports
+                                        },
+                                        series: [{
+                                                data: throughputData.values
+                                        }]
+                                });
+                        } catch (error) {
+                                console.error('加载数据失败:', error);
+                        }
+                }
+
+                // 页面加载完成后初始化
+                document.addEventListener('DOMContentLoaded', () => {
+                        initCharts();
+                        loadData();
+                        // 每5分钟刷新一次数据
+                        setInterval(loadData, 300000);
+                });
+        </script>
+</body>
+
+</html>

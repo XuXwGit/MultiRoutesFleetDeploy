@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>数据管理 - 船舶调度系统</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+
+<body>
+        <!-- 导航栏 -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                        <a class="navbar-brand" href="/">船舶调度系统</a>
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#navbarNav" aria-label="切换导航">
+                                <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarNav">
+                                <ul class="navbar-nav">
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/overview">概览</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link active" href="/data">数据管理</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/optimization">调度优化</a>
+                                        </li>
+                                        <li class="nav-item">
+                                                <a class="nav-link" href="/analysis">数据分析</a>
+                                        </li>
+                                </ul>
+                        </div>
+                </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+                <!-- 数据管理选项卡 -->
+                <ul class="nav nav-tabs" id="dataTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="import-tab" data-bs-toggle="tab"
+                                        data-bs-target="#import" type="button" role="tab" aria-controls="import"
+                                        aria-selected="true">数据导入</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export"
+                                        type="button" role="tab" aria-controls="export"
+                                        aria-selected="false">数据导出</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="view-tab" data-bs-toggle="tab" data-bs-target="#view"
+                                        type="button" role="tab" aria-controls="view"
+                                        aria-selected="false">数据展示</button>
+                        </li>
+                </ul>
+
+                <div class="tab-content mt-3" id="dataTabContent">
+                        <!-- 数据导入 -->
+                        <div class="tab-pane fade show active" id="import" role="tabpanel" aria-labelledby="import-tab">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <div class="mb-3">
+                                                        <label for="importType" class="form-label">数据类型</label>
+                                                        <select class="form-select" id="importType" aria-label="选择数据类型"
+                                                                title="选择数据类型">
+                                                                <option value="ships">船舶数据</option>
+                                                                <option value="routes">航线数据</option>
+                                                                <option value="ports">港口数据</option>
+                                                        </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label for="importFormat" class="form-label">文件格式</label>
+                                                        <select class="form-select" id="importFormat"
+                                                                aria-label="选择文件格式" title="选择文件格式">
+                                                                <option value="csv">CSV</option>
+                                                                <option value="txt">TXT</option>
+                                                                <option value="json">JSON</option>
+                                                        </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label for="importFile" class="form-label">选择文件</label>
+                                                        <input class="form-control" type="file" id="importFile"
+                                                                accept=".csv,.txt,.json" aria-label="选择文件">
+                                                </div>
+                                                <button type="button" class="btn btn-primary"
+                                                        onclick="importData()">导入数据</button>
+                                        </div>
+                                </div>
+                        </div>
+
+                        <!-- 数据导出 -->
+                        <div class="tab-pane fade" id="export" role="tabpanel" aria-labelledby="export-tab">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <div class="mb-3">
+                                                        <label for="exportType" class="form-label">数据类型</label>
+                                                        <select class="form-select" id="exportType" aria-label="选择数据类型"
+                                                                title="选择数据类型">
+                                                                <option value="ships">船舶数据</option>
+                                                                <option value="routes">航线数据</option>
+                                                                <option value="ports">港口数据</option>
+                                                        </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label for="exportFormat" class="form-label">导出格式</label>
+                                                        <select class="form-select" id="exportFormat"
+                                                                aria-label="选择导出格式" title="选择导出格式">
+                                                                <option value="csv">CSV</option>
+                                                                <option value="txt">TXT</option>
+                                                                <option value="json">JSON</option>
+                                                        </select>
+                                                </div>
+                                                <button type="button" class="btn btn-primary"
+                                                        onclick="exportData()">导出数据</button>
+                                        </div>
+                                </div>
+                        </div>
+
+                        <!-- 数据展示 -->
+                        <div class="tab-pane fade show active" id="view" role="tabpanel" aria-labelledby="view-tab">
+                                <div class="card">
+                                        <div class="card-body">
+                                                <div class="mb-3">
+                                                        <label for="viewType" class="form-label">数据类型</label>
+                                                        <select class="form-select" id="viewType" aria-label="选择数据类型"
+                                                                title="选择数据类型" onchange="refreshDataView()">
+                                                                <option value="ships">船舶数据</option>
+                                                                <option value="routes">航线数据</option>
+                                                                <option value="ports">港口数据</option>
+                                                        </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label for="viewFormat" class="form-label">展示方式</label>
+                                                        <select class="form-select" id="viewFormat" aria-label="选择展示方式"
+                                                                title="选择展示方式" onchange="refreshDataView()">
+                                                                <option value="table">表格</option>
+                                                                <option value="cards">卡片</option>
+                                                                <option value="list">列表</option>
+                                                        </select>
+                                                </div>
+                                                <div id="dataContainer">
+                                                        <!-- 数据将在这里动态加载 -->
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+
+                </div>
+        </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+                // 导入数据
+                function importData() {
+                        const fileInput = document.getElementById('importFile');
+                        const importType = document.getElementById('importType').value;
+                        const importFormat = document.getElementById('importFormat').value;
+
+                        if (!fileInput.files.length) {
+                                alert('请选择文件');
+                                return;
+                        }
+
+                        const file = fileInput.files[0];
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('format', importFormat);
+
+                        const endpoint = `/api/import/${importType}`;
+
+                        fetch(endpoint, {
+                                        method: 'POST',
+                                        body: formData
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                        if (data.status === 'success') {
+                                                alert(data.message);
+                                                refreshDataView(); // 导入成功后刷新展示
+                                        } else {
+                                                alert('导入失败: ' + data.message);
+                                        }
+                                })
+                                .catch(error => {
+                                        alert('导入失败: ' + error);
+                                });
+                }
+
+                // 导出数据
+                function exportData() {
+                        const exportType = document.getElementById('exportType').value;
+                        const exportFormat = document.getElementById('exportFormat').value;
+
+                        fetch(`/api/export/${exportType}?format=${exportFormat}`)
+                                .then(response => response.blob())
+                                .then(blob => {
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.href = url;
+                                        a.download = `${exportType}_data.${exportFormat}`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(url);
+                                        document.body.removeChild(a);
+                                })
+                                .catch(error => {
+                                        alert('导出失败: ' + error);
+                                });
+                }
+
+                // 动态刷新数据展示区
+                async function refreshDataView() {
+                        const type = document.getElementById('viewType').value;
+                        const format = document.getElementById('viewFormat').value;
+                        let url = `/api/${type}`;
+                        const res = await fetch(url);
+                        let data = await res.json();
+                        // 兼容部分API返回格式
+                        if (Array.isArray(data)) {
+                                // do nothing
+                        } else if (data.data) {
+                                data = data.data;
+                        } else if (data.status === 'success' && data[type]) {
+                                data = data[type];
+                        }
+                        const container = document.getElementById('dataContainer');
+                        container.innerHTML = '';
+                        if (!data || !data.length) {
+                                container.innerHTML = '<div class="text-muted">暂无数据</div>';
+                                return;
+                        }
+                        if (format === 'table') {
+                                let html = '<table class="table table-striped"><thead><tr>';
+                                Object.keys(data[0]).forEach(key => html += `<th>${key}</th>`);
+                                html += '</tr></thead><tbody>';
+                                data.forEach(item => {
+                                        html += '<tr>';
+                                        Object.values(item).forEach(val => html +=
+                                                `<td>${val}</td>`);
+                                        html += '</tr>';
+                                });
+                                html += '</tbody></table>';
+                                container.innerHTML = html;
+                        } else if (format === 'cards') {
+                                let html = '<div class="row">';
+                                data.forEach(item => {
+                                        html +=
+                                                '<div class="col-md-4 mb-3"><div class="card"><div class="card-body">';
+                                        Object.entries(item).forEach(([k, v]) => {
+                                                html +=
+                                                        `<p class='mb-1'><strong>${k}：</strong>${v}</p>`;
+                                        });
+                                        html += '</div></div></div>';
+                                });
+                                html += '</div>';
+                                container.innerHTML = html;
+                        } else if (format === 'list') {
+                                let html = '<ul class="list-group">';
+                                data.forEach(item => {
+                                        html += '<li class="list-group-item">';
+                                        Object.entries(item).forEach(([k, v]) => {
+                                                html +=
+                                                        `<span class='me-3'><strong>${k}：</strong>${v}</span>`;
+                                        });
+                                        html += '</li>';
+                                });
+                                html += '</ul>';
+                                container.innerHTML = html;
+                        }
+                }
+
+                // 页面加载时自动刷新
+                window.addEventListener('DOMContentLoaded', refreshDataView);
+
+                // 在文件类型选择框和文件选择按钮之间增加JS代码
+                document.getElementById('importFormat').addEventListener('change', function () {
+                        var format = this.value;
+                        var fileInput = document.getElementById('importFile');
+                        if (format === 'csv') {
+                                fileInput.accept = '.csv';
+                        } else if (format === 'txt') {
+                                fileInput.accept = '.txt';
+                        } else if (format === 'json') {
+                                fileInput.accept = '.json';
+                        } else {
+                                fileInput.accept = '';
+                        }
+                });
+        </script>
+</body>
+
+</html>
