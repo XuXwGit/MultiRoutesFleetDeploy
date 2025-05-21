@@ -76,18 +76,25 @@
                 </div>
 
                 <!-- 网络拓扑结构展示区 -->
-                <div class="card mt-4">
-                        <div class="card-header bg-white border-0 pb-0">
-                                <h5 class="card-title mb-0"><i class="bi bi-diagram-3 fs-5 text-info me-2"></i>航线网络拓扑
-                                </h5>
-                        </div>
-                        <div class="card-body">
-                                <div class="row">
-                                        <div class="col-md-9">
-                                                <div id="networkChart" style="height: 500px;"></div>
+                <div class="row">
+                        <div class="col-12">
+                                <div class="card">
+                                        <div class="card-header">
+                                                <h5 class="card-title">网络拓扑图</h5>
                                         </div>
-                                        <div class="col-md-3">
-                                                <div id="networkLegend" class="p-3"></div>
+                                        <div class="card-body">
+                                                <div class="row">
+                                                        <div class="col-md-9">
+                                                                <div id="network-topology"
+                                                                        style="width: 100%; height: 600px;"></div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                <div id="network-legend" class="p-3 border rounded">
+                                                                        <h6 class="mb-3">航线图例</h6>
+                                                                        <div id="legend-content"></div>
+                                                                </div>
+                                                                </div>
+                                                                </div>
                                         </div>
                                 </div>
                         </div>
@@ -123,27 +130,59 @@
                 // 初始化图表
                 function initCharts() {
                         // 网络拓扑图
-                        const networkChart = echarts.init(document.getElementById('networkChart'));
+                        const networkChart = echarts.init(document.getElementById('network-topology'));
                         const networkOption = {
                                 title: {
-                                        text: '航线网络拓扑'
+                                        text: '航线网络拓扑',
+                                        subtext: '基于当前航线数据',
+                                        top: 'top',
+                                        left: 'center'
                                 },
-                                tooltip: {},
-                                animationDurationUpdate: 1500,
+                                tooltip: {
+                                trigger: 'item',
+                                formatter: function(params) {
+                                if (params.dataType === 'edge') {
+                                return `航线: ${params.data.source} → ${params.data.target}<br />距离:
+                                ${params.data.value}`;
+                                }
+                                return `港口: ${params.data.name}`;
+                                }
+                                },
+                                legend: {
+                                data: ['港口'],
+                                orient: 'vertical',
+                                left: 'left'
+                                },
+                                animationDuration: 1500,
                                 animationEasingUpdate: 'quinticInOut',
                                 series: [{
+                                        name: '航线网络',
                                         type: 'graph',
                                         layout: 'force',
                                         data: [],
                                         links: [],
-                                        categories: [],
+                                        categories: [{
+                                        name: '港口'
+                                        }],
                                         roam: true,
                                         label: {
                                                 show: true,
-                                                position: 'right'
+                                                position: 'right',
+                                                formatter: '{b}'
                                         },
                                         force: {
-                                                repulsion: 100
+                                                repulsion: 100,
+                                                edgeLength: [80, 200]
+                                                },
+                                                lineStyle: {
+                                                color: 'source',
+                                                curveness: 0.3
+                                                },
+                                                emphasis: {
+                                                focus: 'adjacency',
+                                                lineStyle: {
+                                                width: 4
+                                                }
                                         }
                                 }]
                         };
@@ -165,19 +204,7 @@
                                 series: [{
                                         type: 'pie',
                                         radius: '50%',
-                                        data: [{
-                                                        value: 0,
-                                                        name: '在航'
-                                                },
-                                                {
-                                                        value: 0,
-                                                        name: '停泊'
-                                                },
-                                                {
-                                                        value: 0,
-                                                        name: '维修'
-                                                }
-                                        ],
+                                        data: [],
                                         emphasis: {
                                                 itemStyle: {
                                                         shadowBlur: 10,
@@ -212,12 +239,11 @@
                         };
                         throughputChart.setOption(throughputOption);
 
-                        // 窗口大小改变时重绘图表
-                        window.addEventListener('resize', function () {
-                                networkChart.resize();
-                                statusChart.resize();
-                                throughputChart.resize();
-                        });
+                        return {
+                        networkChart,
+                        statusChart,
+                        throughputChart
+                        };
                 }
 
                 // 加载数据
@@ -226,114 +252,228 @@
                                 // 获取统计数据
                                 const statsResponse = await fetch('/api/stats');
                                 const stats = await statsResponse.json();
-
+                                if (stats.status === 'success') {
                                 // 更新数据卡片
                                 document.getElementById('portCount').textContent = stats.port_count;
                                 document.getElementById('routeCount').textContent = stats.route_count;
                                 document.getElementById('shipCount').textContent = stats.ship_count;
-                                document.getElementById('activeShipCount').textContent = stats
-                                .active_ship_count;
+                                        document.getElementById('activeShipCount').textContent =
+                                        stats.active_ship_count;
+                                        }
 
                                 // 获取网络拓扑数据
                                 const networkResponse = await fetch('/api/network');
                                 const networkData = await networkResponse.json();
-                                if (!networkData.status || networkData.status !== 'success') return;
-                                // 节点样式美化
-                                networkData.nodes.forEach(node => {
-                                        node.symbol = 'circle';
-                                        node.itemStyle = {
-                                                color: '#5470C6',
-                                                shadowBlur: 10,
-                                                shadowColor: '#b3c6e0'
-                                        };
-                                        node.symbolSize = 50;
-                                });
-                                // ECharts option
+                                if (networkData.status === 'success') {
+                                const networkChart =
+                                echarts.getInstanceByDom(document.getElementById('network-topology'));
+
+                                // 存储已选中的航线
+                                let selectedRoutes = new Set();
+
+                                // 更新图表配置
                                 const option = {
-                                        backgroundColor: '#fff',
-                                        tooltip: {
-                                                trigger: 'item'
+                                        title: {
+                                        text: '航线网络拓扑',
+                                        subtext: '基于当前航线数据',
+                                        top: 'top',
+                                        left: 'center'
                                         },
+                                        tooltip: {
+                                                trigger: 'item',
+                                                formatter: function(params) {
+                                                if (params.dataType === 'edge') {
+                                                return `航线: ${params.data.legendName}<br />航段: ${params.data.source} →
+                                                ${params.data.target}`;
+                                                }
+                                                return `港口: ${params.data.name}`;
+                                                }
+                                        },
+                                        legend: {
+                                        data: networkData.legend.map(item => item.name),
+                                        orient: 'vertical',
+                                        left: 'left',
+                                        top: 'middle'
+                                        },
+                                        animationDuration: 1500,
+                                        animationEasingUpdate: 'quinticInOut',
                                         series: [{
+                                                name: '航线网络',
                                                 type: 'graph',
                                                 layout: 'force',
                                                 data: networkData.nodes,
                                                 links: networkData.links,
+                                                categories: [{
+                                                name: '港口'
+                                                }],
                                                 roam: true,
                                                 label: {
                                                         show: true,
-                                                        fontSize: 12
+                                                        position: 'right',
+                                                        formatter: '{b}',
+                                                        fontSize: 12,
+                                                        backgroundColor: 'rgba(255,255,255,0.7)',
+                                                        padding: [4, 8],
+                                                        borderRadius: 4
                                                 },
                                                 force: {
-                                                        repulsion: 220,
-                                                        edgeLength: 120
+                                                        repulsion: 200,
+                                                        edgeLength: [100, 200],
+                                                        gravity: 0.1
                                                 },
                                                 edgeSymbol: ['none', 'arrow'],
-                                                edgeSymbolSize: 8,
+                                                edgeSymbolSize: [0, 8],
                                                 lineStyle: {
-                                                        width: 2,
-                                                        opacity: 0.7,
-                                                        curveness: 0.2,
-                                                        color: function (params) {
-                                                                return params
-                                                                        .data
-                                                                        .lineStyle ?
-                                                                        params
-                                                                        .data
-                                                                        .lineStyle
-                                                                        .color :
-                                                                        '#aaa';
+                                                        width: 3,
+                                                        opacity: 0.8,
+                                                        curveness: 0.2
+                                                        },
+                                                        emphasis: {
+                                                        focus: 'adjacency',
+                                                        lineStyle: {
+                                                        width: 5
                                                         }
                                                 }
                                         }]
                                 };
-                                const chart = echarts.init(document.getElementById('networkChart'));
-                                chart.setOption(option);
-                                // 右侧图例
-                                let legendHtml = '<div class="fw-bold mb-2">航线图例</div>';
-                                networkData.legend.forEach((item, idx) => {
-                                        legendHtml += `<div style="display:flex;align-items:center;margin-bottom:6px;">
-                                                <span style="display:inline-block;width:18px;height:8px;background:${item.color};margin-right:8px;"></span>
-                                                ${item.name}：${item.ports.join(' → ')}
-                                        </div>`;
+                                networkChart.setOption(option);
+
+                                // 更新图例
+                                const legendContent = document.getElementById('legend-content');
+                                let legendHtml = '';
+                                networkData.legend.forEach(item => {
+                                legendHtml += `
+                                <div class="mb-3 legend-item" data-route="${item.name}" style="cursor: pointer;">
+                                        <div class="d-flex align-items-center mb-2">
+                                                <span class="me-2"
+                                                        style="display: inline-block; width: 20px; height: 3px; background-color: ${item.color};"></span>
+                                                <span class="fw-bold">${item.name}</span>
+                                        </div>
+                                        <div class="ps-4 small text-muted">
+                                                ${item.ports.join(' → ')}
+                                        </div>
+                                </div>
+                                `;
                                 });
-                                document.getElementById('networkLegend').innerHTML = legendHtml;
+                                legendContent.innerHTML = legendHtml;
+
+                                // 添加图例点击事件
+                                const legendItems = document.querySelectorAll('.legend-item');
+                                legendItems.forEach(item => {
+                                item.addEventListener('click', function() {
+                                const routeName = this.dataset.route;
+                                const routeId = parseInt(routeName.replace('航线', ''));
+
+                                // 切换选中状态
+                                if (selectedRoutes.has(routeId)) {
+                                selectedRoutes.delete(routeId);
+                                } else {
+                                selectedRoutes.add(routeId);
+                                }
+
+                                // 更新连线样式
+                                const newLinks = networkData.links.map(link => {
+                                const newLink = { ...link };
+                                if (selectedRoutes.has(link.routeId)) {
+                                newLink.lineStyle = {
+                                ...link.lineStyle,
+                                opacity: 1,
+                                width: 5
+                                };
+                                } else {
+                                newLink.lineStyle = {
+                                ...link.lineStyle,
+                                opacity: 0.2,
+                                width: 2
+                                };
+                                }
+                                return newLink;
+                                });
+
+                                // 更新节点样式
+                                const newNodes = networkData.nodes.map(node => {
+                                const newNode = { ...node };
+                                const isRelated = newLinks.some(link =>
+                                (link.source === node.name || link.target === node.name) &&
+                                selectedRoutes.has(link.routeId)
+                                );
+                                newNode.itemStyle = {
+                                ...node.itemStyle,
+                                opacity: isRelated ? 1 : 0.3
+                                };
+                                return newNode;
+                                });
+
+                                // 更新图表
+                                networkChart.setOption({
+                                series: [{
+                                data: newNodes,
+                                links: newLinks
+                                }]
+                                });
+
+                                // 更新图例样式
+                                legendItems.forEach(legendItem => {
+                                const itemRouteId = parseInt(legendItem.dataset.route.replace('航线', ''));
+                                if (selectedRoutes.has(itemRouteId)) {
+                                legendItem.style.opacity = '1';
+                                legendItem.style.fontWeight = 'bold';
+                                } else {
+                                legendItem.style.opacity = '0.3';
+                                legendItem.style.fontWeight = 'normal';
+                                }
+                                });
+                                });
+                                });
+                                }
 
                                 // 获取状态分布数据
                                 const statusResponse = await fetch('/api/status');
                                 const statusData = await statusResponse.json();
-                                const statusChart = echarts.getInstanceByDom(document.getElementById(
-                                        'statusChart'));
+                                if (statusData.status === 'success') {
+                                const statusChart = echarts.getInstanceByDom(document.getElementById('statusChart'));
                                 statusChart.setOption({
-                                        series: [{
-                                                data: statusData
-                                        }]
-                                });
+                                series: [{
+                                                        data: statusData.data
+                                                        }]
+                                                        });
+                                }
 
                                 // 获取吞吐量数据
                                 const throughputResponse = await fetch('/api/throughput');
                                 const throughputData = await throughputResponse.json();
-                                const throughputChart = echarts.getInstanceByDom(document.getElementById(
-                                        'throughputChart'));
+                                if (throughputData.status === 'success') {
+                                const throughputChart =
+                                echarts.getInstanceByDom(document.getElementById('throughputChart'));
                                 throughputChart.setOption({
-                                        xAxis: {
-                                                data: throughputData.ports
-                                        },
-                                        series: [{
-                                                data: throughputData.values
-                                        }]
+                                xAxis: {
+                                data: throughputData.ports
+                                },
+                                series: [{
+                                data: throughputData.values
+                                }]
                                 });
+                                }
                         } catch (error) {
                                 console.error('加载数据失败:', error);
                         }
                 }
 
-                // 页面加载完成后初始化
-                document.addEventListener('DOMContentLoaded', () => {
-                        initCharts();
-                        loadData();
-                        // 每5分钟刷新一次数据
-                        setInterval(loadData, 300000);
+                // 页面加载完成后立即初始化
+                document.addEventListener('DOMContentLoaded', async () => {
+                // 初始化图表
+                const charts = initCharts();
+
+                // 立即加载数据
+                await loadData();
+
+                // 设置定时刷新
+                setInterval(loadData, 300000); // 每5分钟刷新一次
+
+                // 监听窗口大小变化
+                window.addEventListener('resize', () => {
+                Object.values(charts).forEach(chart => chart.resize());
+                });
                 });
         </script>
 </body>

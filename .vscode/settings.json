@@ -1,0 +1,25 @@
+{
+    "cSpell.words": [
+        "bdpa",
+        "BUSAN",
+        "ccgp",
+        "coeff",
+        "Cplex",
+        "docplex",
+        "dvar",
+        "filewriter",
+        "Gwith",
+        "mipgap",
+        "Owith",
+        "randomseed",
+        "SHEKOU",
+        "timelimit",
+        "vtype",
+        "Yita"
+    ],
+    "java.debug.settings.onBuildFailureProceed": true,
+    "python.analysis.extraPaths": [
+        "./src-py"
+    ],
+    "git.ignoreLimitWarning": true
+}

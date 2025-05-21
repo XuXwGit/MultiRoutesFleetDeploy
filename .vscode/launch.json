@@ -1,0 +1,177 @@
+{
+    "version": "0.2.0",
+    "configurations": [{
+            "type": "java",
+            "name": "Performance Test (Java)",
+            "request": "launch",
+            "mainClass": "multi.Main",
+            "projectName": "multi",
+            "args": [
+                "2",
+                "0",
+                "-",
+                "0.01",
+                "42",
+                "1.0",
+                "0.2",
+                "P"
+            ],
+            "vmArgs": "-Xmx8g -Dfile.encoding=UTF-8",
+            "console": "internalConsole"
+        },
+        {
+            "type": "java",
+            "name": "Sensitivity Analysis (Java)",
+            "request": "launch",
+            "mainClass": "multi.Main",
+            "projectName": "multi",
+            "args": [
+                "1",
+                "1",
+                "-",
+                "-",
+                "-",
+                "-",
+                "-",
+                "S"
+            ],
+            "vmArgs": "-Xmx8g -Dfile.encoding=UTF-8",
+            "console": "internalConsole"
+        },
+        {
+            "name": "Performance Test - Small Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "1",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "P"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Performance Test - Large Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "2",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "P"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Performance Test - Middle Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "3",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "P"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sensitivity Analysis - Small Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "1",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "S"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sensitivity Analysis - Large Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "2",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "S"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Sensitivity Analysis - Middle Scale (Python)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src-py/run.py",
+            "args": [
+                "3",
+                "1",
+                "${workspaceFolder}",
+                "0.01",
+                "42",
+                "1.0",
+                "0.5",
+                "S"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Flask Backend",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src_ui/app.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_ENV": "development",
+                "FLASK_DEBUG": "1"
+            },
+            "args": [
+                "--host=0.0.0.0",
+                "--port=5000"
+            ]
+        },
+        {
+            "name": "Frontend Development Server",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5000",
+            "webRoot": "${workspaceFolder}/src_ui/templates",
+            "sourceMapPathOverrides": {
+                "webpack:///src/*": "${webRoot}/*"
+            }
+        }
+    ]
+}
