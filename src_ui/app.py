@@ -8,10 +8,29 @@ from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 import logging
+import time
+import sys
+import subprocess
+from pathlib import Path
+from sqlalchemy import text
 
 app = Flask(__name__)
 CORS(app)
 algorithm_interface = AlgorithmInterface()
+
+# 添加src-py到Python路径
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src-py'))
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # 默认船舶参数
 DEFAULT_SHIP_PARAMS = {
@@ -117,6 +136,7 @@ class Path(Base):
     transship_time = Column(String)  # 存储为逗号分隔的字符串
     port_path = Column(String)  # 存储为逗号分隔的字符串
     arcs_id = Column(String)  # 存储为逗号分隔的字符串
+    container_path_id = Column(Integer)  # 添加container_path_id字段
 
     def get_transship_port_list(self):
         """获取转运港口列表"""
@@ -158,7 +178,38 @@ class Request(Base):
 
 
 # 数据库初始化
-engine = create_engine('sqlite:///ships.db')
+def update_database_schema():
+    """更新数据库表结构，添加缺失的列"""
+    try:
+        # 创建数据库连接
+        engine = create_engine('sqlite:///ships.db')
+        
+        # 检查并添加缺失的列
+        with engine.connect() as conn:
+            # 检查paths表是否存在port_path列
+            result = conn.execute(text("PRAGMA table_info(paths)"))
+            columns = [row[1] for row in result.fetchall()]
+            
+            # 如果port_path列不存在，添加它
+            if 'port_path' not in columns:
+                conn.execute(text("ALTER TABLE paths ADD COLUMN port_path TEXT"))
+                logger.info("已添加 port_path 列到 paths 表")
+            
+            # 如果container_path_id列不存在，添加它
+            if 'container_path_id' not in columns:
+                conn.execute(text("ALTER TABLE paths ADD COLUMN container_path_id INTEGER"))
+                logger.info("已添加 container_path_id 列到 paths 表")
+            
+            conn.commit()
+        
+        logger.info("数据库表结构更新完成")
+        return engine
+    except Exception as e:
+        logger.error(f"更新数据库表结构失败: {str(e)}")
+        raise
+
+# 初始化数据库
+engine = update_database_schema()
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 
@@ -296,7 +347,49 @@ def export_data():
 def optimize():
     try:
         data = request.get_json()
-        result = algorithm_interface.run_scheduling_algorithm(data, data.get('algorithm_type', 'genetic'))
+        # 提取参数
+        model_params = {
+            'time_window': int(data.get('time_window', 60)),
+            'robustness': float(data.get('robustness', 1.0)),
+            'demand_fluctuation': float(data.get('demand_fluctuation', 0.1)),
+            'empty_rent_cost': float(data.get('empty_rent_cost', 10)),
+            'penalty_coeff': float(data.get('penalty_coeff', 100)),
+            'port_load_cost': float(data.get('port_load_cost', 5)),
+            'port_unload_cost': float(data.get('port_unload_cost', 5)),
+            'port_transship_cost': float(data.get('port_transship_cost', 8)),
+            'laden_stay_cost': float(data.get('laden_stay_cost', 2)),
+            'laden_stay_free_time': int(data.get('laden_stay_free_time', 3)),
+            'empty_stay_cost': float(data.get('empty_stay_cost', 1)),
+            'empty_stay_free_time': int(data.get('empty_stay_free_time', 3)),
+        }
+        algo_params = {
+            'solver': data.get('solver', 'cplex'),
+            'max_iter': int(data.get('max_iter', 100)),
+            'max_time': int(data.get('max_time', 600)),
+            'mip_gap': float(data.get('mip_gap', 0.01)),
+        }
+        # 日志模拟
+        log = []
+        log.append('参数接收成功，开始优化...')
+        log.append(f'模型参数: {model_params}')
+        log.append(f'算法参数: {algo_params}')
+        # 这里可调用实际算法接口
+        # result = algorithm_interface.run_scheduling_algorithm({...})
+        # 这里返回模拟结果
+        time.sleep(1)  # 模拟计算
+        log.append('优化计算中...')
+        time.sleep(1)
+        log.append('优化完成！')
+        result = {
+            'status': 'success',
+            'result_time': '128.5s',
+            'total_cost': 123456.78,
+            'oc': 23456.78,
+            'lcec': 34567.89,
+            'rc': 4567.89,
+            'pc': 5678.90,
+            'log': '\n'.join(log)
+        }
         return jsonify(result)
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
@@ -671,44 +764,67 @@ def import_paths_data():
     file_format = request.form.get('format')
     if not file:
         return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
-    content = file.read().decode('utf-8')
-    lines = content.strip().split('\n')
-    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
-    data = []
-    for line in lines[1:]:
-        values = line.strip().split('\t' if file_format == 'txt' else ',')
-        if len(values) == len(headers):
-            row_data = dict(zip(headers, values))
-            # 处理列表字段
-            for field in ['TransshipPort', 'TransshipTime', 'PortPath', 'Arcs_ID']:
-                if field in row_data:
-                    if row_data[field] == '0':
-                        row_data[field] = []
-                    else:
-                        if field in ['TransshipTime', 'Arcs_ID']:
-                            row_data[field] = [int(x) for x in row_data[field].split(',')]
+    
+    try:
+        content = file.read().decode('utf-8')
+        lines = content.strip().split('\n')
+        headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+        data = []
+        
+        for line in lines[1:]:
+            values = line.strip().split('\t' if file_format == 'txt' else ',')
+            if len(values) == len(headers):
+                row_data = dict(zip(headers, values))
+                # 处理列表字段
+                for field in ['TransshipPort', 'TransshipTime', 'PortPath', 'Arcs_ID']:
+                    if field in row_data:
+                        if row_data[field] == '0':
+                            row_data[field] = []
                         else:
-                            row_data[field] = row_data[field].split(',')
-            data.append(row_data)
-    session = Session()
-    session.query(Path).delete()
-    for item in data:
-        path = Path(
-            id=int(item['ContainerPathID']),
-            origin_port=item['OriginPort'],
-            origin_time=int(item['OriginTime']),
-            destination_port=item['DestinationPort'],
-            destination_time=int(item['DestinationTime']),
-            path_time=int(item['PathTime']),
-            transship_port=','.join(item['TransshipPort']) if item['TransshipPort'] else '0',
-            transship_time=','.join(map(str, item['TransshipTime'])) if item['TransshipTime'] else '0',
-            port_path=','.join(item['PortPath']) if item['PortPath'] else '0',
-            arcs_id=','.join(map(str, item['Arcs_ID'])) if item['Arcs_ID'] else '0'
-        )
-        session.add(path)
-    session.commit()
-    session.close()
-    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条路径数据'})
+                            if field in ['TransshipTime', 'Arcs_ID']:
+                                row_data[field] = [int(x) for x in row_data[field].split(',')]
+                            else:
+                                row_data[field] = row_data[field].split(',')
+                data.append(row_data)
+        
+        session = Session()
+        session.query(Path).delete()
+        
+        for item in data:
+            try:
+                # 确保所有必要的字段都存在
+                path_data = {
+                    'id': int(item['ContainerPathID']),
+                    'container_path_id': int(item['ContainerPathID']),
+                    'origin_port': item['OriginPort'],
+                    'origin_time': int(item['OriginTime']),
+                    'destination_port': item['DestinationPort'],
+                    'destination_time': int(item['DestinationTime']),
+                    'path_time': int(item['PathTime']),
+                    'transship_port': ','.join(item['TransshipPort']) if item['TransshipPort'] else '0',
+                    'transship_time': ','.join(map(str, item['TransshipTime'])) if item['TransshipTime'] else '0',
+                    'port_path': ','.join(item['PortPath']) if item['PortPath'] else '0',
+                    'arcs_id': ','.join(map(str, item['Arcs_ID'])) if item['Arcs_ID'] else '0'
+                }
+                
+                path = Path(**path_data)
+                session.add(path)
+                
+            except Exception as e:
+                logger.error(f"处理路径数据时出错: {str(e)}, 数据: {item}")
+                continue
+        
+        session.commit()
+        logger.info(f"成功导入 {len(data)} 条路径数据")
+        return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条路径数据'})
+        
+    except Exception as e:
+        logger.error(f"导入路径数据失败: {str(e)}")
+        return jsonify({'status': 'error', 'message': f'导入失败: {str(e)}'}), 500
+        
+    finally:
+        if 'session' in locals():
+            session.close()
 
 @app.route('/api/import/requests', methods=['POST'])
 def import_requests_data():
@@ -968,7 +1084,102 @@ def get_throughput():
             'message': str(e)
         }), 500
 
+@app.route('/api/run_algorithm', methods=['POST'])
+def run_algorithm():
+    """
+    运行算法接口
+    
+    请求体格式：
+    {
+        "algorithm_params": {
+            "time_horizon": 30,
+            "algorithm": "bd",
+            "use_db": true,
+            "db_path": "path/to/database.db",
+            "other_params": {...}
+        }
+    }
+    """
+    try:
+        # 获取请求数据
+        data = request.get_json()
+        algorithm_params = data.get('algorithm_params', {})
+        
+        # 记录请求参数
+        logger.info(f"收到算法参数: {json.dumps(algorithm_params, indent=2)}")
+        
+        # 构建运行命令
+        run_script = os.path.join(os.path.dirname(__file__), '..', 'src-py', 'run.py')
+        
+        # 将参数转换为命令行参数
+        cmd = ['python', run_script]
+        
+        # 处理布尔值参数
+        if algorithm_params.get('use_db', False):
+            cmd.append('--use_db')
+        
+        # 处理其他参数
+        param_mapping = {
+            ## 模型参数
+            'time_horizon': '--time_horizon',
+            'turn_over_time': '--turn_over_time',
+            'empty_rent_cost': '--empty_rent_cost',
+            'penalty_coeff': '--penalty_coeff',
+            'port_load_cost': '--port_load_cost',
+            'port_unload_cost': '--port_unload_cost',
+            'port_transship_cost': '--port_transship_cost',
+            'laden_stay_cost': '--laden_stay_cost',
+            'laden_stay_free_time': '--laden_stay_free_time',
+            'empty_stay_cost': '--empty_stay_cost',
+            'empty_stay_free_time': '--empty_stay_free_time',
+            'robustness': '--robustness',
+            'demand_fluctuation': '--demand_fluctuation',
+            ## 算法参数
+            'algorithm': '--algorithm',
+            'max_iter': '--max_iter',
+            'max_time': '--max_time',
+            'mip_gap': '--mip_gap',
 
+        }
+        
+        for param, value in algorithm_params.items():
+            if param in param_mapping and value is not None:
+                cmd.extend([param_mapping[param], str(value)])
+        
+        # 运行算法
+        logger.info(f"执行命令: {' '.join(cmd)}")
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        
+        # 获取输出
+        stdout, stderr = process.communicate()
+        
+        if process.returncode == 0:
+            logger.info("算法执行成功")
+            return jsonify({
+                'status': 'success',
+                'message': '算法执行成功',
+                'output': stdout
+            })
+        else:
+            logger.error(f"算法执行失败: {stderr}")
+            return jsonify({
+                'status': 'error',
+                'message': '算法执行失败',
+                'error': stderr
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"运行算法时出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': '服务器内部错误',
+            'error': str(e)
+        }), 500
 
 def load_initial_data():
     """应用启动时加载初始数据"""

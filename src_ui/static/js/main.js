@@ -579,3 +579,86 @@ document.addEventListener('DOMContentLoaded', () => {
                 }, 2000);
         });
 });
+// 运行算法
+function runAlgorithm() {
+        // 收集所有参数
+        const algorithmParams = {
+                time_horizon: parseInt(document.getElementById('time_horizon').value) || 30,
+                algorithm: document.getElementById('algorithm').value || 'bd',
+                use_db: document.getElementById('use_db').checked,
+                db_path: document.getElementById('db_path').value || 'ships.db',
+                max_iter: parseInt(document.getElementById('max_iter').value) || 100,
+                max_time: parseInt(document.getElementById('max_time').value) || 600,
+                mip_gap: parseFloat(document.getElementById('mip_gap').value) || 0.01,
+                robustness: parseFloat(document.getElementById('robustness').value) || 1.0,
+                demand_fluctuation: parseFloat(document.getElementById('demand_fluctuation').value) || 0.1,
+                empty_rent_cost: parseFloat(document.getElementById('empty_rent_cost').value) || 10,
+                penalty_coeff: parseFloat(document.getElementById('penalty_coeff').value) || 100,
+                port_load_cost: parseFloat(document.getElementById('port_load_cost').value) || 5,
+                port_unload_cost: parseFloat(document.getElementById('port_unload_cost').value) || 5,
+                port_transship_cost: parseFloat(document.getElementById('port_transship_cost').value) || 8,
+                laden_stay_cost: parseFloat(document.getElementById('laden_stay_cost').value) || 2,
+                laden_stay_free_time: parseInt(document.getElementById('laden_stay_free_time').value) || 3,
+                empty_stay_cost: parseFloat(document.getElementById('empty_stay_cost').value) || 1,
+                empty_stay_free_time: parseInt(document.getElementById('empty_stay_free_time').value) || 3
+        };
+
+        // 显示加载状态
+        const runButton = document.getElementById('run-button');
+        const originalText = runButton.textContent;
+        runButton.disabled = true;
+        runButton.textContent = '运行中...';
+
+        // 发送请求
+        fetch('/api/run_algorithm', {
+                        method: 'POST',
+                        headers: {
+                                'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                                algorithm_params: algorithmParams
+                        })
+                })
+                .then(response => response.json())
+                .then(data => {
+                        if (data.status === 'success') {
+                                // 显示成功消息
+                                showMessage('算法执行成功', 'success');
+                                // 更新结果显示
+                                updateResults(data.output);
+                        } else {
+                                // 显示错误消息
+                                showMessage(`算法执行失败: ${data.error || data.message}`, 'error');
+                        }
+                })
+                .catch(error => {
+                        showMessage(`请求失败: ${error.message}`, 'error');
+                })
+                .finally(() => {
+                        // 恢复按钮状态
+                        runButton.disabled = false;
+                        runButton.textContent = originalText;
+                });
+}
+
+// 显示消息
+function showMessage(message, type = 'info') {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = message;
+        messageDiv.className = `alert alert-${type}`;
+        messageDiv.style.display = 'block';
+
+        // 3秒后自动隐藏
+        setTimeout(() => {
+                messageDiv.style.display = 'none';
+        }, 3000);
+}
+
+// 更新结果显示
+function updateResults(output) {
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = `<pre>${output}</pre>`;
+}
+
+// 绑定运行按钮事件
+document.getElementById('run-button').addEventListener('click', runAlgorithm);

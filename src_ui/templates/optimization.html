@@ -7,6 +7,184 @@
         <title>调度优化 - 船舶调度系统</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <style>
+                body {
+                        background: #f6f8fa;
+                }
+
+                .card {
+                        box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+                        border-radius: 14px;
+                        border: none;
+                }
+
+                .card-header {
+                        border-radius: 14px 14px 0 0 !important;
+                }
+
+                .form-label {
+                        font-weight: 500;
+                }
+
+                .form-control,
+                .form-select {
+                        border-radius: 8px;
+                }
+
+                .input-group-text {
+                        border-radius: 8px;
+                }
+
+                #startOptimizeBtn {
+                        border-radius: 24px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        box-shadow: 0 2px 8px 0 rgba(40, 167, 69, 0.08);
+                }
+
+                #optProgressBar {
+                        border-radius: 12px;
+                        margin-bottom: 1.5rem;
+                }
+
+                #optProgress {
+                        border-radius: 12px;
+                        font-size: 1rem;
+                }
+
+                #optLog {
+                        background: #f8f9fa;
+                        border-radius: 8px;
+                        font-size: 0.98rem;
+                }
+
+                .param-card .card-body {
+                        padding-bottom: 0.5rem;
+                }
+
+                .mb-2 {
+                        margin-bottom: 1.1rem !important;
+                }
+
+                /* 结果卡片美化 */
+                .result-card {
+                        box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.04);
+                        border-radius: 12px;
+                        margin-bottom: 1.2rem;
+                        transition: box-shadow 0.2s;
+                }
+
+                .result-card:hover {
+                        box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.10);
+                }
+
+                .result-card h4 {
+                        font-size: 2.1rem;
+                        font-weight: bold;
+                        color: #007bff;
+                        margin-bottom: 0;
+                }
+
+                .result-card h6 {
+                        font-size: 1.05rem;
+                        color: #555;
+                        margin-bottom: 0.5rem;
+                }
+
+                .opt-param-row {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 1.5rem;
+                }
+
+                .opt-param-col {
+                        flex: 1 1 260px;
+                        min-width: 220px;
+                }
+
+                @media (max-width: 991.98px) {
+                        .opt-param-row {
+                                flex-direction: column;
+                                gap: 0.5rem;
+                        }
+                }
+
+                /* 日志抽屉样式 */
+                #logDrawerBtn {
+                        position: fixed;
+                        top: 40%;
+                        right: 0;
+                        z-index: 1050;
+                        background: #17a2b8;
+                        color: #fff;
+                        border-radius: 8px 0 0 8px;
+                        padding: 12px 18px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.10);
+                        transition: right 0.2s;
+                }
+
+                #logDrawer {
+                        position: fixed;
+                        top: 0;
+                        right: -420px;
+                        width: 400px;
+                        height: 100vh;
+                        background: #fff;
+                        box-shadow: -2px 0 16px 0 rgba(0, 0, 0, 0.10);
+                        z-index: 1100;
+                        transition: right 0.3s;
+                        display: flex;
+                        flex-direction: column;
+                }
+
+                #logDrawer.open {
+                        right: 0;
+                }
+
+                #logDrawerHeader {
+                        padding: 18px 24px 12px 24px;
+                        font-size: 1.2rem;
+                        font-weight: bold;
+                        background: #17a2b8;
+                        color: #fff;
+                        border-radius: 0 0 0 0;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                }
+
+                #logDrawerClose {
+                        background: none;
+                        border: none;
+                        color: #fff;
+                        font-size: 1.5rem;
+                        cursor: pointer;
+                }
+
+                #optLog {
+                        flex: 1 1 auto;
+                        padding: 18px 24px;
+                        overflow-y: auto;
+                        font-size: 1rem;
+                        background: #f8f9fa;
+                        border-radius: 0 0 0 0;
+                        min-height: 120px;
+                        max-height: calc(100vh - 60px);
+                }
+
+                @media (max-width: 600px) {
+                        #logDrawer {
+                                width: 100vw;
+                                right: -100vw;
+                        }
+
+                        #logDrawer.open {
+                                right: 0;
+                        }
+                }
+        </style>
 </head>
 
 <body>
@@ -37,311 +215,270 @@
                 </div>
         </nav>
 
-        <div class="container-fluid mt-4">
-                <div class="row">
-                        <!-- 左侧参数设置 -->
-                        <div class="col-md-4">
-                                <div class="card mb-4">
-                                        <div class="card-header">
-                                                <h5 class="card-title mb-0">模型参数设置</h5>
-                                        </div>
-                                        <div class="card-body">
+        <div class="container mt-4">
+                <!-- 顶部参数输入区 -->
+                <div class="card mb-4 param-card">
+                        <div class="card-header bg-primary text-white">参数设置</div>
+                        <div class="card-body">
+                                <div class="opt-param-row">
+                                        <div class="opt-param-col">
                                                 <form id="modelParamsForm">
-                                                        <div class="mb-3">
-                                                                <label for="timeWindow" class="form-label">时间窗口</label>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">时间窗口 (0-180)</label>
                                                                 <input type="number" class="form-control"
-                                                                        id="timeWindow" min="1" max="30" value="7">
+                                                                        name="time_window" min="0" max="180" value="60">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="maxIterations"
-                                                                        class="form-label">最大迭代次数</label>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">空箱周转时间</label>
                                                                 <input type="number" class="form-control"
-                                                                        id="maxIterations" min="100" max="10000"
-                                                                        value="1000">
+                                                                        name="turn_over_time" min="0" max="180"
+                                                                        value="14">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="populationSize"
-                                                                        class="form-label">种群大小</label>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">鲁棒系数</label>
                                                                 <input type="number" class="form-control"
-                                                                        id="populationSize" min="10" max="500"
-                                                                        value="100">
+                                                                        name="robustness" step="100" value="1.0">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="mutationRate" class="form-label">变异率</label>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">需求波动程度</label>
                                                                 <input type="number" class="form-control"
-                                                                        id="mutationRate" min="0" max="1" step="0.1"
+                                                                        name="demand_fluctuation" step="0.01"
                                                                         value="0.1">
                                                         </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">空箱单位租赁成本</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="empty_rent_cost" step="1" value="10">
+                                                        </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">违约惩罚系数</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="penalty_coeff" step="1.0" value="100">
+                                                        </div>
                                                 </form>
                                         </div>
-                                </div>
-
-                                <div class="card">
-                                        <div class="card-header">
-                                                <h5 class="card-title mb-0">算法参数设置</h5>
-                                        </div>
-                                        <div class="card-body">
-                                                <form id="algorithmParamsForm">
-                                                        <div class="mb-3">
-                                                                <label for="algorithm" class="form-label">优化算法</label>
-                                                                <select class="form-select" id="algorithm"
-                                                                        aria-label="选择优化算法" title="选择优化算法">
-                                                                        <option value="genetic">遗传算法</option>
-                                                                        <option value="ant">蚁群算法</option>
-                                                                        <option value="dp">动态规划</option>
+                                        <div class="opt-param-col">
+                                                <form>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">港口装载操作成本</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="port_load_cost" step="1" value="50">
+                                                        </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">港口卸载操作成本</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="port_unload_cost" step="5" value="50">
+                                                        </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">港口转运操作成本</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="port_transship_cost" step="5" value="50">
+                                                        </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">重箱港口滞留成本</label>
+                                                                <div class="input-group">
+                                                                        <input type="number" class="form-control"
+                                                                                name="laden_stay_cost" step="0.01"
+                                                                                value="2">
+                                                                        <span class="input-group-text">成本值</span>
+                                                                        <input type="number" class="form-control"
+                                                                                name="laden_stay_free_time" step="1"
+                                                                                value="3">
+                                                                        <span class="input-group-text">豁免时间</span>
+                                                                </div>
+                                                        </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">空箱港口滞留成本</label>
+                                                                <div class="input-group">
+                                                                        <input type="number" class="form-control"
+                                                                                name="empty_stay_cost" step="0.01"
+                                                                                value="1">
+                                                                        <span class="input-group-text">成本值</span>
+                                                                        <input type="number" class="form-control"
+                                                                                name="empty_stay_free_time" step="1"
+                                                                                value="3">
+                                                                        <span class="input-group-text">豁免时间</span>
+                                                                </div>
+                                                        </div>
+                                                        </form>
+                                                        </div>
+                                                        <div class="opt-param-col">
+                                                                <form id="algoParamsForm">
+                                                                        <div class="mb-2">
+                                                                                <label class="form-label">求解算法</label>
+                                                                                <select class="form-select"
+                                                                                        name="solver">
+                                                                                        <option value="cplex">Cplex
+                                                                                                Solver</option>
+                                                                                        <option value="benders">Benders
+                                                                                                Decomposition
+                                                                                        </option>
+                                                                                        <option value="ccg">C&CG
+                                                                                        </option>
+                                                                                        <option value="bdpap">BD&PAP
+                                                                                        </option>
+                                                                                        <option value="ccgpap">CCG&PAP
+                                                                                        </option>
                                                                 </select>
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="optimizationGoal"
-                                                                        class="form-label">优化目标</label>
-                                                                <div class="form-check">
-                                                                        <input class="form-check-input" type="checkbox"
-                                                                                id="goal_time" checked>
-                                                                        <label class="form-check-label"
-                                                                                for="goal_time">时间</label>
-                                                                </div>
-                                                                <div class="form-check">
-                                                                        <input class="form-check-input" type="checkbox"
-                                                                                id="goal_cost" checked>
-                                                                        <label class="form-check-label"
-                                                                                for="goal_cost">成本</label>
-                                                                </div>
-                                                                <div class="form-check">
-                                                                        <input class="form-check-input" type="checkbox"
-                                                                                id="goal_emissions">
-                                                                        <label class="form-check-label"
-                                                                                for="goal_emissions">碳排放</label>
-                                                                </div>
+                                                        <div class="mb-2">
+                                                                <label class="form-label">最大迭代次数 (0-1000)</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="max_iter" min="0" max="1000" value="100">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="weightTime" class="form-label">时间权重</label>
-                                                                <input type="range" class="form-range" id="weightTime"
-                                                                        min="0" max="1" step="0.1" value="0.4">
+                                                        <div class="mb-2">
+                                                                <label class="form-label">最大求解时间 (0-3600s)</label>
+                                                                <input type="number" class="form-control"
+                                                                        name="max_time" min="0" max="3600" value="600">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="weightCost" class="form-label">成本权重</label>
-                                                                <input type="range" class="form-range" id="weightCost"
-                                                                        min="0" max="1" step="0.1" value="0.4">
+                                                        <div class="mb-2">
+                                                                <label class="form-label">MIP Gap</label>
+                                                                <input type="number" class="form-control" name="mip_gap"
+                                                                        step="0.0001" value="0.01">
                                                         </div>
-                                                        <div class="mb-3">
-                                                                <label for="weightEmissions"
-                                                                        class="form-label">碳排放权重</label>
-                                                                <input type="range" class="form-range"
-                                                                        id="weightEmissions" min="0" max="1" step="0.1"
-                                                                        value="0.2">
+                                                        </form>
                                                         </div>
-                                                </form>
+                                                        </div>
+                                <div class="row mt-3">
+                                        <div class="col-md-4 col-12 mb-2">
+                                                <button class="btn btn-success w-100" id="startOptimizeBtn"
+                                                        onclick="startOptimize()">开始优化</button>
                                         </div>
-                                </div>
+                                        <div class="col-md-4 col-12 mb-2">
+                                                <div class="progress" style="height: 24px; display:none;"
+                                                        id="optProgressBar">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                                role="progressbar" style="width: 0%" id="optProgress">
+                                                        </div>
+                                                </div>
+                                                </div>
+                                                </div>
                         </div>
-
-                        <!-- 右侧优化结果 -->
-                        <div class="col-md-8">
-                                <div class="card mb-4">
-                                        <div class="card-header">
-                                                <h5 class="card-title mb-0">优化进度</h5>
-                                        </div>
-                                        <div class="card-body">
-                                                <div class="progress mb-3">
-                                                        <div class="progress-bar" role="progressbar" style="width: 0%"
-                                                                id="optimizationProgress"></div>
-                                                </div>
-                                                <div id="optimizationLog" class="border p-3"
-                                                        style="height: 200px; overflow-y: auto;">
-                                                        <!-- 优化日志将在这里显示 -->
-                                                </div>
-                                        </div>
-                                </div>
-
-                                <div class="card">
-                                        <div class="card-header">
-                                                <h5 class="card-title mb-0">优化结果</h5>
-                                        </div>
-                                        <div class="card-body">
-                                                <div class="row mb-4">
-                                                        <div class="col-md-4">
-                                                                <div class="card">
-                                                                        <div class="card-body">
-                                                                                <h6 class="card-title">总时间</h6>
-                                                                                <h3 class="card-text" id="totalTime">-
-                                                                                </h3>
-                                                                        </div>
-                                                                </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                                <div class="card">
-                                                                        <div class="card-body">
-                                                                                <h6 class="card-title">总成本</h6>
-                                                                                <h3 class="card-text" id="totalCost">-
-                                                                                </h3>
-                                                                        </div>
-                                                                </div>
-                                                        </div>
-                                                        <div class="col-md-4">
-                                                                <div class="card">
-                                                                        <div class="card-body">
-                                                                                <h6 class="card-title">碳排放</h6>
-                                                                                <h3 class="card-text"
-                                                                                        id="totalEmissions">-</h3>
-                                                                        </div>
-                                                                </div>
-                                                        </div>
-                                                </div>
-                                                <div id="optimizationChart" style="height: 400px;"></div>
-                                        </div>
-                                </div>
                         </div>
-                </div>
+                        <!-- 底部结果展示区 -->
+                        <div class="card">
+                                <div class="card-header bg-info text-white">优化结果</div>
+                                <div class="card-body" id="optResult">
+                                        <div class="row text-center">
+                                                <div class="col-md-4 col-6 mb-4">
+                                                        <div class="card bg-light result-card">
+                                                        <div class="card-body">
+                                                                <h6>总求解时间</h6>
+                                                                <h4 id="result_time">-</h4>
+                                                                </div>
+                                                </div>
+                                                </div>
+                                                <div class="col-md-4 col-6 mb-4">
+                                                        <div class="card bg-light result-card">
+                                                                <div class="card-body">
+                                                                        <h6>总成本</h6>
+                                                                        <h4 id="result_total_cost">-</h4>
+                                                                </div>
+                                                                </div>
+                                                                </div>
+                                                                <div class="col-md-4 col-6 mb-4">
+                                                                        <div class="card bg-light result-card">
+                                                                                <div class="card-body">
+                                                                <h6>船舶固定部署成本(OC)</h6>
+                                                                <h4 id="result_oc">-</h4>
+                                                                </div>
+                                                                </div>
+                                                                </div>
+                                                                <div class="col-md-4 col-6 mb-4">
+                                                                        <div class="card bg-light result-card">
+                                                                                <div class="card-body">
+                                                                <h6>集装箱运输成本(LC+EC)</h6>
+                                                                <h4 id="result_lcec">-</h4>
+                                                                </div>
+                                                                </div>
+                                                                </div>
+                                        <div class="col-md-4 col-6 mb-4">
+                                                <div class="card bg-light result-card">
+                                                        <div class="card-body">
+                                                                <h6>空集装箱租赁成本(RC)</h6>
+                                                                <h4 id="result_rc">-</h4>
+                                                                </div>
+                                                                </div>
+                                        </div>
+                                        <div class="col-md-4 col-6 mb-4">
+                                                <div class="card bg-light result-card">
+                                                        <div class="card-body">
+                                                                <h6>违约惩罚成本(PC)</h6>
+                                                                <h4 id="result_pc">-</h4>
+                                                                </div>
+                                                                </div>
+                                                                </div>
+                                                                </div>
+                        </div>
+                        </div>
+                        </div>
+<!-- 日志抽屉按钮和抽屉本体 -->
+<div id="logDrawerBtn" onclick="openLogDrawer()">日志</div>
+<div id="logDrawer">
+        <div id="logDrawerHeader">
+                日志
+                <button id="logDrawerClose" onclick="closeLogDrawer()">&times;</button>
+            </div>
+            <div id="optLog"></div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         <script>
-                // 初始化图表
-                function initChart() {
-                        const chart = echarts.init(document.getElementById('optimizationChart'));
-                        const option = {
-                                title: {
-                                        text: '优化过程'
-                                },
-                                tooltip: {
-                                        trigger: 'axis'
-                                },
-                                legend: {
-                                        data: ['时间', '成本', '碳排放']
-                                },
-                                xAxis: {
-                                        type: 'category',
-                                        data: []
-                                },
-                                yAxis: {
-                                        type: 'value'
-                                },
-                                series: [{
-                                                name: '时间',
-                                                type: 'line',
-                                                data: []
-                                        },
-                                        {
-                                                name: '成本',
-                                                type: 'line',
-                                                data: []
-                                        },
-                                        {
-                                                name: '碳排放',
-                                                type: 'line',
-                                                data: []
-                                        }
-                                ]
-                        };
-                        chart.setOption(option);
-                        return chart;
-                }
-
-                // 开始优化
-                function startOptimization() {
-                        // 获取参数
-                        const modelParams = {
-                                timeWindow: document.getElementById('timeWindow').value,
-                                maxIterations: document.getElementById('maxIterations').value,
-                                populationSize: document.getElementById('populationSize').value,
-                                mutationRate: document.getElementById('mutationRate').value
-                        };
-
-                        const algorithmParams = {
-                                algorithm: document.getElementById('algorithm').value,
-                                goals: {
-                                        time: document.getElementById('goal_time').checked,
-                                        cost: document.getElementById('goal_cost').checked,
-                                        emissions: document.getElementById('goal_emissions').checked
-                                },
-                                weights: {
-                                        time: document.getElementById('weightTime').value,
-                                        cost: document.getElementById('weightCost').value,
-                                        emissions: document.getElementById('weightEmissions').value
-                                }
-                        };
-
-                        // 重置进度和日志
-                        document.getElementById('optimizationProgress').style.width = '0%';
-                        document.getElementById('optimizationLog').innerHTML = '';
-
-                        // 发送优化请求
+                function startOptimize() {
+                // 收集参数
+                const modelForm = document.getElementById('modelParamsForm');
+                const algoForm = document.getElementById('algoParamsForm');
+                const modelData = Object.fromEntries(new FormData(modelForm).entries());
+                const algoData = Object.fromEntries(new FormData(algoForm).entries());
+                const params = {...modelData, ...algoData};
+                // 显示进度条
+                document.getElementById('optProgressBar').style.display = '';
+                document.getElementById('optProgress').style.width = '10%';
+                document.getElementById('optLog').innerText = '正在提交优化请求...';
+                // 清空结果
+                document.getElementById('result_time').innerText = '-';
+                document.getElementById('result_total_cost').innerText = '-';
+                document.getElementById('result_oc').innerText = '-';
+                document.getElementById('result_lcec').innerText = '-';
+                document.getElementById('result_rc').innerText = '-';
+                document.getElementById('result_pc').innerText = '-';
                         fetch('/api/optimize', {
                                         method: 'POST',
-                                        headers: {
-                                                'Content-Type': 'application/json'
-                                        },
-                                        body: JSON.stringify({
-                                                model_params: modelParams,
-                                                algorithm_params: algorithmParams
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify(params)
                                         })
-                                })
-                                .then(response => response.json())
+                                .then(res => res.json())
                                 .then(data => {
-                                        if (data.status === 'success') {
-                                                // 更新优化结果
-                                                document.getElementById('totalTime').textContent = data.results
-                                                        .time;
-                                                document.getElementById('totalCost').textContent = data.results
-                                                        .cost;
-                                                document.getElementById('totalEmissions').textContent = data
-                                                        .results.emissions;
-
-                                                // 更新图表
-                                                const chart = echarts.getInstanceByDom(document.getElementById(
-                                                        'optimizationChart'));
-                                                chart.setOption({
-                                                        xAxis: {
-                                                                data: data.history.iterations
-                                                        },
-                                                        series: [{
-                                                                        name: '时间',
-                                                                        data: data
-                                                                                .history
-                                                                                .time
-                                                                },
-                                                                {
-                                                                        name: '成本',
-                                                                        data: data
-                                                                                .history
-                                                                                .cost
-                                                                },
-                                                                {
-                                                                        name: '碳排放',
-                                                                        data: data
-                                                                                .history
-                                                                                .emissions
-                                                                }
-                                                        ]
-                                                });
-                                        } else {
-                                                alert('优化失败: ' + data.message);
+                                        if(data.status === 'success'){
+                                        document.getElementById('optProgress').style.width = '100%';
+                                        document.getElementById('optLog').innerText += '\n优化完成！';
+                                        // 展示结果
+                                        document.getElementById('result_time').innerText = data.result_time || '-';
+                                        document.getElementById('result_total_cost').innerText = data.total_cost || '-';
+                                        document.getElementById('result_oc').innerText = data.oc || '-';
+                                        document.getElementById('result_lcec').innerText = data.lcec || '-';
+                                        document.getElementById('result_rc').innerText = data.rc || '-';
+                                        document.getElementById('result_pc').innerText = data.pc || '-';
+                                        }else{
+                                        document.getElementById('optLog').innerText += '\n优化失败: ' + (data.message ||
+                                        '未知错误');
                                         }
                                 })
-                                .catch(error => {
-                                        alert('优化失败: ' + error);
+                                .catch(err => {
+                                document.getElementById('optLog').innerText += '\n请求异常: ' + err;
+                                })
+                                .finally(()=>{
+                                document.getElementById('optProgress').style.width = '100%';
                                 });
                 }
 
-                // 添加日志
-                function addLog(message) {
-                        const logContainer = document.getElementById('optimizationLog');
-                        const logEntry = document.createElement('div');
-                        logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                        logContainer.appendChild(logEntry);
-                        logContainer.scrollTop = logContainer.scrollHeight;
+                function openLogDrawer() {
+                document.getElementById('logDrawer').classList.add('open');
                 }
-
-                // 更新进度
-                function updateProgress(progress) {
-                        document.getElementById('optimizationProgress').style.width = `${progress}%`;
+                function closeLogDrawer() {
+                document.getElementById('logDrawer').classList.remove('open');
                 }
-
-                // 页面加载完成后初始化
-                document.addEventListener('DOMContentLoaded', () => {
-                        initChart();
-                });
         </script>
 </body>
 
