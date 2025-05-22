@@ -27,6 +27,12 @@ DEFAULT_SHIP_PARAMS = {
 SHIPS_DATA = []
 ROUTES_DATA = []
 PORTS_DATA = []
+NODES_DATA = []
+TRANS_DATA = []
+TRAVEL_DATA = []
+PATHS_DATA = []
+REQUESTS_DATA = []
+
 
 Base = declarative_base()
 
@@ -62,6 +68,96 @@ class Port(Base):
     region = Column(String)
     group = Column(Integer)
 
+
+class Node(Base):
+    __tablename__ = 'nodes'
+    id = Column(Integer, primary_key=True)
+    route = Column(Integer)
+    call = Column(Integer)
+    port = Column(String)
+    round_trip = Column(Integer)
+    time = Column(Float)
+
+class TransshipArc(Base):
+    __tablename__ = 'transship_arcs'
+    id = Column(Integer, primary_key=True)
+    port = Column(String)
+    origin_node_id = Column(Integer)
+    origin_time = Column(Float)
+    transship_time = Column(Float)
+    destination_node_id = Column(Integer)
+    destination_time = Column(Float)
+    from_route = Column(Integer)
+    to_route = Column(Integer)
+
+class TravelingArc(Base):
+    __tablename__ = 'traveling_arcs'
+    id = Column(Integer, primary_key=True)
+    route = Column(Integer)
+    origin_node_id = Column(Integer)
+    origin_call = Column(Integer)
+    origin_port = Column(String)
+    round_trip = Column(Integer)
+    origin_time = Column(Float)
+    traveling_time = Column(Float)
+    destination_node_id = Column(Integer)
+    destination_call = Column(Integer)
+    destination_port = Column(String)
+    destination_time = Column(Float)
+
+class Path(Base):
+    __tablename__ = 'paths'
+    id = Column(Integer, primary_key=True)
+    origin_port = Column(String)
+    origin_time = Column(Integer)
+    destination_port = Column(String)
+    destination_time = Column(Integer)
+    path_time = Column(Integer)
+    transship_port = Column(String)  # 存储为逗号分隔的字符串
+    transship_time = Column(String)  # 存储为逗号分隔的字符串
+    port_path = Column(String)  # 存储为逗号分隔的字符串
+    arcs_id = Column(String)  # 存储为逗号分隔的字符串
+
+    def get_transship_port_list(self):
+        """获取转运港口列表"""
+        return [] if self.transship_port == '0' else self.transship_port.split(',')
+
+    def get_transship_time_list(self):
+        """获取转运时间列表"""
+        return [] if self.transship_time == '0' else [int(x) for x in self.transship_time.split(',')]
+
+    def get_port_path_list(self):
+        """获取港口路径列表"""
+        return [] if self.port_path == '0' else self.port_path.split(',')
+
+    def get_arcs_id_list(self):
+        """获取弧ID列表"""
+        return [] if self.arcs_id == '0' else [int(x) for x in self.arcs_id.split(',')]
+
+class Request(Base):
+    __tablename__ = 'requests'
+    id = Column(Integer, primary_key=True)
+    origin_port = Column(String)
+    destination_port = Column(String)
+    w_i_earlist = Column(Float)
+    latest_destination_time = Column(Float)
+    laden_paths = Column(String)  # 存储为逗号分隔的字符串
+    number_of_laden_path = Column(Integer)
+    empty_paths = Column(String)  # 存储为逗号分隔的字符串
+    number_of_empty_path = Column(Integer)
+
+    def get_laden_paths_list(self):
+        """获取重箱路径列表"""
+        return [] if self.laden_paths == '0' else [int(x) for x in self.laden_paths.split(',')]
+
+    def get_empty_paths_list(self):
+        """获取空箱路径列表"""
+        return [] if self.empty_paths == '0' else [int(x) for x in self.empty_paths.split(',')]
+
+####################################################################################
+
+
+# 数据库初始化
 engine = create_engine('sqlite:///ships.db')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
@@ -88,6 +184,11 @@ def optimization():
 def analysis():
     return render_template('analysis.html')
 
+
+####################################################################################
+# 数据读取
+# GET接口
+# 每个接口返回数据库中所有数据
 @app.route('/api/ships')
 def get_ships():
     session = Session()
@@ -97,6 +198,80 @@ def get_ships():
         r.pop('_sa_instance_state', None)
     session.close()
     return jsonify(result)
+
+
+@app.route('/api/routes')
+def get_routes():
+    session = Session()
+    routes = session.query(Route).all()
+    result = [r.__dict__ for r in routes]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/ports')
+def get_ports():
+    session = Session()
+    ports = session.query(Port).all()
+    result = [p.__dict__ for p in ports]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/nodes')
+def get_nodes():
+    session = Session()
+    nodes = session.query(Node).all()
+    result = [n.__dict__ for n in nodes]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/transship')
+def get_transship():
+    session = Session()
+    arcs = session.query(TransshipArc).all()
+    result = [a.__dict__ for a in arcs]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/traveling')
+def get_traveling():
+    session = Session()
+    arcs = session.query(TravelingArc).all()
+    result = [a.__dict__ for a in arcs]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/paths')
+def get_paths():
+    session = Session()
+    paths = session.query(Path).all()
+    result = [p.__dict__ for p in paths]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+@app.route('/api/requests')
+def get_requests():
+    session = Session()
+    reqs = session.query(Request).all()
+    result = [r.__dict__ for r in reqs]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
+####################################################################################
+
 
 @app.route('/api/import', methods=['POST'])
 def import_data():
@@ -126,10 +301,11 @@ def optimize():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
-@app.route('/api/routes')
-def get_routes():
-    return jsonify(ROUTES_DATA)
 
+####################################################################################
+# 数据导入
+# 导入接口（POST）
+# 每个接口支持txt/csv格式，导入时会清空表再批量写入
 @app.route('/api/import/ships', methods=['POST'])
 def import_ships():
     if 'file' not in request.files:
@@ -335,6 +511,247 @@ def import_routes():
             "status": "error",
             "message": f"导入失败: {str(e)}"
         }), 500
+
+@app.route('/api/import/ports', methods=['POST'])
+def import_ports():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "没有上传文件"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "未选择文件"}), 400
+    file_format = request.form.get('format', 'txt')
+    if not file.filename.endswith(f'.{file_format}'):
+        return jsonify({"status": "error", "message": f"文件格式必须是 {file_format}"}), 400
+    try:
+        # 解析文件内容
+        if file_format == 'txt':
+            content = file.read().decode('utf-8')
+            lines = content.strip().split('\n')
+            headers = lines[0].strip().split('\t')
+            data = []
+            for line in lines[1:]:
+                values = line.strip().split('\t')
+                if len(values) == len(headers):
+                    data.append(dict(zip(headers, values)))
+        elif file_format == 'csv':
+            content = file.read().decode('utf-8')
+            lines = content.strip().split('\n')
+            headers = lines[0].strip().split(',')
+            data = []
+            for line in lines[1:]:
+                values = line.strip().split(',')
+                if len(values) == len(headers):
+                    data.append(dict(zip(headers, values)))
+        elif file_format == 'json':
+            data = json.loads(file.read().decode('utf-8'))
+            if not isinstance(data, list):
+                data = [data]
+        else:
+            return jsonify({"status": "error", "message": "不支持的文件格式"}), 400
+        # 写入数据库
+        session = Session()
+        session.query(Port).delete()
+        for item in data:
+            port = Port(
+                id=int(item['PortID']),
+                name=item['Port'],
+                whether_trans=int(item['WhetherTrans']),
+                region=item['Region'],
+                group=int(item['Group'])
+            )
+            session.add(port)
+        session.commit()
+        session.close()
+        return jsonify({"status": "success", "message": f"成功导入 {len(data)} 条港口数据"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"导入失败: {str(e)}"}), 500
+
+@app.route('/api/import/nodes', methods=['POST'])
+def import_nodes_data():
+    file = request.files.get('file')
+    file_format = request.form.get('format')
+    if not file:
+        return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
+    content = file.read().decode('utf-8')
+    lines = content.strip().split('\n')
+    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+    data = []
+    for line in lines[1:]:
+        values = line.strip().split('\t' if file_format == 'txt' else ',')
+        if len(values) == len(headers):
+            data.append(dict(zip(headers, values)))
+    session = Session()
+    session.query(Node).delete()
+    for item in data:
+        node = Node(
+            id=int(item['ID']),
+            route=int(item['Route']),
+            call=int(item['Call']),
+            port=item['Port'],
+            round_trip=int(item['Round_trip']),
+            time=float(item['Time'])
+        )
+        session.add(node)
+    session.commit()
+    session.close()
+    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条时空节点数据'})
+
+@app.route('/api/import/transship', methods=['POST'])
+def import_transship_data():
+    file = request.files.get('file')
+    file_format = request.form.get('format')
+    if not file:
+        return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
+    content = file.read().decode('utf-8')
+    lines = content.strip().split('\n')
+    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+    data = []
+    for line in lines[1:]:
+        values = line.strip().split('\t' if file_format == 'txt' else ',')
+        if len(values) == len(headers):
+            data.append(dict(zip(headers, values)))
+    session = Session()
+    session.query(TransshipArc).delete()
+    for item in data:
+        arc = TransshipArc(
+            id=int(item['TransshipArc ID']),
+            port=item['Port'],
+            origin_node_id=int(item['Origin_node_ID']),
+            origin_time=float(item['OriginTime']),
+            transship_time=float(item['TransshipTime']),
+            destination_node_id=int(item['Destination_node_ID']),
+            destination_time=float(item['DestinationTime']),
+            from_route=int(item['FromRoute']),
+            to_route=int(item['ToRoute'])
+        )
+        session.add(arc)
+    session.commit()
+    session.close()
+    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条转运弧数据'})
+
+@app.route('/api/import/traveling', methods=['POST'])
+def import_traveling_data():
+    file = request.files.get('file')
+    file_format = request.form.get('format')
+    if not file:
+        return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
+    content = file.read().decode('utf-8')
+    lines = content.strip().split('\n')
+    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+    data = []
+    for line in lines[1:]:
+        values = line.strip().split('\t' if file_format == 'txt' else ',')
+        if len(values) == len(headers):
+            data.append(dict(zip(headers, values)))
+    session = Session()
+    session.query(TravelingArc).delete()
+    for item in data:
+        arc = TravelingArc(
+            id=int(item['TravelingArc_ID']),
+            route=int(item['Route']),
+            origin_node_id=int(item['Origin_node_ID']),
+            origin_call=int(item['Origin_Call']),
+            origin_port=item['Origin_Port'],
+            round_trip=int(item['Round_Trip']),
+            origin_time=float(item['OriginTime']),
+            traveling_time=float(item['TravelingTime']),
+            destination_node_id=int(item['Destination_node_ID']),
+            destination_call=int(item['Destination_Call']),
+            destination_port=item['Destination_Port'],
+            destination_time=float(item['DestinationTime'])
+        )
+        session.add(arc)
+    session.commit()
+    session.close()
+    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条航段弧数据'})
+
+@app.route('/api/import/paths', methods=['POST'])
+def import_paths_data():
+    file = request.files.get('file')
+    file_format = request.form.get('format')
+    if not file:
+        return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
+    content = file.read().decode('utf-8')
+    lines = content.strip().split('\n')
+    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+    data = []
+    for line in lines[1:]:
+        values = line.strip().split('\t' if file_format == 'txt' else ',')
+        if len(values) == len(headers):
+            row_data = dict(zip(headers, values))
+            # 处理列表字段
+            for field in ['TransshipPort', 'TransshipTime', 'PortPath', 'Arcs_ID']:
+                if field in row_data:
+                    if row_data[field] == '0':
+                        row_data[field] = []
+                    else:
+                        if field in ['TransshipTime', 'Arcs_ID']:
+                            row_data[field] = [int(x) for x in row_data[field].split(',')]
+                        else:
+                            row_data[field] = row_data[field].split(',')
+            data.append(row_data)
+    session = Session()
+    session.query(Path).delete()
+    for item in data:
+        path = Path(
+            id=int(item['ContainerPathID']),
+            origin_port=item['OriginPort'],
+            origin_time=int(item['OriginTime']),
+            destination_port=item['DestinationPort'],
+            destination_time=int(item['DestinationTime']),
+            path_time=int(item['PathTime']),
+            transship_port=','.join(item['TransshipPort']) if item['TransshipPort'] else '0',
+            transship_time=','.join(map(str, item['TransshipTime'])) if item['TransshipTime'] else '0',
+            port_path=','.join(item['PortPath']) if item['PortPath'] else '0',
+            arcs_id=','.join(map(str, item['Arcs_ID'])) if item['Arcs_ID'] else '0'
+        )
+        session.add(path)
+    session.commit()
+    session.close()
+    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条路径数据'})
+
+@app.route('/api/import/requests', methods=['POST'])
+def import_requests_data():
+    file = request.files.get('file')
+    file_format = request.form.get('format')
+    if not file:
+        return jsonify({'status': 'fail', 'message': '未上传文件'}), 400
+    content = file.read().decode('utf-8')
+    lines = content.strip().split('\n')
+    headers = lines[0].strip().split('\t' if file_format == 'txt' else ',')
+    data = []
+    for line in lines[1:]:
+        values = line.strip().split('\t' if file_format == 'txt' else ',')
+        if len(values) == len(headers):
+            row_data = dict(zip(headers, values))
+            # 处理列表字段
+            for field in ['LadenPaths', 'EmptyPaths']:
+                if field in row_data:
+                    if row_data[field] == '0':
+                        row_data[field] = []
+                    else:
+                        row_data[field] = [int(x) for x in row_data[field].split(',')]
+            data.append(row_data)
+    session = Session()
+    session.query(Request).delete()
+    for item in data:
+        req = Request(
+            id=int(item['RequestID']),
+            origin_port=item['OriginPort'],
+            destination_port=item['DestinationPort'],
+            w_i_earlist=float(item['W_i_Earlist']),
+            latest_destination_time=float(item['LatestDestinationTime']),
+            laden_paths=','.join(map(str, item['LadenPaths'])) if item['LadenPaths'] else '0',
+            number_of_laden_path=int(item['NumberOfLadenPath']),
+            empty_paths=','.join(map(str, item['EmptyPaths'])) if item['EmptyPaths'] else '0',
+            number_of_empty_path=int(item['NumberOfEmptyPath'])
+        )
+        session.add(req)
+    session.commit()
+    session.close()
+    return jsonify({'status': 'success', 'message': f'成功导入 {len(data)} 条需求序列数据'})
+
+####################################################################################
 
 @app.route('/api/schedule', methods=['POST'])
 def update_schedule():
@@ -551,69 +968,7 @@ def get_throughput():
             'message': str(e)
         }), 500
 
-@app.route('/api/import/ports', methods=['POST'])
-def import_ports():
-    if 'file' not in request.files:
-        return jsonify({"status": "error", "message": "没有上传文件"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"status": "error", "message": "未选择文件"}), 400
-    file_format = request.form.get('format', 'txt')
-    if not file.filename.endswith(f'.{file_format}'):
-        return jsonify({"status": "error", "message": f"文件格式必须是 {file_format}"}), 400
-    try:
-        # 解析文件内容
-        if file_format == 'txt':
-            content = file.read().decode('utf-8')
-            lines = content.strip().split('\n')
-            headers = lines[0].strip().split('\t')
-            data = []
-            for line in lines[1:]:
-                values = line.strip().split('\t')
-                if len(values) == len(headers):
-                    data.append(dict(zip(headers, values)))
-        elif file_format == 'csv':
-            content = file.read().decode('utf-8')
-            lines = content.strip().split('\n')
-            headers = lines[0].strip().split(',')
-            data = []
-            for line in lines[1:]:
-                values = line.strip().split(',')
-                if len(values) == len(headers):
-                    data.append(dict(zip(headers, values)))
-        elif file_format == 'json':
-            data = json.loads(file.read().decode('utf-8'))
-            if not isinstance(data, list):
-                data = [data]
-        else:
-            return jsonify({"status": "error", "message": "不支持的文件格式"}), 400
-        # 写入数据库
-        session = Session()
-        session.query(Port).delete()
-        for item in data:
-            port = Port(
-                id=int(item['PortID']),
-                name=item['Port'],
-                whether_trans=int(item['WhetherTrans']),
-                region=item['Region'],
-                group=int(item['Group'])
-            )
-            session.add(port)
-        session.commit()
-        session.close()
-        return jsonify({"status": "success", "message": f"成功导入 {len(data)} 条港口数据"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": f"导入失败: {str(e)}"}), 500
 
-@app.route('/api/ports')
-def get_ports():
-    session = Session()
-    ports = session.query(Port).all()
-    result = [p.__dict__ for p in ports]
-    for r in result:
-        r.pop('_sa_instance_state', None)
-    session.close()
-    return jsonify(result)
 
 def load_initial_data():
     """应用启动时加载初始数据"""
@@ -639,6 +994,43 @@ def load_initial_data():
         PORTS_DATA = [p.__dict__ for p in ports]
         for port in PORTS_DATA:
             port.pop('_sa_instance_state', None)
+            
+        # 加载时空节点数据
+        nodes = session.query(Node).all()
+        global NODES_DATA
+        NODES_DATA = [n.__dict__ for n in nodes]
+        for node in NODES_DATA:
+            node.pop('_sa_instance_state', None)
+
+        # 加载转运弧数据
+        transship_arcs = session.query(TransshipArc).all()
+        global TRANS_DATA
+        TRANS_DATA = [a.__dict__ for a in transship_arcs]
+        for arc in TRANS_DATA:
+            arc.pop('_sa_instance_state', None)
+
+        # 加载航段弧数据
+        traveling_arcs = session.query(TravelingArc).all()
+        global TRAVEL_DATA
+        TRAVEL_DATA = [a.__dict__ for a in traveling_arcs]
+        for arc in TRAVEL_DATA:
+            arc.pop('_sa_instance_state', None)
+
+        # 加载候选运输路径数据
+        paths = session.query(Path).all()
+        global PATHS_DATA
+        PATHS_DATA = [p.__dict__ for p in paths]
+        for path in PATHS_DATA:
+            path.pop('_sa_instance_state', None)
+
+
+        # 加载需求序列数据
+        requests = session.query(Request).all()
+        global REQUESTS_DATA
+        REQUESTS_DATA = [r.__dict__ for r in requests]
+        for req in REQUESTS_DATA:
+            req.pop('_sa_instance_state', None)
+            
             
         session.close()
         logger.info("初始数据加载完成")
