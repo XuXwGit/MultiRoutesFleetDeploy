@@ -602,12 +602,17 @@ public class BaseDualModel extends BaseModel {
             cplex.setLinearCoef(objective, capacitys[n], betaVar[n]);
         }
     }
+
+
+    // 修改目标函数中V[h][r]的系数
     public void changeObjectiveVvarsCoefficients(int[][] vValue) throws IloException	{
         this.vVarValue = vValue;
         this.vVarValueDouble = IntArray2DWrapper.Int2DArrayToDouble2DArray(vValue);
         double[][] vValueDouble2D = IntArray2DWrapper.Int2DArrayToDouble2DArray(vValue);
         changeObjectiveVvarsCoefficients(vValueDouble2D);
     }
+
+    // 修改目标函数中u的系数
     public void changeObjectiveUvarsCoefficients(double[] uValue) throws IloException {
         this.uValue = uValue;
         // I.part one : sum(normal_demand * alpha + max_var_demand*u*alpha) = sum(normal_demand * alpha + max_var_demand * lambda)

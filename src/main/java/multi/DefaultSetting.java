@@ -240,4 +240,19 @@ public class DefaultSetting {
 			throw new RuntimeException(e);
 		}
 	}
+
+	// ================== 数据文件名常量 ==================
+	public static final String PORTS_FILENAME = "Ports.txt";
+	public static final String VESSELS_FILENAME = "Vessels.txt";
+	public static final String NODES_FILENAME = "Nodes.txt";
+	public static final String TRAVELING_ARCS_FILENAME = "TravelingArcs.txt";
+	public static final String TRANSSHIP_ARCS_FILENAME = "TransshipArcs.txt";
+	public static final String VESSEL_PATHS_FILENAME = "VesselPaths.txt";
+	public static final String LADEN_PATHS_FILENAME = "LadenPaths.txt";
+	public static final String EMPTY_PATHS_FILENAME = "EmptyPaths.txt";
+	public static final String REQUESTS_FILENAME = "Requests.txt";
+	public static final String DEMAND_RANGE_FILENAME = "DemandRange.txt";
+	public static final String PATHS_FILENAME = "Paths.txt";
+	public static final String HISTORY_SOLUTION_FILENAME = "HistorySolution.txt";
+	public static final String SAMPLE_SCENES_FILENAME = "SampleScenes.txt";
 }

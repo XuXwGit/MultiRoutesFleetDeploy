@@ -35,11 +35,17 @@ public class AlgoFrame extends BaseAlgoFrame {
     protected String Algo;
     protected String AlgoID;
     protected FileWriter fileWriter;
+
+    // 模型
     protected DualSubProblem dsp;
     protected MasterProblem mp;
+
     protected AlgoFrame() {
     }
+
     protected long start;
+
+    // 解相关
     private int[][] solution;
     protected Set<IntArrayWrapper> SolutionPool;
     protected Set<Scenario> ScenarioPool;
@@ -47,16 +53,22 @@ public class AlgoFrame extends BaseAlgoFrame {
     protected double [] masterObj =new double [DefaultSetting.maxIterationNum+1];
     protected double [] subObj =new double [DefaultSetting.maxIterationNum+1];
     protected int[][] vValue;
+
+    // 结果指标
     private double worstPerformance;
     private double meanPerformance;
     private double worstSecondStageCost;
     private double meanSecondStageCost;
+
+    // 成本
     private double totalCost;
     private double operationCost;
     private double rentalCost;
     private double ladenCost;
     private double emptyCost;
     private double penaltyCost;
+
+    // 算法框架
     protected void frame() throws IOException, IloException {
         initialize();
 
@@ -66,6 +78,7 @@ public class AlgoFrame extends BaseAlgoFrame {
 
         double buildModelTime = initialModel();
 
+        // 打印迭代标题
         printIterTitle(fileWriter, buildModelTime);
         printIteration(fileWriter, lower[iteration], upper[iteration],0, 0, 0,
                 "--", 0, "--", 0 );
@@ -78,6 +91,7 @@ public class AlgoFrame extends BaseAlgoFrame {
                 && (System.currentTimeMillis() - start0)/1000 < DefaultSetting.maxIterationTime
         )
         {
+            // 求解主问题
             double start1 = System.currentTimeMillis();
             mp.solveModel();
             double end1 = System.currentTimeMillis();
@@ -164,6 +178,7 @@ public class AlgoFrame extends BaseAlgoFrame {
         start = System.currentTimeMillis();
     }
 
+    // 初始化场景
     protected void initializeSce(List<Scenario> sce)   {
         double [] sss =new double [in.getRequestSet().size()];
 
@@ -179,6 +194,8 @@ public class AlgoFrame extends BaseAlgoFrame {
 
         sce.add(new Scenario(sss));
     }
+
+    // 初始化模型
     protected double initialModel() throws IloException, IOException {
         double start = System.currentTimeMillis();
 
@@ -196,6 +213,8 @@ public class AlgoFrame extends BaseAlgoFrame {
 
         return System.currentTimeMillis() - start;
     }
+
+    // 计算平均性能
     protected void calculateMeanPerformance() throws IOException, IloException {
         log.info("Calculating Mean Performance ...");
         if(DefaultSetting.UseHistorySolution)
@@ -219,6 +238,8 @@ public class AlgoFrame extends BaseAlgoFrame {
         log.info("MeanSecondStageCost = " + getMeanSecondStageCost());
         log.info("AlgoObjVal = "+ getObjVal());
     }
+
+    // 更新下界和主问题
     public boolean updateBoundAndMP() throws IloException {
         // LB = max{LB , MP.Objective}
         // LB = MP.Objective = MP.OperationCost + Eta

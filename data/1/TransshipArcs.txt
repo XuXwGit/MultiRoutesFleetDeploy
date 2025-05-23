@@ -1,4 +1,4 @@
-TransshipArc ID	Port	Origin_node_ID	OriginTime	TransshipTime	Destination_node_ID	DestinationTime	FromRoute	ToRoute
+TransshipArcID	Port	OriginNodeID	OriginTime	TransshipTime	DestinationNodeID	DestinationTime	FromRoute	ToRoute
 272	D	4	10	2	172	12	1	2
 273	D	4	10	9	178	19	1	2
 274	F	6	14	6	179	20	1	2

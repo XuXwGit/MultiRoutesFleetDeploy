@@ -1,4 +1,4 @@
-RequestID	OriginPort	DestinationPort	W_i_Earlist	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
+RequestID	OriginPort	DestinationPort	WiEarliest	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
 1	A	B	1	15	1,2	2	0	0
 2	A	B	8	22	2,3	2	0	0
 3	A	B	15	29	3,4	2	0	0

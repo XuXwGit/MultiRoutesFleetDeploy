@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, Response
 import json
 import pandas as pd
 from algorithm_interface import AlgorithmInterface
@@ -13,13 +13,30 @@ import sys
 import subprocess
 from pathlib import Path
 from sqlalchemy import text
+# 设置日志回调 
+import sys
+from io import StringIO
+import queue
+# 添加src-py到Python路径
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src-py'))
+
+from multi.algos.benders_decomposition import BendersDecomposition
+from multi.algos.benders_decomposition_with_pap import BendersDecompositionWithPAP
+from multi.algos.ccg import CCG
+from multi.algos.ccg_with_pap import CCGwithPAP
+from multi.model.parameter import Parameter
+from multi.utils.default_setting import DefaultSetting
+from multi.utils.generate_parameter import GenerateParameter
+from multi.utils.input_data import InputData
+from multi.utils.read_data import ReadData
+sys.setrecursionlimit(10000)  # 设置更大的递归深度限制
+
+# 创建消息队列用于存储实时日志
+log_queue = queue.Queue()
 
 app = Flask(__name__)
 CORS(app)
 algorithm_interface = AlgorithmInterface()
-
-# 添加src-py到Python路径
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src-py'))
 
 # 配置日志
 logging.basicConfig(
@@ -52,6 +69,109 @@ TRAVEL_DATA = []
 PATHS_DATA = []
 REQUESTS_DATA = []
 
+# ================== 数据库字段名 -> 标准字段名映射 ==================
+DB_COLUMN_MAPS = {
+    'ports': {
+        'port_id': 'PortID',
+        'name': 'Port',
+        'whether_trans': 'WhetherTrans',
+        'region': 'Region',
+        'group': 'Group',
+    },
+    'ships': {
+        'id': 'VesselID',
+        'name': 'VesselName',
+        'capacity': 'Capacity',
+        'operating_cost': 'OperatingCost',
+        'route_id': 'RouteID',
+        'max_num': 'MaxNum',
+        # 其他字段如type、status等可按需补充
+    },
+    'routes': {
+        'id': 'ID',
+        'number_of_ports': 'NumberOfPorts',
+        'ports': 'Ports',
+        'number_of_calls': 'NumberOfCall',
+        'ports_of_call': 'PortsofCall',
+        'times': 'Time',
+    },
+    'nodes': {
+        'id': 'ID',
+        'route': 'Route',
+        'call': 'Call',
+        'port': 'Port',
+        'round_trip': 'RoundTrip',
+        'time': 'Time',
+    },
+    'transship_arcs': {
+        'id': 'TransshipArcID',
+        'port': 'Port',
+        'origin_node_id': 'OriginNodeID',
+        'origin_time': 'OriginTime',
+        'transship_time': 'TransshipTime',
+        'destination_node_id': 'DestinationNodeID',
+        'destination_time': 'DestinationTime',
+        'from_route': 'FromRoute',
+        'to_route': 'ToRoute',
+    },
+    'traveling_arcs': {
+        'id': 'TravelingArcID',
+        'route': 'Route',
+        'origin_node_id': 'OriginNodeID',
+        'origin_call': 'OriginCall',
+        'origin_port': 'OriginPort',
+        'round_trip': 'RoundTrip',
+        'origin_time': 'OriginTime',
+        'traveling_time': 'TravelingTime',
+        'destination_node_id': 'DestinationNodeID',
+        'destination_call': 'DestinationCall',
+        'destination_port': 'DestinationPort',
+        'destination_time': 'DestinationTime',
+    },
+    'paths': {
+        'id': 'ContainerPathID',
+        'origin_port': 'OriginPort',
+        'origin_time': 'OriginTime',
+        'destination_port': 'DestinationPort',
+        'destination_time': 'DestinationTime',
+        'path_time': 'PathTime',
+        'transship_port': 'TransshipPort',
+        'transship_time': 'TransshipTime',
+        'port_path': 'PortPath',
+        'arcs_id': 'Arcs_ID',
+        'container_path_id': 'ContainerPathID',
+    },
+    'requests': {
+        'id': 'RequestID',
+        'origin_port': 'OriginPort',
+        'destination_port': 'DestinationPort',
+        'w_i_earlist': 'EarliestPickupTime',
+        'latest_destination_time': 'LatestDestinationTime',
+        'laden_paths': 'LadenPaths',
+        'number_of_laden_path': 'NumberOfLadenPath',
+        'empty_paths': 'EmptyPaths',
+        'number_of_empty_path': 'NumberOfEmptyPath',
+    },
+    # 其他表可按需补充
+}
+
+def write_df_to_db(df: pd.DataFrame, table_name: str, db_path: str, if_exists: str = 'replace', index: bool = False):
+    """
+    将DataFrame写入数据库，自动将列名重命名为README.md标准字段名
+    Args:
+        df: 待写入的DataFrame
+        table_name: 数据库表名（需与DB_COLUMN_MAPS的key一致）
+        db_path: 数据库文件路径
+        if_exists: 写入模式
+        index: 是否写入索引
+    """
+    std_map = DB_COLUMN_MAPS.get(table_name, None)
+    if std_map:
+        db_to_std = {v: v for v in std_map.values()}
+        df = df.rename(columns=db_to_std)
+        df = df[[v for v in std_map.values() if v in df.columns]]
+    engine = create_engine(f'sqlite:///{db_path}')
+    df.to_sql(table_name, engine, if_exists=if_exists, index=index, method=None)
 
 Base = declarative_base()
 
@@ -184,6 +304,9 @@ def update_database_schema():
         # 创建数据库连接
         engine = create_engine('sqlite:///ships.db')
         
+        # 创建所有表（如果不存在）
+        Base.metadata.create_all(engine)
+        
         # 检查并添加缺失的列
         with engine.connect() as conn:
             # 检查paths表是否存在port_path列
@@ -191,12 +314,12 @@ def update_database_schema():
             columns = [row[1] for row in result.fetchall()]
             
             # 如果port_path列不存在，添加它
-            if 'port_path' not in columns:
+            if columns and 'port_path' not in columns:
                 conn.execute(text("ALTER TABLE paths ADD COLUMN port_path TEXT"))
                 logger.info("已添加 port_path 列到 paths 表")
             
             # 如果container_path_id列不存在，添加它
-            if 'container_path_id' not in columns:
+            if columns and 'container_path_id' not in columns:
                 conn.execute(text("ALTER TABLE paths ADD COLUMN container_path_id INTEGER"))
                 logger.info("已添加 container_path_id 列到 paths 表")
             
@@ -343,56 +466,19 @@ def export_data():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 400
 
-@app.route('/api/optimize', methods=['POST'])
-def optimize():
-    try:
-        data = request.get_json()
-        # 提取参数
-        model_params = {
-            'time_window': int(data.get('time_window', 60)),
-            'robustness': float(data.get('robustness', 1.0)),
-            'demand_fluctuation': float(data.get('demand_fluctuation', 0.1)),
-            'empty_rent_cost': float(data.get('empty_rent_cost', 10)),
-            'penalty_coeff': float(data.get('penalty_coeff', 100)),
-            'port_load_cost': float(data.get('port_load_cost', 5)),
-            'port_unload_cost': float(data.get('port_unload_cost', 5)),
-            'port_transship_cost': float(data.get('port_transship_cost', 8)),
-            'laden_stay_cost': float(data.get('laden_stay_cost', 2)),
-            'laden_stay_free_time': int(data.get('laden_stay_free_time', 3)),
-            'empty_stay_cost': float(data.get('empty_stay_cost', 1)),
-            'empty_stay_free_time': int(data.get('empty_stay_free_time', 3)),
-        }
-        algo_params = {
-            'solver': data.get('solver', 'cplex'),
-            'max_iter': int(data.get('max_iter', 100)),
-            'max_time': int(data.get('max_time', 600)),
-            'mip_gap': float(data.get('mip_gap', 0.01)),
-        }
-        # 日志模拟
-        log = []
-        log.append('参数接收成功，开始优化...')
-        log.append(f'模型参数: {model_params}')
-        log.append(f'算法参数: {algo_params}')
-        # 这里可调用实际算法接口
-        # result = algorithm_interface.run_scheduling_algorithm({...})
-        # 这里返回模拟结果
-        time.sleep(1)  # 模拟计算
-        log.append('优化计算中...')
-        time.sleep(1)
-        log.append('优化完成！')
-        result = {
-            'status': 'success',
-            'result_time': '128.5s',
-            'total_cost': 123456.78,
-            'oc': 23456.78,
-            'lcec': 34567.89,
-            'rc': 4567.89,
-            'pc': 5678.90,
-            'log': '\n'.join(log)
-        }
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)}), 400
+
+class LogCapture:
+            def __init__(self, callback):
+                self.callback = callback
+                self.buffer = StringIO()
+                
+            def write(self, message):
+                self.buffer.write(message)
+                if message.strip():
+                    self.callback(message.strip())
+                    
+            def flush(self):
+                pass
 
 
 ####################################################################################
@@ -435,7 +521,7 @@ def import_ships():
                 data = [data]
         else:
             return jsonify({"status": "error", "message": "不支持的文件格式"}), 400
-        required_fields = ['VesselID', 'Capacity', 'OperatingCost', 'RouteID', 'maxNum']
+        required_fields = ['VesselID', 'Capacity', 'OperatingCost', 'RouteID', 'MaxNum']
         ships_data = []
         for item in data:
             if not all(field in item for field in required_fields):
@@ -447,7 +533,7 @@ def import_ships():
                     "capacity": float(item['Capacity']),
                     "operating_cost": float(item['OperatingCost']),
                     "route_id": int(float(item['RouteID'])),
-                    "max_num": int(float(item['maxNum'])),
+                    "max_num": int(float(item['MaxNum'])),
                     "type": "集装箱船",
                     "status": "待航",
                     "current_port": "上海港",
@@ -681,7 +767,7 @@ def import_nodes_data():
             route=int(item['Route']),
             call=int(item['Call']),
             port=item['Port'],
-            round_trip=int(item['Round_trip']),
+            round_trip=int(item['RoundTrip']),
             time=float(item['Time'])
         )
         session.add(node)
@@ -707,12 +793,12 @@ def import_transship_data():
     session.query(TransshipArc).delete()
     for item in data:
         arc = TransshipArc(
-            id=int(item['TransshipArc ID']),
+            id=int(item['TransshipArcID']),
             port=item['Port'],
-            origin_node_id=int(item['Origin_node_ID']),
+            origin_node_id=int(item['OriginNodeID']),
             origin_time=float(item['OriginTime']),
             transship_time=float(item['TransshipTime']),
-            destination_node_id=int(item['Destination_node_ID']),
+            destination_node_id=int(item['DestinationNodeID']),
             destination_time=float(item['DestinationTime']),
             from_route=int(item['FromRoute']),
             to_route=int(item['ToRoute'])
@@ -740,17 +826,17 @@ def import_traveling_data():
     session.query(TravelingArc).delete()
     for item in data:
         arc = TravelingArc(
-            id=int(item['TravelingArc_ID']),
+            id=int(item['TravelingArcID']),
             route=int(item['Route']),
-            origin_node_id=int(item['Origin_node_ID']),
-            origin_call=int(item['Origin_Call']),
-            origin_port=item['Origin_Port'],
-            round_trip=int(item['Round_Trip']),
+            origin_node_id=int(item['OriginNodeID']),
+            origin_call=int(item['OriginCall']),
+            origin_port=item['OriginPort'],
+            round_trip=int(item['RoundTrip']),
             origin_time=float(item['OriginTime']),
             traveling_time=float(item['TravelingTime']),
-            destination_node_id=int(item['Destination_node_ID']),
-            destination_call=int(item['Destination_Call']),
-            destination_port=item['Destination_Port'],
+            destination_node_id=int(item['DestinationNodeID']),
+            destination_call=int(item['DestinationCall']),
+            destination_port=item['DestinationPort'],
             destination_time=float(item['DestinationTime'])
         )
         session.add(arc)
@@ -776,12 +862,12 @@ def import_paths_data():
             if len(values) == len(headers):
                 row_data = dict(zip(headers, values))
                 # 处理列表字段
-                for field in ['TransshipPort', 'TransshipTime', 'PortPath', 'Arcs_ID']:
+                for field in ['TransshipPort', 'TransshipTime', 'PortPath', 'ArcsID']:
                     if field in row_data:
                         if row_data[field] == '0':
                             row_data[field] = []
                         else:
-                            if field in ['TransshipTime', 'Arcs_ID']:
+                            if field in ['TransshipTime', 'ArcsID']:
                                 row_data[field] = [int(x) for x in row_data[field].split(',')]
                             else:
                                 row_data[field] = row_data[field].split(',')
@@ -804,7 +890,7 @@ def import_paths_data():
                     'transship_port': ','.join(item['TransshipPort']) if item['TransshipPort'] else '0',
                     'transship_time': ','.join(map(str, item['TransshipTime'])) if item['TransshipTime'] else '0',
                     'port_path': ','.join(item['PortPath']) if item['PortPath'] else '0',
-                    'arcs_id': ','.join(map(str, item['Arcs_ID'])) if item['Arcs_ID'] else '0'
+                    'arcs_id': ','.join(map(str, item['ArcsID'])) if item['ArcsID'] else '0'
                 }
                 
                 path = Path(**path_data)
@@ -855,7 +941,7 @@ def import_requests_data():
             id=int(item['RequestID']),
             origin_port=item['OriginPort'],
             destination_port=item['DestinationPort'],
-            w_i_earlist=float(item['W_i_Earlist']),
+            w_i_earlist=float(item['WiEarliest']),
             latest_destination_time=float(item['LatestDestinationTime']),
             laden_paths=','.join(map(str, item['LadenPaths'])) if item['LadenPaths'] else '0',
             number_of_laden_path=int(item['NumberOfLadenPath']),
@@ -1084,6 +1170,136 @@ def get_throughput():
             'message': str(e)
         }), 500
 
+
+####################################################################################
+### 优化算法
+####################################################################################
+
+@app.route('/api/optimize', methods=['POST'])
+def optimize():
+    try:
+        # 创建日志列表用于存储所有日志
+        log_messages = []
+        
+        def log_callback(message):
+            log_messages.append(message)
+            print(message)  # 同时在控制台打印
+            # 将日志消息添加到队列以便通过SSE发送
+            log_queue.put(message)
+            
+        log_callback("="*50)
+        log_callback("开始处理优化请求...")
+        
+        data = request.get_json()
+        log_callback(f"接收到的参数: {data}")
+        
+        # 提取参数
+        model_params = {
+            'time_window': int(data.get('time_window', 60)),
+            'robustness': float(data.get('robustness', 1.0)),
+            'demand_fluctuation': float(data.get('demand_fluctuation', 0.1)),
+            'empty_rent_cost': float(data.get('empty_rent_cost', 10)),
+            'penalty_coeff': float(data.get('penalty_coeff', 100)),
+            'port_load_cost': float(data.get('port_load_cost', 5)),
+            'port_unload_cost': float(data.get('port_unload_cost', 5)),
+            'port_transship_cost': float(data.get('port_transship_cost', 8)),
+            'laden_stay_cost': float(data.get('laden_stay_cost', 2)),
+            'laden_stay_free_time': int(data.get('laden_stay_free_time', 3)),
+            'empty_stay_cost': float(data.get('empty_stay_cost', 1)),
+            'empty_stay_free_time': int(data.get('empty_stay_free_time', 3)),
+        }
+        log_callback(f"模型参数读取完成")
+        
+        algo_params = {
+            'solver': data.get('solver', 'cplex'),
+            'max_iter': int(data.get('max_iter', 100)),
+            'max_time': int(data.get('max_time', 600)),
+            'mip_gap': float(data.get('mip_gap', 0.01)),
+        }
+        log_callback(f"算法参数读取完成")
+        
+        try:
+            log_callback("开始执行优化计算...")
+            
+            # 更新默认设置
+            log_callback("更新默认设置...")
+            DefaultSetting.update_setting_from_dict(model_params)
+            DefaultSetting.update_setting_from_dict(algo_params)
+
+            logger.info("开始执行算法...")
+            
+            # 初始化输入数据
+            input_data = InputData()
+            
+            # 读取数据
+            reader = ReadData(
+                path="data/",
+                input_data=input_data,
+                time_horizon=data.get('time_horizon', DefaultSetting.DEFAULT_TIME_HORIZON),
+                use_db=True,
+                db_path="ships.db"
+            )
+            logger.info("数据读取完成")
+            
+            # param = Parameter()
+            # GenerateParameter(input_data=input_data, 
+            #                   param=param, 
+            #                   time_horizon=data.get('time_horizon', DefaultSetting.DEFAULT_TIME_HORIZON), 
+            #                   uncertain_degree=data.get('demand_fluctuation', DefaultSetting.DEFAULT_UNCERTAIN_DEGREE))
+            # logger.info("参数生成完成")
+            
+            # # 执行算法
+            result = {}
+            # if data.get('algorithm', 'bd') == "bd":
+            #     logger.info("使用Benders分解算法")
+            #     bd = BendersDecomposition(input_data=input_data, param=param)
+            #     result = bd.solve()
+            # elif data.get('algorithm', 'ccg') == "ccg":
+            #     logger.info("使用列生成算法")
+            #     cp = CCG(input_data=input_data, param=param)
+            #     result = cp.solve()
+            # elif data.get('algorithm', 'bdpap') == "bdpap":
+            #     logger.info("使用带PAP的Benders分解算法")
+            #     bdpap = BendersDecompositionWithPAP(input_data=input_data, param=param)
+            #     result = bdpap.solve()
+            # elif data.get('algorithm', 'ccgpap') == "ccgpap":
+            #     logger.info("使用带PAP的列生成算法")
+            #     ccgpap = CCGwithPAP(input_data=input_data, param=param)
+            #     result = ccgpap.solve()
+            # logger.info("算法执行完成")
+            # # 执行优化
+            
+            log_callback("优化完成！")
+            
+            return jsonify({
+                'status': 'success',
+                'result_time': f"{result.get('time', 0):.1f}s",
+                'total_cost': result.get('objective', 0),
+                'oc': result.get('laden_cost', 0),
+                'lcec': result.get('empty_cost', 0),
+                'rc': result.get('rental_cost', 0),
+                'pc': result.get('penalty_cost', 0),
+                'log': '\n'.join(log_messages)
+            })
+        except Exception as e:
+            logger.error(f"算法执行失败: {str(e)}", exc_info=True)
+            return jsonify({
+                'status': 'error',
+                'message': f"算法执行失败: {str(e)}",
+                'log': '\n'.join(log_messages)
+            }), 500
+            
+    except Exception as e:
+        error_msg = f"优化过程出错: {str(e)}"
+        logger.error(error_msg, exc_info=True)
+        return jsonify({
+            'status': 'error',
+            'message': error_msg
+        }), 500
+
+
+
+
 @app.route('/api/run_algorithm', methods=['POST'])
 def run_algorithm():
     """
@@ -1181,6 +1397,12 @@ def run_algorithm():
             'error': str(e)
         }), 500
 
+
+
+####################################################################################
+### 初始化数据
+####################################################################################
+
 def load_initial_data():
     """应用启动时加载初始数据"""
     try:
@@ -1248,7 +1470,28 @@ def load_initial_data():
     except Exception as e:
         logger.error(f"初始数据加载失败: {str(e)}")
 
+# 添加SSE端点用于实时日志流
+@app.route('/api/log-stream')
+def log_stream():
+    def generate():
+        # 发送初始事件保持连接
+        yield "data: {\"message\": \"连接已建立，等待日志...\"}\n\n"
+        
+        while True:
+            try:
+                # 非阻塞方式获取日志消息
+                message = log_queue.get(block=False)
+                if message:
+                    yield f"data: {json.dumps({'message': message})}\n\n"
+            except queue.Empty:
+                # 队列为空，发送保持连接的消息
+                yield "data: {\"keepalive\": true}\n\n"
+            
+            time.sleep(0.1)  # 短暂休眠避免CPU过载
+    
+    return Response(generate(), mimetype="text/event-stream")
+
 if __name__ == '__main__':
     # 启动时加载数据
     load_initial_data()
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=True, threaded=True) 

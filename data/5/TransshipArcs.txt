@@ -1,4 +1,4 @@
-TransshipArc ID	Port	origin_node_ID	OriginTime	TransshipTime	Destination_node_ID	DestinationTime	FromRoute	ToRoute
+TransshipArcID	Port	OriginNodeID	OriginTime	TransshipTime	DestinationNodeID	DestinationTime	FromRoute	ToRoute
 579	ROTTERDAM	5	18	1	207	19	1	2
 580	ROTTERDAM	5	18	8	217	26	1	2
 581	ROTTERDAM	5	18	6	405	24	1	3

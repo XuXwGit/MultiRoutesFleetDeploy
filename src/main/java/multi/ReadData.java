@@ -505,15 +505,7 @@ public class ReadData{
 	 **/
 	private void readVessels()
 	{
-		String filename = filePath;
-		if("I".equals(DefaultSetting.VesselCapacityRange)){
-			filename += "Vessels.txt";
-		}else if("II".equals(DefaultSetting.VesselCapacityRange)) {
-			filename += "Vessels-II.txt";
-		}else if("III".equals(DefaultSetting.VesselCapacityRange)) {
-			filename += "Vessels-III.txt";
-		}
-
+		String filename = filePath + DefaultSetting.VESSELS_FILENAME;
 		String[][] result = read_to_string(filename);
 
 		List <VesselType> vesselTypeSet =new ArrayList<>();
@@ -523,7 +515,7 @@ public class ReadData{
 
 			ff.setId(Integer.parseInt(result[i][0]));
 			ff.setCapacity(Integer.parseInt(result[i][1]));
-			ff.setCost(Double.parseDouble(result[i][2]) * 1000000);
+			ff.setCost(Double.parseDouble(result[i][2]));
 			ff.setRouteID(Integer.parseInt(result[i][3]));
 			ff.setMaxNum(Integer.parseInt(result[i][4]));
 
@@ -551,7 +543,7 @@ public class ReadData{
 	 **/
 	private void readPorts()
 	{
-		String[][] result = read_to_string(filePath + "Ports.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.PORTS_FILENAME);
 
 		Map <String, Port> portSet = new HashMap<>();
 		for (int i=1;i<result.length;i++)
@@ -588,7 +580,7 @@ public class ReadData{
 	 **/
 	private void readEmptyPaths()
 	{
-		String[][] result = read_to_string(filePath + "EmptyP-aths.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.EMPTY_PATHS_FILENAME);
 
 		List<EmptyPath> emptyPaths=new ArrayList<>();
 
@@ -606,7 +598,7 @@ public class ReadData{
 			}
 
 			// get all Empty ContainerPath IDs
-			String[] s_empty_paths = result[i][3].split(",");
+			String[] s_empty_paths = result[i][4].split(",");
 			for (String s_empty_path : s_empty_paths) {
 				EmptyPath ff = new EmptyPath();
 				ff.setRequestID(requestID);
@@ -650,7 +642,7 @@ public class ReadData{
 	 **/
 	private void readLadenPaths()
 	{
-		String[][] result = read_to_string(filePath+"LadenP-aths.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.LADEN_PATHS_FILENAME);
 
 		List<LadenPath> ladenPaths=new ArrayList<>();
 
@@ -673,7 +665,7 @@ public class ReadData{
 			if(result[i][8].equals("0") && result[i][9].equals("0"))
 			{
 				ff.setTransshipmentPort(null);
-				ff.setTransshipmentPort(null);
+				ff.setTransshipmentTime(null);
 			}
 			// otherwise
 			else
@@ -731,7 +723,7 @@ public class ReadData{
 	 **/
 	private void readVesselPaths()
 	{
-		String[][] result = read_to_string(filePath+ "VesselP-aths.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.VESSEL_PATHS_FILENAME);
 
 		List<VesselPath> vesselPath=new ArrayList<>();
 		for (int i=1;i<result.length;i++)
@@ -799,7 +791,7 @@ public class ReadData{
 	 **/
 	private void readTransshipArcs()
 	{
-		String[][] result = read_to_string(filePath +"TransshipArcs.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.TRANSSHIP_ARCS_FILENAME);
 
 		List<TransshipArc> transshipArcs =new ArrayList<>();
 		for (int i=1;i<result.length;i++)
@@ -853,7 +845,7 @@ public class ReadData{
 	 **/
 	private void readTravelingArcs()
 	{
-		String[][] result = read_to_string(filePath +"TravelingArcs.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.TRAVELING_ARCS_FILENAME);
 
 		List<TravelingArc> travelingArcs =new ArrayList<>();
 		for (int i=1;i<result.length;i++)
@@ -869,6 +861,7 @@ public class ReadData{
 			ff.setOriginNodeID(Integer.parseInt(result[i][2]));
 			ff.setOriginCall(Integer.parseInt(result[i][3]));
 			ff.setOriginPort((result[i][4]));
+			ff.setRoundTrip(Integer.parseInt(result[i][5]));
 			ff.setOriginTime(Integer.parseInt(result[i][6]));
 			ff.setOriginNode(inputData.getNodeSet().get(ff.getOriginNodeID()));
 
@@ -916,7 +909,7 @@ public class ReadData{
 	 **/
 	private void readNodes()
 	{
-		String[][] result = read_to_string(filePath +"Nodes.txt");
+		String[][] result = read_to_string(filePath + DefaultSetting.NODES_FILENAME);
 
 		Map<Integer, Node> nodeMap =new HashMap<>();
 
@@ -936,7 +929,7 @@ public class ReadData{
 			ff.setCall(parseInt(result[i][mapToIndex.get("Call")].trim()));
 			ff.setPortString(result[i][mapToIndex.get("Port")].trim());
 			ff.setPort(inputData.getPortSet().get(ff.getPortString()));
-			ff.setRoundTrip(parseInt(result[i][mapToIndex.get("Round_trip")].trim()));
+			ff.setRoundTrip(parseInt(result[i][mapToIndex.get("RoundTrip")].trim()));
 			ff.setTime(parseInt(result[i][mapToIndex.get("Time")].trim()));
 			if(ff.getTime()<timeHorizon){
 				nodeMap.put(ff.getNodeID(), ff);

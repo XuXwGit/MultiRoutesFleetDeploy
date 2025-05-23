@@ -1,4 +1,4 @@
-TransshipArc ID	Port	Origin_node_ID	OriginTime	TransshipTime	Destination_node_ID	DestinationTime	FromRoute	ToRoute
+TransshipArcID	Port	OriginNodeID	OriginTime	TransshipTime	DestinationNodeID	DestinationTime	FromRoute	ToRoute
 557	SHEKOU	2	7	3	225	10	1	2
 558	SHEKOU	2	7	10	241	17	1	2
 559	HONG KONG	3	8	3	226	11	1	2
@@ -1165,6 +1165,3 @@ TransshipArc ID	Port	Origin_node_ID	OriginTime	TransshipTime	Destination_node_ID
 1720	BUENAVENTURA	578	133	1	423	134	3	2
 1721	CALLAO	579	138	2	424	140	3	2
 1722	MANZANILLO(MX)	586	130	3	202	133	3	1
-1723	MANZANILLO(MX)	586	130	4	381	134	3	2
-1724	MANZANILLO(MX)	586	130	11	397	141	3	2
-1725	BALBOA	587	137	1	203	138	3	1

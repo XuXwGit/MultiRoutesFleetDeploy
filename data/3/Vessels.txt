@@ -1,4 +1,4 @@
-VesselID	Capacity	OperationCost	RouteID	MaxNum
+VesselID	Capacity	OperatingCost	RouteID	MaxNum
 1	10642	14.69	1	1
 2	11388	14.877	1	1
 3	15072	15.798	1	1

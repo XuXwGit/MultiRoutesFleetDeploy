@@ -226,34 +226,40 @@
                                                         <div class="mb-2">
                                                                 <label class="form-label">时间窗口 (0-180)</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="time_window" min="0" max="180" value="60">
+                                                                        name="time_window" min="0" max="180" value="60"
+                                                                        placeholder="请输入时间窗口" title="请输入时间窗口">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">空箱周转时间</label>
                                                                 <input type="number" class="form-control"
                                                                         name="turn_over_time" min="0" max="180"
-                                                                        value="14">
+                                                                        value="14" placeholder="请输入空箱周转时间"
+                                                                        title="请输入空箱周转时间">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">鲁棒系数</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="robustness" step="100" value="1.0">
+                                                                        name="robustness" step="100" value="1.0"
+                                                                        placeholder="请输入鲁棒系数" title="请输入鲁棒系数">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">需求波动程度</label>
                                                                 <input type="number" class="form-control"
                                                                         name="demand_fluctuation" step="0.01"
-                                                                        value="0.1">
+                                                                        value="0.1" placeholder="请输入需求波动程度"
+                                                                        title="请输入需求波动程度">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">空箱单位租赁成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="empty_rent_cost" step="1" value="10">
+                                                                        name="empty_rent_cost" step="1" value="10"
+                                                                        placeholder="请输入空箱单位租赁成本" title="请输入空箱单位租赁成本">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">违约惩罚系数</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="penalty_coeff" step="1.0" value="100">
+                                                                        name="penalty_coeff" step="1.0" value="100"
+                                                                        placeholder="请输入违约惩罚系数" title="请输入违约惩罚系数">
                                                         </div>
                                                 </form>
                                         </div>
@@ -262,28 +268,33 @@
                                                         <div class="mb-2">
                                                                 <label class="form-label">港口装载操作成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_load_cost" step="1" value="50">
+                                                                        name="port_load_cost" step="1" value="50"
+                                                                        placeholder="请输入港口装载操作成本" title="请输入港口装载操作成本">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">港口卸载操作成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_unload_cost" step="5" value="50">
+                                                                        name="port_unload_cost" step="5" value="50"
+                                                                        placeholder="请输入港口卸载操作成本" title="请输入港口卸载操作成本">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">港口转运操作成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_transship_cost" step="5" value="50">
+                                                                        name="port_transship_cost" step="5" value="50"
+                                                                        placeholder="请输入港口转运操作成本" title="请输入港口转运操作成本">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">重箱港口滞留成本</label>
                                                                 <div class="input-group">
                                                                         <input type="number" class="form-control"
                                                                                 name="laden_stay_cost" step="0.01"
-                                                                                value="2">
+                                                                                value="2" placeholder="请输入重箱港口滞留成本"
+                                                                                title="请输入重箱港口滞留成本">
                                                                         <span class="input-group-text">成本值</span>
                                                                         <input type="number" class="form-control"
                                                                                 name="laden_stay_free_time" step="1"
-                                                                                value="3">
+                                                                                value="3" placeholder="请输入重箱滞留豁免时间"
+                                                                                title="请输入重箱滞留豁免时间">
                                                                         <span class="input-group-text">豁免时间</span>
                                                                 </div>
                                                         </div>
@@ -292,11 +303,13 @@
                                                                 <div class="input-group">
                                                                         <input type="number" class="form-control"
                                                                                 name="empty_stay_cost" step="0.01"
-                                                                                value="1">
+                                                                                value="1" placeholder="请输入空箱港口滞留成本"
+                                                                                title="请输入空箱港口滞留成本">
                                                                         <span class="input-group-text">成本值</span>
                                                                         <input type="number" class="form-control"
                                                                                 name="empty_stay_free_time" step="1"
-                                                                                value="3">
+                                                                                value="3" placeholder="请输入空箱滞留豁免时间"
+                                                                                title="请输入空箱滞留豁免时间">
                                                                         <span class="input-group-text">豁免时间</span>
                                                                 </div>
                                                         </div>
@@ -307,7 +320,7 @@
                                                                         <div class="mb-2">
                                                                                 <label class="form-label">求解算法</label>
                                                                                 <select class="form-select"
-                                                                                        name="solver">
+                                                                                        name="solver" title="请选择求解算法">
                                                                                         <option value="cplex">Cplex
                                                                                                 Solver</option>
                                                                                         <option value="benders">Benders
@@ -324,17 +337,20 @@
                                                         <div class="mb-2">
                                                                 <label class="form-label">最大迭代次数 (0-1000)</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="max_iter" min="0" max="1000" value="100">
+                                                                        name="max_iter" min="0" max="1000" value="100"
+                                                                        placeholder="请输入最大迭代次数" title="请输入最大迭代次数">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">最大求解时间 (0-3600s)</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="max_time" min="0" max="3600" value="600">
+                                                                        name="max_time" min="0" max="3600" value="600"
+                                                                        placeholder="请输入最大求解时间" title="请输入最大求解时间">
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">MIP Gap</label>
                                                                 <input type="number" class="form-control" name="mip_gap"
-                                                                        step="0.0001" value="0.01">
+                                                                        step="0.0001" value="0.01" placeholder="请输入MIP
+                                                                        Gap" title="请输入MIP Gap">
                                                         </div>
                                                         </form>
                                                         </div>
@@ -425,17 +441,26 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
         <script>
+let logEventSource = null;
+
                 function startOptimize() {
-                // 收集参数
+                // 检查表单是否正确获取
                 const modelForm = document.getElementById('modelParamsForm');
-                const algoForm = document.getElementById('algoParamsForm');
+                console.log(modelForm);
+
+                // 测试参数收集
                 const modelData = Object.fromEntries(new FormData(modelForm).entries());
+                console.log(modelData);
+                const algoForm = document.getElementById('algoParamsForm');
                 const algoData = Object.fromEntries(new FormData(algoForm).entries());
                 const params = {...modelData, ...algoData};
                 // 显示进度条
                 document.getElementById('optProgressBar').style.display = '';
                 document.getElementById('optProgress').style.width = '10%';
-                document.getElementById('optLog').innerText = '正在提交优化请求...';
+                // 清空并显示日志区域
+                const logArea = document.getElementById('optLog');
+                logArea.innerHTML = '<div class="log-entry">正在提交优化请求...</div>';
+                openLogDrawer(); // 自动打开日志抽屉
                 // 清空结果
                 document.getElementById('result_time').innerText = '-';
                 document.getElementById('result_total_cost').innerText = '-';
@@ -443,34 +468,86 @@
                 document.getElementById('result_lcec').innerText = '-';
                 document.getElementById('result_rc').innerText = '-';
                 document.getElementById('result_pc').innerText = '-';
-                        fetch('/api/optimize', {
-                                        method: 'POST',
-                                        headers: {'Content-Type': 'application/json'},
-                                        body: JSON.stringify(params)
-                                        })
-                                .then(res => res.json())
-                                .then(data => {
-                                        if(data.status === 'success'){
-                                        document.getElementById('optProgress').style.width = '100%';
-                                        document.getElementById('optLog').innerText += '\n优化完成！';
-                                        // 展示结果
-                                        document.getElementById('result_time').innerText = data.result_time || '-';
-                                        document.getElementById('result_total_cost').innerText = data.total_cost || '-';
-                                        document.getElementById('result_oc').innerText = data.oc || '-';
-                                        document.getElementById('result_lcec').innerText = data.lcec || '-';
-                                        document.getElementById('result_rc').innerText = data.rc || '-';
-                                        document.getElementById('result_pc').innerText = data.pc || '-';
-                                        }else{
-                                        document.getElementById('optLog').innerText += '\n优化失败: ' + (data.message ||
-                                        '未知错误');
-                                        }
-                                })
-                                .catch(err => {
-                                document.getElementById('optLog').innerText += '\n请求异常: ' + err;
-                                })
-                                .finally(()=>{
-                                document.getElementById('optProgress').style.width = '100%';
-                                });
+                // 添加超时处理
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 300* 60* 1000); // 30秒超时
+                fetch('/api/optimize', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(params),
+                signal: controller.signal
+                })
+                .then(res => {
+                clearTimeout(timeoutId);
+                if (!res.ok) {
+                throw new Error(`服务器响应错误: ${res.status} ${res.statusText}`);
+                }
+                return res.json();
+                })
+                .then(data => {
+                // 关闭实时日志连接
+                if (logEventSource) {
+                logEventSource.close();
+                logEventSource = null;
+                }
+
+                if(data.status === 'success') {
+                document.getElementById('optProgress').style.width = '100%';
+                // 处理日志显示 - 保留，以防实时日志中有遗漏
+                const logLines = data.log.split('\n');
+
+                logLines.forEach(line => {
+                if(line.trim() && !logArea.textContent.includes(line)) { // 只显示非空行且不重复的日志
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                logEntry.textContent = line;
+                logArea.appendChild(logEntry);
+                }
+                });
+
+                // 滚动到最新日志
+                logArea.scrollTop = logArea.scrollHeight;
+
+                // 展示结果
+                document.getElementById('result_time').innerText = data.result_time || '-';
+                document.getElementById('result_total_cost').innerText = data.total_cost || '-';
+                document.getElementById('result_oc').innerText = data.oc || '-';
+                document.getElementById('result_lcec').innerText = data.lcec || '-';
+                document.getElementById('result_rc').innerText = data.rc || '-';
+                document.getElementById('result_pc').innerText = data.pc || '-';
+                } else {
+                const errorEntry = document.createElement('div');
+                errorEntry.className = 'log-entry error';
+                errorEntry.textContent = '优化失败: ' + (data.message || '未知错误');
+                logArea.appendChild(errorEntry);
+                }
+                })
+                .catch(err => {
+                clearTimeout(timeoutId);
+                // 关闭实时日志连接
+                if (logEventSource) {
+                logEventSource.close();
+                logEventSource = null;
+                }
+
+                const errorEntry = document.createElement('div');
+                errorEntry.className = 'log-entry error';
+
+                // 根据不同错误类型显示不同的错误信息
+                if (err.name === 'AbortError') {
+                errorEntry.textContent = '请求超时: 服务器响应时间过长，请检查后端服务是否正常运行';
+                } else if (err.message.includes('Failed to fetch')) {
+                errorEntry.textContent = '连接错误: 无法连接到服务器，请确保后端服务正在运行';
+                } else {
+                errorEntry.textContent = '请求异常: ' + err.message;
+                }
+
+                logArea.appendChild(errorEntry);
+                console.error('API请求错误:', err);
+                })
+                .finally(() => {
+                document.getElementById('optProgress').style.width = '100%';
+                });
                 }
 
                 function openLogDrawer() {
@@ -478,7 +555,38 @@
                 }
                 function closeLogDrawer() {
                 document.getElementById('logDrawer').classList.remove('open');
+                // 关闭日志流连接
+                if (logEventSource) {
+                logEventSource.close();
+                logEventSource = null;
                 }
+                }
+                // 添加日志样式
+                const style = document.createElement('style');
+                style.textContent = `
+                .log-entry {
+                padding: 4px 8px;
+                margin: 2px 0;
+                border-radius: 4px;
+                font-family: monospace;
+                white-space: pre-wrap;
+                word-break: break-all;
+                }
+                .log-entry.error {
+                background-color: #ffebee;
+                color: #c62828;
+                }
+                #optLog {
+                background: #f8f9fa;
+                border-radius: 8px;
+                padding: 12px;
+                font-size: 0.9rem;
+                line-height: 1.4;
+                max-height: 500px;
+                overflow-y: auto;
+}
+`;
+document.head.appendChild(style);
         </script>
 </body>
 
