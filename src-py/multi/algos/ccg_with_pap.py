@@ -125,7 +125,7 @@ class CCGwithPAP(AlgoFrame):
                 self.iteration += 1
             
             # 获取最终结果
-            self._get_final_results()
+            self._set_algo_results()
             
             # 输出结果
             self._output_results()
@@ -283,7 +283,7 @@ class CCGwithPAP(AlgoFrame):
         
         return False
     
-    def _get_final_results(self):
+    def _set_algo_results(self):
         """
         获取最终结果
         """

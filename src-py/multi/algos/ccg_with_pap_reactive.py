@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
 from multi.utils.default_setting import DefaultSetting
-from multi.network import Port, Node, Arc, VesselPath, Request, ShipRoute, ContainerPath, VesselType, ODRange
 from multi.model.primal.determine_model import DetermineModel
 from multi.model.dual.dual_sub_problem_reactive import DualSubProblemReactive
 from multi.model.primal.sub_problem_reactive import SubProblemReactive
@@ -145,7 +144,7 @@ class CCGwithPAP_Reactive(AlgoFrame):
                 self.iteration += 1
             
             # 获取最终结果
-            self._get_final_results()
+            self._set_algo_results()
             
             # 输出结果
             self._output_results()
@@ -303,7 +302,7 @@ class CCGwithPAP_Reactive(AlgoFrame):
         
         return False
     
-    def _get_final_results(self):
+    def _set_algo_results(self):
         """
         获取最终结果
         """

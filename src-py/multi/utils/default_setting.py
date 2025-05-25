@@ -1,186 +1,498 @@
+"""
+@Author: XuXw
+@Description: 默认设置类，对应Java版本DefaultSetting.java
+@DateTime: 2024/12/4 21:54
+"""
+import argparse
 import logging
 import os
 import random
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, TextIO
 
 logger = logging.getLogger(__name__)
 
 class DefaultSetting:
     """
     默认设置类
+    对应Java类: multi.DefaultSetting
     
     定义系统运行所需的默认参数和配置
     """
     
-    # 数值实验测试
-    VESSEL_CAPACITY_RANGE = "I"  # 船舶容量范围
-    FLEET_TYPE = "Hetero"        # 船队类型：Homo/Hetero
+    ##################################
+    # 数值实验测试 - 对应Java中的Numerical Experiment Test部分
+    ##################################
+    # 船舶容量范围 - 对应Java: public static String VesselCapacityRange = "I";
+    VESSEL_CAPACITY_RANGE = "I" 
+    # 船队类型：Homo/Hetero - 对应Java: public static String FleetType = "Hetero";
+    FLEET_TYPE = "Hetero"        
     
-    # 集装箱设置
-    ALLOW_FOLDABLE_CONTAINER = True  # 是否允许折叠箱
-    IS_EMPTY_REPOSITION = False      # 空箱调度方式：是否重定向
+    ##################################
+    # 集装箱设置 - 对应Java中的container settings
+    ##################################
+    # 是否允许折叠箱 - 对应Java: public static boolean AllowFoldableContainer = true;
+    ALLOW_FOLDABLE_CONTAINER = True  
+    # 空箱调度方式：是否重定向 - 对应Java: public static boolean IsEmptyReposition = false;
+    IS_EMPTY_REPOSITION = False      
     
-    # 策略设置
-    REDUCE_PATH_PERCENTAGE = 0       # 路径减少百分比
-    MAX_LADEN_PATHS_NUM = 5         # 最大重箱路径数
-    MAX_EMPTY_PATHS_NUM = 5         # 最大空箱路径数
-    USE_PARETO_OPTIMAL_CUT = True   # 是否使用帕累托最优切割
-    USE_LOCAL_SEARCH = True         # 是否使用局部搜索
+    ##################################
+    # 策略设置 - 对应Java中的Strategy DefaultSetting
+    ##################################
+    # 路径减少百分比 - 对应Java: public static double reducePathPercentage = 0;
+    REDUCE_PATH_PERCENTAGE = 0       
+    # 最大重箱路径数 - 对应Java: public static int MaxLadenPathsNum = 5;
+    MAX_LADEN_PATHS_NUM = 5         
+    # 最大空箱路径数 - 对应Java: public static int MaxEmptyPathsNum = 5;
+    MAX_EMPTY_PATHS_NUM = 5         
+    # 是否使用帕累托最优切割 - 对应Java: public static boolean UseParetoOptimalCut = true;
+    USE_PARETO_OPTIMAL_CUT = True   
+    # 是否使用局部搜索 - 对应Java: public static boolean UseLocalSearch = true;
+    USE_LOCAL_SEARCH = True         
     
-    # 默认数据参数设置
-    DEFAULT_UNIT_RENTAL_COST = 50           # 默认单位租赁成本
-    DEFAULT_LADEN_DEMURRAGE_COST = 175      # 默认重箱滞期成本
-    DEFAULT_EMPTY_DEMURRAGE_COST = 100      # 默认空箱滞期成本
-    DEFAULT_UNIT_LOADING_COST = 20          # 默认单位装载成本
-    DEFAULT_UNIT_DISCHARGE_COST = 20        # 默认单位卸载成本
-    DEFAULT_UNIT_TRANSSHIPMENT_COST = 30    # 默认单位转运成本
-    DEFAULT_TURN_OVER_TIME = 14             # 默认周转时间
-    DEFAULT_FOLD_CONTAINER_PERCENT = 0.15   # 默认折叠箱比例
-    DEFAULT_FOLD_EMPTY_COST_BIAS = 15       # 默认折叠空箱成本偏差
+    ##################################
+    # 默认数据参数设置 - 对应Java中的Default Data Parameter Setting
+    ##################################
+    # 默认单位租赁成本 - 对应Java: public static int DefaultUnitRentalCost = 50;
+    DEFAULT_UNIT_RENTAL_COST = 50           
+    # 默认重箱滞期成本 - 对应Java: public static int DefaultLadenDemurrageCost = 175;
+    DEFAULT_LADEN_DEMURRAGE_COST = 175      
+    # 默认空箱滞期成本 - 对应Java: public static int DefaultEmptyDemurrageCost = 100;
+    DEFAULT_EMPTY_DEMURRAGE_COST = 100      
+    # 默认单位装载成本 - 对应Java: public static int DefaultUnitLoadingCost = 20;
+    DEFAULT_UNIT_LOADING_COST = 20          
+    # 默认单位卸载成本 - 对应Java: public static int DefaultUnitDischargeCost = 20;
+    DEFAULT_UNIT_DISCHARGE_COST = 20        
+    # 默认单位转运成本 - 对应Java: public static int DefaultUnitTransshipmentCost = 30;
+    DEFAULT_UNIT_TRANSSHIPMENT_COST = 30    
+    # 默认计划期 - 对应Java: public static int DefaultTimeHorizon = 60;
+    DEFAULT_TIME_HORIZON = 60
+    # 默认周转时间 - 对应Java: public static int DefaultTurnOverTime = 14;
+    DEFAULT_TURN_OVER_TIME = 14             
+    # 默认折叠箱比例 - 对应Java: public static double DefaultFoldContainerPercent = 0.15;
+    DEFAULT_FOLD_CONTAINER_PERCENT = 0.15   
+    # 默认折叠空箱成本偏差 - 对应Java: public static double DefaultFoldEmptyCostBias = 15;
+    DEFAULT_FOLD_EMPTY_COST_BIAS = 15       
     
-    # 调试设置
-    DEBUG_ENABLE = False            # 是否启用调试
-    GENERATE_PARAM_ENABLE = False   # 是否在生成参数时显示设置信息
-    SUB_ENABLE = True              # 是否在子问题中显示设置信息
-    DUAL_ENABLE = False            # 是否在对偶问题中显示设置信息
-    DUAL_SUB_ENABLE = True         # 是否在对偶子问题中显示设置信息
-    MASTER_ENABLE = False          # 是否在主问题中显示设置信息
+    ##################################
+    # 调试设置 - 对应Java中的debug settings
+    ##################################
+    # 是否启用调试 - 对应Java: public static boolean DebugEnable = false;
+    DEBUG_ENABLE = False            
+    # 是否在生成参数时显示设置信息 - 对应Java: public static boolean GenerateParamEnable = false;
+    GENERATE_PARAM_ENABLE = False   
+    # 是否在子问题中显示设置信息 - 对应Java: public static boolean SubEnable = true;
+    SUB_ENABLE = True              
+    # 是否在对偶问题中显示设置信息 - 对应Java: public static boolean DualEnable = false;
+    DUAL_ENABLE = False            
+    # 是否在对偶子问题中显示设置信息 - 对应Java: public static boolean DualSubEnable = true;
+    DUAL_SUB_ENABLE = True         
+    # 是否在主问题中显示设置信息 - 对应Java: public static boolean MasterEnable = false;
+    MASTER_ENABLE = False          
     
-    # 输入数据设置
-    REQUEST_INCLUDE_RANGE = 0               # 请求包含范围
-    WHETHER_ALLOW_SAME_REGION_TRANS = True  # 是否允许同区域转运
-    WHETHER_CUTTING_OVER_COST_PATHS = True  # 是否切割超成本路径
+    ##################################
+    # 输入数据设置 - 对应Java中的Input Data Settings
+    ##################################
+    # 请求包含范围 - 对应Java: public static double RequestIncludeRange = 0;
+    REQUEST_INCLUDE_RANGE = 0               
+    # 是否允许同区域转运 - 对应Java: public static boolean WhetherAllowSameRegionTrans = true;
+    WHETHER_ALLOW_SAME_REGION_TRANS = True  
+    # 是否切割超成本路径 - 对应Java: public static boolean WhetherCuttingOverCostPaths = true;
+    WHETHER_CUTTING_OVER_COST_PATHS = True  
     
-    # 随机设置
-    DISTRIBUTION_TYPE = "Uniform"           # 分布类型：Log-Normal/Uniform/Normal
-    RANDOM_SEED = 0                         # 随机种子
-    WHETHER_GENERATE_SAMPLES = True         # 是否生成样本
-    WHETHER_CALCULATE_MEAN_PERFORMANCE = False  # 是否计算平均性能
-    WHETHER_WRITE_SAMPLE_TESTS = False      # 是否写入样本测试
-    WHETHER_LOAD_SAMPLE_TESTS = False       # 是否加载样本测试
-    NUM_SAMPLE_SCENES = 10                  # 样本场景数量
-    LOG_NORMAL_SIGMA_FACTOR = 1.0           # 对数正态分布sigma因子
-    BUDGET_COEFFICIENT = 1.0                # 预算系数
-    DEFAULT_UNCERTAIN_DEGREE = 0.15         # 默认不确定度
-    PENALTY_COEFFICIENT = 1.0               # 惩罚系数
-    INITIAL_EMPTY_CONTAINERS = 28           # 初始空箱数量
+    ##################################
+    # 随机设置 - 对应Java中的Random Setting
+    ##################################
+    # 分布类型：Log-Normal/Uniform/Normal - 对应Java: public static String distributionType = "Uniform";
+    DISTRIBUTION_TYPE = "Uniform"           
+    # 随机数生成器 - 对应Java: public static Random random;
+    random = None
+    # 随机种子 - 对应Java: public static int randomSeed = 0;
+    RANDOM_SEED = 0                         
+    # 是否生成样本 - 对应Java: public static boolean WhetherGenerateSamples = true;
+    WHETHER_GENERATE_SAMPLES = True         
+    # 是否计算平均性能 - 对应Java: public static boolean WhetherCalculateMeanPerformance = false;
+    WHETHER_CALCULATE_MEAN_PERFORMANCE = False  
+    # 是否写入样本测试 - 对应Java: public static boolean WhetherWriteSampleTests = true;
+    WHETHER_WRITE_SAMPLE_TESTS = True      
+    # 是否加载样本测试 - 对应Java: public static boolean WhetherLoadSampleTests = false;
+    WHETHER_LOAD_SAMPLE_TESTS = False       
+    # 样本场景数量 - 对应Java: public static int numSampleScenes = 10;
+    NUM_SAMPLE_SCENES = 10                  
+    # 对数正态分布sigma因子 - 对应Java: public static double log_normal_sigma_factor = 1.0;
+    LOG_NORMAL_SIGMA_FACTOR = 1.0           
+    # 预算系数 - 对应Java: public static double budgetCoefficient = 1.0;
+    BUDGET_COEFFICIENT = 1.0                
+    # 默认不确定度 - 对应Java: public static double defaultUncertainDegree = 0.15;
+    DEFAULT_UNCERTAIN_DEGREE = 0.15         
+    # 惩罚系数 - 对应Java: public static double penaltyCoefficient = 1.0;
+    PENALTY_COEFFICIENT = 1.0               
+    # 初始空箱数量 - 对应Java: public static int initialEmptyContainers = 28;
+    INITIAL_EMPTY_CONTAINERS = 28           
+    # 鲁棒性 - 对应Java: public static int robustness = 1;
+    ROBUSTNESS = 1
+    # 重箱滞期免费时间 - 对应Java: public static int ladenStayFreeTime = 7;
+    LADEN_STAY_FREE_TIME = 7
+    # 空箱滞期免费时间 - 对应Java: public static int emptyStayFreeTime = 7;
+    EMPTY_STAY_FREE_TIME = 7
+
+    ##################################
+    # 日志设置 - 对应Java中的logging settings
+    ##################################
+    # 是否写入文件日志 - 对应Java: public static boolean WhetherWriteFileLog = false;
+    WHETHER_WRITE_FILE_LOG = False          
+    # 是否打印文件日志 - 对应Java: public static boolean WhetherPrintFileLog = false;
+    WHETHER_PRINT_FILE_LOG = False          
+    # 是否打印数据状态 - 对应Java: public static boolean WhetherPrintDataStatus = false;
+    WHETHER_PRINT_DATA_STATUS = False       
+    # 是否打印船舶决策 - 对应Java: public static boolean WhetherPrintVesselDecision = false;
+    WHETHER_PRINT_VESSEL_DECISION = False   
+    # 是否打印请求决策 - 对应Java: public static boolean WhetherPrintRequestDecision = false;
+    WHETHER_PRINT_REQUEST_DECISION = False  
+    # 是否打印迭代信息 - 对应Java: public static boolean WhetherPrintIteration = true;
+    WHETHER_PRINT_ITERATION = True          
+    # 是否打印求解时间 - 对应Java: public static boolean WhetherPrintSolveTime = false;
+    WHETHER_PRINT_SOLVE_TIME = False        
+    # 是否打印处理过程 - 对应Java: public static boolean WhetherPrintProcess = true;
+    WHETHER_PRINT_PROCESS = True            
     
-    # 日志设置
-    WHETHER_WRITE_FILE_LOG = False          # 是否写入文件日志
-    WHETHER_PRINT_FILE_LOG = False          # 是否打印文件日志
-    WHETHER_PRINT_DATA_STATUS = False       # 是否打印数据状态
-    WHETHER_PRINT_VESSEL_DECISION = False   # 是否打印船舶决策
-    WHETHER_PRINT_REQUEST_DECISION = False  # 是否打印请求决策
-    WHETHER_PRINT_ITERATION = True          # 是否打印迭代信息
-    WHETHER_PRINT_SOLVE_TIME = False        # 是否打印求解时间
-    WHETHER_PRINT_PROCESS = True            # 是否打印处理过程
+    ##################################
+    # CPLEX求解器设置 - 对应Java中的Cplex Solver Settings
+    ##################################
+    # 是否导出模型 - 对应Java: public static boolean WhetherExportModel = false;
+    WHETHER_EXPORT_MODEL = False            
+    # 是否关闭输出日志 - 对应Java: public static boolean WhetherCloseOutputLog = true;
+    WHETHER_CLOSE_OUTPUT_LOG = True         
+    # MIP求解间隙限制 - 对应Java: public static double MIPGapLimit = 1e-3;
+    MIP_GAP_LIMIT = 1e-3                    
+    # MIP求解时间限制（秒） - 对应Java: public static double MIPTimeLimit = 36000;
+    MIP_TIME_LIMIT = 36000                  
+    # 最大线程数 - 对应Java: public static int MaxThreads = Runtime.getRuntime().availableProcessors();
+    MAX_THREADS = os.cpu_count()            
+    # 最大工作内存 - 对应Java: public static long MaxWorkMem = (Runtime.getRuntime().maxMemory() >> 20);
+    MAX_WORK_MEM = sys.maxsize >> 20        
     
-    # CPLEX求解器设置
-    WHETHER_EXPORT_MODEL = False            # 是否导出模型
-    WHETHER_CLOSE_OUTPUT_LOG = True         # 是否关闭输出日志
-    MIP_GAP_LIMIT = 1e-3                    # MIP求解间隙限制
-    MIP_TIME_LIMIT = 36000                  # MIP求解时间限制（秒）
-    MAX_THREADS = os.cpu_count()            # 最大线程数
-    MAX_WORK_MEM = sys.maxsize >> 20        # 最大工作内存
+    ##################################
+    # 算法设置 - 对应Java中的Algo DefaultSetting
+    ##################################
+    # 算法类型 - 对应Java: public static String algorithm = "bd";
+    DEFAULT_ALGORITHM = "bd"
+    # 最大迭代次数 - 对应Java: public static int maxIterationNum = 100;
+    MAX_ITERATION_NUM = 100                 
+    # 最大迭代时间 - 对应Java: public static int maxIterationTime = 3600;
+    MAX_ITERATION_TIME = 3600               
+    # 边界间隙限制 - 对应Java: public static double boundGapLimit = 1.0;
+    BOUND_GAP_LIMIT = 1.0                   
+    # 是否设置初始解 - 对应Java: public static boolean WhetherSetInitialSolution = false;
+    WHETHER_SET_INITIAL_SOLUTION = False    
+    # 是否添加初始化场景 - 对应Java: public static boolean WhetherAddInitializeSce = false;
+    WHETHER_ADD_INITIALIZE_SCE = False      
+    # 是否使用CCG-PAP-SP - 对应Java: public static boolean CCG_PAP_Use_Sp = true;
+    CCG_PAP_USE_SP = True                   
+    # 是否使用历史解 - 对应Java: public static boolean UseHistorySolution = false;
+    USE_HISTORY_SOLUTION = False            
     
-    # 算法设置
-    MAX_ITERATION_NUM = 100                 # 最大迭代次数
-    MAX_ITERATION_TIME = 3600               # 最大迭代时间
-    BOUND_GAP_LIMIT = 1.0                   # 边界间隙限制
-    WHETHER_SET_INITIAL_SOLUTION = False    # 是否设置初始解
-    WHETHER_ADD_INITIALIZE_SCE = False      # 是否添加初始化场景
-    CCG_PAP_USE_SP = True                   # 是否使用CCG-PAP-SP
-    USE_HISTORY_SOLUTION = False            # 是否使用历史解
+    ##################################
+    # Python编程设置 - 对应Java中的Java Programming DefaultSetting
+    ##################################
+    # 是否使用多线程 - 对应Java: public static boolean WhetherUseMultiThreads = false;
+    WHETHER_USE_MULTI_THREADS = True        
+    # 进度条宽度 - 对应Java: public static int ProgressBarWidth = 50;
+    PROGRESS_BAR_WIDTH = 50                 
     
-    # Python编程设置
-    WHETHER_USE_MULTI_THREAD = False        # 是否使用多线程
-    PROGRESS_BAR_WIDTH = 50                 # 进度条宽度
+    ##################################
+    # 路径设置 - 对应Java中的Root path
+    ##################################
+    # 根路径 - 对应Java: public static String RootPath = System.getProperty("user.dir") + "/";
+    ROOT_PATH = os.getcwd() + "/"           
+    # 数据路径 - 对应Java: public static String DataPath = "data/";
+    DATA_PATH = "data/"                     
+    # 案例路径 - 对应Java: public static String CasePath = "1/";
+    CASE_PATH = "1/"                        
+    # 模型导出路径 - 对应Java: public static String ExportModelPath = "model/";
+    EXPORT_MODEL_PATH = "model/"            
+    # 算法日志路径 - 对应Java: public static String AlgoLogPath = "log/";
+    ALGO_LOG_PATH = "log/"                  
+    # 解决方案路径 - 对应Java: public static String SolutionPath = "solution/";
+    SOLUTION_PATH = "solution/"             
+    # 测试结果路径 - 对应Java: public static String TestResultPath = "result/";
+    TEST_RESULT_PATH = "result/"            
     
-    # 路径设置
-    ROOT_PATH = os.getcwd() + "/"           # 根路径
-    DATA_PATH = "data/"                     # 数据路径
-    CASE_PATH = "1/"                        # 案例路径
-    EXPORT_MODEL_PATH = "model/"            # 模型导出路径
-    ALGO_LOG_PATH = "log/"                  # 算法日志路径
-    SOLUTION_PATH = "solution/"             # 解决方案路径
-    TEST_RESULT_PATH = "result/"            # 测试结果路径
+    # ================== 数据文件名常量 ==================
+    PORTS_FILENAME = "Ports.txt"
+    ROUTES_FILENAME = "ShippingRoutes.txt"
+    NODES_FILENAME = "Nodes.txt"
+    TRAVELING_ARCS_FILENAME = "TravelingArcs.txt"
+    TRANSSHIP_ARCS_FILENAME = "TransshipArcs.txt"
+    VESSEL_PATHS_FILENAME = "VesselPaths.txt"
+    LADEN_PATHS_FILENAME = "LadenPaths.txt"
+    EMPTY_PATHS_FILENAME = "EmptyPaths.txt"
+    REQUESTS_FILENAME = "Requests.txt"
+    VESSELS_FILENAME = "Vessels.txt"
+    DEMAND_RANGE_FILENAME = "DemandRange.txt"
+    PATHS_FILENAME = "Paths.txt"
+    HISTORY_SOLUTION_FILENAME = "HistorySolution.txt"
+    SAMPLE_SCENES_FILENAME = "SampleScenes.txt"
     
+    # ================== 文件名称-数据库表名映射 ==================
+    FILE_TABLE_MAP = {
+        PORTS_FILENAME: "ports",
+        ROUTES_FILENAME: "routes",
+        VESSELS_FILENAME: "ships",
+        NODES_FILENAME: "nodes",
+        TRAVELING_ARCS_FILENAME: "traveling_arcs",
+        TRANSSHIP_ARCS_FILENAME: "transship_arcs",
+        VESSEL_PATHS_FILENAME: "vessel_paths",
+        LADEN_PATHS_FILENAME: "laden_paths",
+        EMPTY_PATHS_FILENAME: "empty_paths",
+        REQUESTS_FILENAME: "requests",
+        PATHS_FILENAME: "paths",
+        HISTORY_SOLUTION_FILENAME: "history_solution",
+        DEMAND_RANGE_FILENAME: "demand_range",
+        SAMPLE_SCENES_FILENAME: "sample_scenes",
+    }
+
+
+
     @staticmethod
-    def draw_progress_bar(progress: int):
+    def draw_progress_bar(progress: int) -> None:
         """
         在控制台打印带百分比的进度条
+        对应Java方法: public static void drawProgressBar(int progress)
         
         Args:
-            progress: 进度长度（0-100）
+            progress: 进度百分比(0-100)
         """
+        # 计算已完成的进度条数量
+        # 对应Java: int completedBars = progress * ProgressBarWidth / 100;
         completed_bars = progress * DefaultSetting.PROGRESS_BAR_WIDTH // 100
+        
+        # 构建进度条字符串
+        # 对应Java: StringBuilder progressBar = new StringBuilder();
+        # 对应Java: progressBar.append("\r[");
         progress_bar = ["\r["]
         
+        # 填充进度条
+        # 对应Java: for (int i = 0; i < ProgressBarWidth; i++) {
         for i in range(DefaultSetting.PROGRESS_BAR_WIDTH):
+            # 对应Java: if (i < completedBars) { progressBar.append("="); }
             if i < completed_bars:
                 progress_bar.append("=")
+            # 对应Java: else if (i == completedBars) { progressBar.append(">"); }
             elif i == completed_bars:
                 progress_bar.append(">")
+            # 对应Java: else { progressBar.append("   "); }
             else:
                 progress_bar.append(" ")
         
-        progress_bar.append(f"] {progress}%")
-        progress_bar.append("\r")
+        # 添加百分比
+        # 对应Java: progressBar.append("] ").append(progress).append("%");
+        # 对应Java: progressBar.append("\r");
+        progress_bar.append(f"] {progress}%\r")
         
+        # 输出进度条
+        # 对应Java: System.out.print(progressBar);
+        # 对应Java: System.out.flush();
         print("".join(progress_bar), end="", flush=True)
     
+
     @staticmethod
-    def print_settings():
+    def update_setting(attr: str, value: Any) -> None:
+        """
+        更新设置
+        对应Java方法: public static void updateSetting(String attr, Object value)
+        """
+        # 模型参数
+        if attr == "time_window":
+            DefaultSetting.DEFAULT_TIME_HORIZON = value
+        elif attr == "turn_over_time":
+            DefaultSetting.DEFAULT_TURN_OVER_TIME = value
+        elif attr == "robustness":
+            DefaultSetting.ROBUSTNESS = value
+        elif attr == "demand_fluctuation":
+            DefaultSetting.DEFAULT_UNCERTAIN_DEGREE = value
+        elif attr == 'empty_rent_cost':
+            DefaultSetting.DEFAULT_UNIT_RENTAL_COST = value
+        elif attr == 'penalty_coeff':
+            DefaultSetting.PENALTY_COEFFICIENT = value
+        elif attr == 'port_load_cost':
+            DefaultSetting.LOADING_COST = value
+        elif attr == 'port_unload_cost':
+            DefaultSetting.DEFAULT_UNIT_DISCHARGE_COST = value
+        elif attr == 'port_transship_cost':
+            DefaultSetting.DEFAULT_UNIT_TRANSSHIPMENT_COST = value
+        elif attr == 'laden_stay_cost':
+            DefaultSetting.DEFAULT_LADEN_DEMURRAGE_COST = value
+        elif attr == 'empty_stay_cost':
+            DefaultSetting.DEFAULT_EMPTY_DEMURRAGE_COST = value
+        elif attr == 'laden_stay_free_time':
+            DefaultSetting.LADEN_STAY_FREE_TIME = value
+        elif attr == 'empty_stay_free_time':
+            DefaultSetting.EMPTY_STAY_FREE_TIME = value
+            
+        # 算法参数
+        elif attr == 'algorithm':
+            DefaultSetting.DEFAULT_ALGORITHM = value
+        elif attr == 'max_iter':
+            DefaultSetting.MAX_ITERATION_NUM = value
+        elif attr == 'max_time':
+            DefaultSetting.MAX_ITERATION_TIME = value
+        elif attr == 'mip_gap':
+            DefaultSetting.MIP_GAP_LIMIT = value
+
+    @staticmethod
+    def update_setting_from_args(args):
+        for key, value in vars(args).items():
+            # 根据 key 和 value 更新 DefaultSetting
+            DefaultSetting.update_setting(attr=key, value=value)
+
+
+    @staticmethod
+    def update_setting_from_dict(setting_dict: Dict[str, Any]) -> None:
+        """
+        从字典更新设置
+        对应Java方法: public static void updateSettingFromDict(Map<String, Object> settingDict)
+        """
+        for key, value in setting_dict.items():
+            try:
+                DefaultSetting.update_setting(key, value)
+            except Exception as e:
+                logger.error(f"更新设置失败: {e}")
+
+    @staticmethod
+    def print_settings() -> None:
         """
         打印基本设置信息
+        对应Java方法: public static void printSettings()
         """
+        # 对应Java: log.info("======================"+ "Settings" + "======================");
         logger.info("======================Settings======================")
-        logger.info(f"Vessel Capacity Range: {DefaultSetting.VESSEL_CAPACITY_RANGE}")
-        logger.info(f"Fleet Type: {DefaultSetting.FLEET_TYPE}")
-        logger.info(f"Allow Foldable Container: {DefaultSetting.ALLOW_FOLDABLE_CONTAINER}")
-        logger.info(f"Is Empty Reposition: {DefaultSetting.IS_EMPTY_REPOSITION}")
-        logger.info(f"Use Pareto Optimal Cut: {DefaultSetting.USE_PARETO_OPTIMAL_CUT}")
-        logger.info(f"Use Local Search: {DefaultSetting.USE_LOCAL_SEARCH}")
-        logger.info(f"Distribution Type: {DefaultSetting.DISTRIBUTION_TYPE}")
-        logger.info(f"Random Seed: {DefaultSetting.RANDOM_SEED}")
-        logger.info(f"Number of Sample Scenes: {DefaultSetting.NUM_SAMPLE_SCENES}")
-        logger.info(f"MIP Gap Limit: {DefaultSetting.MIP_GAP_LIMIT}")
-        logger.info(f"MIP Time Limit: {DefaultSetting.MIP_TIME_LIMIT}")
-        logger.info(f"Max Threads: {DefaultSetting.MAX_THREADS}")
-        logger.info(f"Max Work Memory: {DefaultSetting.MAX_WORK_MEM}")
-        logger.info(f"Max Iteration Number: {DefaultSetting.MAX_ITERATION_NUM}")
-        logger.info(f"Max Iteration Time: {DefaultSetting.MAX_ITERATION_TIME}")
-        logger.info(f"Bound Gap Limit: {DefaultSetting.BOUND_GAP_LIMIT}")
-        logger.info("==================================================")
-    
+        
+        # 对应Java: log.info("FleetType = " + FleetType);
+        logger.info(f"FleetType = {DefaultSetting.FLEET_TYPE}")
+        
+        # 对应Java: log.info("VesselType Set = " + VesselCapacityRange);
+        logger.info(f"VesselType Set = {DefaultSetting.VESSEL_CAPACITY_RANGE}")
+        
+        # 对应Java: log.info("Random Distribution = " + distributionType);
+        logger.info(f"Random Distribution = {DefaultSetting.DISTRIBUTION_TYPE}")
+        
+        # 对应Java: log.info("MIPGapLimit = " + MIPGapLimit);
+        logger.info(f"MIPGapLimit = {DefaultSetting.MIP_GAP_LIMIT}")
+        
+        # 对应Java: log.info("MIPTimeLimit = " + MIPTimeLimit + "s");
+        logger.info(f"MIPTimeLimit = {DefaultSetting.MIP_TIME_LIMIT}s")
+        
+        # 对应Java: log.info("MaxThreads = " + MaxThreads);
+        logger.info(f"MaxThreads = {DefaultSetting.MAX_THREADS}")
+        
+        # 对应Java: log.info("MaxWorkMem = " + MaxWorkMem +"M");
+        logger.info(f"MaxWorkMem = {DefaultSetting.MAX_WORK_MEM}M")
+        
+        # 对应Java: log.info("NumSampleScenes = " + numSampleScenes);
+        logger.info(f"NumSampleScenes = {DefaultSetting.NUM_SAMPLE_SCENES}")
+        
+        # 对应Java: log.info("maxIterationNum = " + maxIterationNum);
+        logger.info(f"maxIterationNum = {DefaultSetting.MAX_ITERATION_NUM}")
+        
+        # 对应Java: log.info("maxIterationTime = " + maxIterationTime +"s");
+        logger.info(f"maxIterationTime = {DefaultSetting.MAX_ITERATION_TIME}s")
+        
+        # 对应Java: log.info("boundGapLimit = " + boundGapLimit);
+        logger.info(f"boundGapLimit = {DefaultSetting.BOUND_GAP_LIMIT}")
+        
+        # 对应Java: log.info("RandomSeed = "+randomSeed);
+        logger.info(f"RandomSeed = {DefaultSetting.RANDOM_SEED}")
+        
+        # 对应Java: log.info("WhetherLoadHistorySolution = " + UseHistorySolution);
+        logger.info(f"WhetherLoadHistorySolution = {DefaultSetting.USE_HISTORY_SOLUTION}")
+        
+        # 对应Java: log.info("WhetherAddInitializeSce = " + WhetherAddInitializeSce);
+        logger.info(f"WhetherAddInitializeSce = {DefaultSetting.WHETHER_ADD_INITIALIZE_SCE}")
+
     @staticmethod
-    def write_settings(file_writer):
+    def write_settings(file_writer: TextIO) -> None:
         """
-        将设置信息写入文件
+        写入基本设置信息到文件
+        对应Java方法: public static void writeSettings(FileWriter fileWriter)
         
         Args:
             file_writer: 文件写入器
+        
+        Raises:
+            RuntimeError: 如果写入过程中发生错误
         """
         try:
+            # 对应Java: fileWriter.write("======================"+ "Settings" + "======================\n");
             file_writer.write("======================Settings======================\n")
-            file_writer.write(f"Vessel Capacity Range: {DefaultSetting.VESSEL_CAPACITY_RANGE}\n")
-            file_writer.write(f"Fleet Type: {DefaultSetting.FLEET_TYPE}\n")
-            file_writer.write(f"Allow Foldable Container: {DefaultSetting.ALLOW_FOLDABLE_CONTAINER}\n")
-            file_writer.write(f"Is Empty Reposition: {DefaultSetting.IS_EMPTY_REPOSITION}\n")
-            file_writer.write(f"Use Pareto Optimal Cut: {DefaultSetting.USE_PARETO_OPTIMAL_CUT}\n")
-            file_writer.write(f"Use Local Search: {DefaultSetting.USE_LOCAL_SEARCH}\n")
-            file_writer.write(f"Distribution Type: {DefaultSetting.DISTRIBUTION_TYPE}\n")
-            file_writer.write(f"Random Seed: {DefaultSetting.RANDOM_SEED}\n")
-            file_writer.write(f"Number of Sample Scenes: {DefaultSetting.NUM_SAMPLE_SCENES}\n")
-            file_writer.write(f"MIP Gap Limit: {DefaultSetting.MIP_GAP_LIMIT}\n")
-            file_writer.write(f"MIP Time Limit: {DefaultSetting.MIP_TIME_LIMIT}\n")
-            file_writer.write(f"Max Threads: {DefaultSetting.MAX_THREADS}\n")
-            file_writer.write(f"Max Work Memory: {DefaultSetting.MAX_WORK_MEM}\n")
-            file_writer.write(f"Max Iteration Number: {DefaultSetting.MAX_ITERATION_NUM}\n")
-            file_writer.write(f"Max Iteration Time: {DefaultSetting.MAX_ITERATION_TIME}\n")
-            file_writer.write(f"Bound Gap Limit: {DefaultSetting.BOUND_GAP_LIMIT}\n")
-            file_writer.write("==================================================\n")
+            
+            # 对应Java: fileWriter.write("FleetType = " + FleetType + "\n");
+            file_writer.write(f"FleetType = {DefaultSetting.FLEET_TYPE}\n")
+            
+            # 对应Java: fileWriter.write("VesselType Set = " + VesselCapacityRange + "\n");
+            file_writer.write(f"VesselType Set = {DefaultSetting.VESSEL_CAPACITY_RANGE}\n")
+            
+            # 对应Java: fileWriter.write("Random Distribution = " + distributionType + "\n");
+            file_writer.write(f"Random Distribution = {DefaultSetting.DISTRIBUTION_TYPE}\n")
+            
+            # 对应Java: fileWriter.write("MIPGapLimit = " + MIPGapLimit + "\n");
+            file_writer.write(f"MIPGapLimit = {DefaultSetting.MIP_GAP_LIMIT}\n")
+            
+            # 对应Java: fileWriter.write("MIPTimeLimit = " + MIPTimeLimit + "s" + "\n");
+            file_writer.write(f"MIPTimeLimit = {DefaultSetting.MIP_TIME_LIMIT}s\n")
+            
+            # 对应Java: fileWriter.write("MaxThreads = " + MaxThreads + "\n");
+            file_writer.write(f"MaxThreads = {DefaultSetting.MAX_THREADS}\n")
+            
+            # 对应Java: fileWriter.write("MaxWorkMem = " + MaxWorkMem + "M" + "\n");
+            file_writer.write(f"MaxWorkMem = {DefaultSetting.MAX_WORK_MEM}M\n")
+            
+            # 对应Java: fileWriter.write("NumSampleScenes = " + numSampleScenes + "\n");
+            file_writer.write(f"NumSampleScenes = {DefaultSetting.NUM_SAMPLE_SCENES}\n")
+            
+            # 对应Java: fileWriter.write("maxIterationNum = " + maxIterationNum + "\n");
+            file_writer.write(f"maxIterationNum = {DefaultSetting.MAX_ITERATION_NUM}\n")
+            
+            # 对应Java: fileWriter.write("maxIterationTime = " + maxIterationTime  + "s" + "\n");
+            file_writer.write(f"maxIterationTime = {DefaultSetting.MAX_ITERATION_TIME}s\n")
+            
+            # 对应Java: fileWriter.write("boundGapLimit = " + boundGapLimit + "\n");
+            file_writer.write(f"boundGapLimit = {DefaultSetting.BOUND_GAP_LIMIT}\n")
+            
+            # 对应Java: fileWriter.write("RandomSeed = "+randomSeed + "\n");
+            file_writer.write(f"RandomSeed = {DefaultSetting.RANDOM_SEED}\n")
+            
+            # 对应Java: fileWriter.write("WhetherLoadHistorySolution = " + UseHistorySolution + "\n");
+            file_writer.write(f"WhetherLoadHistorySolution = {DefaultSetting.USE_HISTORY_SOLUTION}\n")
+            
+            # 对应Java: fileWriter.write("WhetherAddInitializeSce = " + WhetherAddInitializeSce + "\n");
+            file_writer.write(f"WhetherAddInitializeSce = {DefaultSetting.WHETHER_ADD_INITIALIZE_SCE}\n")
+            
+            # 对应Java: fileWriter.flush();
+            file_writer.flush()
+            
+        # 对应Java: catch (IOException e) { throw new RuntimeException(e); }
         except Exception as e:
-            logger.error(f"Error writing settings: {str(e)}")
-            raise 
+            raise RuntimeError(str(e))
+            
+    @staticmethod
+    def init_random(seed: int = None) -> None:
+        """
+        初始化随机数生成器
+        对应Java: public static void initRandom(Integer seed)
+        
+        Args:
+            seed: 随机数种子，如果为None则使用默认种子
+        """
+        # 如果提供了种子，则使用该种子，否则使用默认种子
+        # 对应Java: if (seed != null) { randomSeed = seed; }
+        if seed is not None:
+            DefaultSetting.RANDOM_SEED = seed
+        
+        # 初始化随机数生成器
+        # 对应Java: random = new Random(randomSeed);
+        DefaultSetting.random = random.Random(DefaultSetting.RANDOM_SEED)
+        
+        # 记录随机数种子信息
+        # 对应Java: log.info("Random seed: " + randomSeed);
+        logger.info(f"Random seed: {DefaultSetting.RANDOM_SEED}") 

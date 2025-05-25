@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List, Optional
-from multi.network.arc import Arc
-from multi.entity.container_path import ContainerPath
+from ..network.arc import Arc
+from .container_path import ContainerPath
 
 @dataclass
 class LadenPath:

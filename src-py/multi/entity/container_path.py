@@ -5,8 +5,8 @@
 """
 import logging
 from typing import List, Optional
-from .port import Port
-from ..network.arc import Arc
+from multi.entity.port import Port
+from multi.network.arc import Arc
 
 # 设置日志
 logger = logging.getLogger(__name__)
@@ -138,14 +138,6 @@ class ContainerPath:
         # 对应Java: return totalDemurrageTime;
         return total_demurrage_time
     
-    # Getter和Setter方法
-    @property
-    def id(self) -> int:
-        """
-        获取ID
-        对应Java: getId()
-        """
-        return self._container_path_id
 
     @property
     def path_id(self) -> int:
@@ -155,6 +147,7 @@ class ContainerPath:
         """
         return self._container_path_id
 
+    # Getter和Setter方法
     @property
     def container_path_id(self) -> int:
         """
@@ -163,6 +156,23 @@ class ContainerPath:
         """
         return self._container_path_id
     
+    @property
+    def laden_path_id(self) -> int:
+        """
+        获取集装箱路径ID
+        对应Java: getContainerPathID()
+        """
+        return self._container_path_id
+    
+    @property
+    def empty_path_id(self) -> int:
+        """
+        获取空集装箱路径ID
+        对应Java: getEmptyPathID()
+        """
+        return self._container_path_id
+
+
     @container_path_id.setter
     def container_path_id(self, value: int):
         """
@@ -236,6 +246,15 @@ class ContainerPath:
         self._destination_time = value
     
     @property
+    def travel_time(self) -> int:
+        """
+        获取运输时间
+        对应Java: getTravelTime()
+        """
+        return self._path_time
+
+
+    @property
     def path_time(self) -> int:
         """
         获取路径时间
@@ -251,6 +270,15 @@ class ContainerPath:
         """
         self._path_time = value
     
+    @property
+    def travel_time_on_path(self) -> int:
+        """
+        获取路径上的运输时间
+        对应Java: getTravelTimeOnPath()
+        """
+        return self._path_time
+
+
     @property
     def transshipment_port(self) -> List[str]:
         """
@@ -427,6 +455,15 @@ class ContainerPath:
         """
         self._path_cost = value
     
+    @property
+    def laden_path_cost(self):
+        return self._path_cost
+    
+    @property
+    def empty_path_cost(self):
+        return 0.5 * self._path_cost
+
+
     def add_transshipment(self, port: str, time: int):
         """
         添加转运港口和时间

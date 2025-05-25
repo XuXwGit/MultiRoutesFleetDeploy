@@ -35,7 +35,7 @@ class DualSubProblem(BaseDualModel):
     3. 线性化约束
     """
     
-    def __init__(self, in_data: InputData, param: Parameter, tau: int):
+    def __init__(self, input_data: InputData, param: Parameter, tau: int):
         """
         初始化对偶子问题模型
         
@@ -44,12 +44,9 @@ class DualSubProblem(BaseDualModel):
             param: 模型参数
             tau: 预算约束参数
         """
-        super().__init__(in_data, param)
-        self.alpha_var = {}  # 需求对偶变量
-        self.beta_var = {}  # 运力约束对偶变量
-        self.gamma_var = {}  # 空箱量对偶变量
-        self.lambda_var = {}  # 辅助变量
-        self.miu_var = {}  # 不确定需求变量
+        super().__init__(input_data, param)
+        self.lambda_var = []  # 辅助变量
+        self.miu_var = []  # 不确定需求变量
         self.u_constr = None  # 不确定集约束
         self.obj_val = 0  # 目标函数值
         self.sub_obj = 0  # 子问题目标函数值
@@ -62,7 +59,7 @@ class DualSubProblem(BaseDualModel):
         self.sub_problem_variables = {}
         
         # 设置模型名称
-        self.model_name = f"DSP-R{len(in_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
+        self.model_name = f"DSP-R{len(input_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
         
         # 初始化变量
         if DefaultSetting.FLEET_TYPE == "Homo":
@@ -74,7 +71,12 @@ class DualSubProblem(BaseDualModel):
             
         self.tau = tau
         self.u_value = np.zeros(len(param.demand), dtype=float)
-        
+
+        self.initialize()
+
+    
+    def initialize(self):
+        """初始化模型"""
         # 创建CPLEX模型
         try:
             self.cplex = Model(name="DualSubProblem")
@@ -83,7 +85,7 @@ class DualSubProblem(BaseDualModel):
         except Exception as e:
             logger.error(f"Error in initialization: {str(e)}")
             raise
-    
+
     def frame(self):
         """构建模型框架"""
         try:
@@ -99,7 +101,7 @@ class DualSubProblem(BaseDualModel):
             self.set_uncertain_set_constraints()
             
             # 设置目标函数
-            self.objective = self.get_obj_expr()
+            self.objective = self.get_dual_obj_expr()
             self.cplex.set_objective("max", self.objective)
             
         except Exception as e:
@@ -121,7 +123,7 @@ class DualSubProblem(BaseDualModel):
             "Budget"
         )
         
-    def get_obj_expr(self) -> LinearExpr:
+    def get_dual_obj_expr(self) -> LinearExpr:
         """获取目标函数表达式
         
         Returns:
@@ -132,31 +134,31 @@ class DualSubProblem(BaseDualModel):
         # 第一部分：正常需求项
         for i in range(len(self.param.demand)):
             obj_expr.add_term(
-                self.param.demand[i],
-                self.alpha_var[i]
+                coeff=self.param.demand[i],
+                dvar=self.alpha_var[i]
             )
             
         # 第二部分：船舶容量项
         capacitys = self.get_capacity_on_arcs(self.v_var_value)
         for n in range(len(self.param.traveling_arcs_set)):
             obj_expr.add_term(
-                capacitys[n],
-                self.beta_var[n]
+                coeff=capacitys[n],
+                dvar=self.beta_var[n]
             )
             
         # 第三部分：初始空箱项
         for pp in range(len(self.param.port_set)):
             for t in range(1, len(self.param.time_point_set)):
                 obj_expr.add_term(
-                    -self.param.initial_empty_container[pp],
-                    self.gamma_var[pp][t]
+                    coeff=-self.param.initial_empty_container[pp],
+                    dvar=self.gamma_var[pp][t]
                 )
                 
         # 第四部分：不确定需求项
         for i in range(len(self.param.demand)):
             obj_expr.add_term(
-                self.param.maximum_demand_variation[i],
-                self.miu_var[i]
+                coeff=self.param.maximum_demand_variation[i],
+                dvar=self.miu_var[i]
             )
             
         return obj_expr
@@ -515,8 +517,6 @@ class DualSubProblem(BaseDualModel):
     
     def set_dual_decision_vars(self):
         """设置决策变量"""
-        # 创建对偶变量
-        self.set_dual_decision_vars()
         
         # 创建不确定变量
         self.miu_var = [None] * len(self.param.demand)
@@ -532,9 +532,18 @@ class DualSubProblem(BaseDualModel):
                 ub=self.param.penalty_cost_for_demand[i],
                 name=var_name
             )
+    
+
+        # alpha
+        
+        # beta
+
+        # gamma
+
+        # lambda
+
+        self.build_variables()
             
-            var_name = f"u({i})"
-            self.miu_var[i] = self.cplex.binary_var(name=var_name)
     
     def set_objectives(self):
         """设置目标函数"""
@@ -600,7 +609,10 @@ class DualSubProblem(BaseDualModel):
         left = self.cplex.linear_expr()
         
         for i in range(len(self.param.demand)):
-            left.add_term(1, self.miu_var[i])
+            left.add_term(
+                coeff=1, 
+                dvar=self.miu_var[i]
+            )
             
         self.u_constr = self.cplex.add_constraint(
             left <= self.tau,
@@ -611,8 +623,14 @@ class DualSubProblem(BaseDualModel):
         """设置约束6: λ[i] <= α[i]"""
         for i in range(len(self.param.demand)):
             left = self.cplex.linear_expr()
-            left.add_term(1, self.lambda_var[i])
-            left.add_term(-1, self.alpha_var[i])
+            left.add_term(
+                coeff=1, 
+                dvar=self.lambda_var[i]
+            )
+            left.add_term(
+                coeff=-1, 
+                dvar=self.alpha_var[i]
+            )
             self.cplex.add_constraint(left <= 0)
             
     def set_constraint7(self):
@@ -621,9 +639,18 @@ class DualSubProblem(BaseDualModel):
             M = self.param.penalty_cost_for_demand[i]
             left = self.cplex.linear_expr()
             
-            left.add_term(1, self.lambda_var[i])
-            left.add_term(-M, self.miu_var[i])
-            left.add_term(-1, self.alpha_var[i])
+            left.add_term(
+                coeff=1, 
+                dvar=self.lambda_var[i]
+            )
+            left.add_term(
+                coeff=-M, 
+                dvar=self.miu_var[i]
+            )
+            left.add_term(
+                coeff=-1, 
+                dvar=self.alpha_var[i]
+            )
             
             self.cplex.add_constraint(left >= -M)
             
@@ -633,8 +660,14 @@ class DualSubProblem(BaseDualModel):
             M = self.param.penalty_cost_for_demand[i]
             left = self.cplex.linear_expr()
             
-            left.add_term(1, self.lambda_var[i])
-            left.add_term(-M, self.miu_var[i])
+            left.add_term(
+                coeff=1, 
+                dvar=self.lambda_var[i]
+            )
+            left.add_term(
+                coeff=-M, 
+                dvar=self.miu_var[i]
+            )
             
             self.cplex.add_constraint(left <= 0)
             
@@ -644,8 +677,14 @@ class DualSubProblem(BaseDualModel):
             M = self.param.penalty_cost_for_demand[i]
             left = self.cplex.linear_expr()
             
-            left.add_term(1, self.lambda_var[i])
-            left.add_term(M, self.miu_var[i])
+            left.add_term(
+                coeff=1, 
+                dvar=self.lambda_var[i]
+            )
+            left.add_term(
+                coeff=M, 
+                dvar=self.miu_var[i]
+            )
             
             self.cplex.add_constraint(left >= 0)
     
@@ -726,3 +765,13 @@ class DualSubProblem(BaseDualModel):
             if self.u_value[i] != 0:
                 print(f"{i}({self.u_value[i]})\t", end="")
         print() 
+
+
+    @property
+    def tau(self) -> int:
+        """对应Java: getTau() 通过@Getter自动生成"""
+        return self._tau
+    
+    @tau.setter
+    def tau(self, value: int):
+        self._tau = value

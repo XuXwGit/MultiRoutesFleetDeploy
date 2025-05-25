@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
 from multi.utils.default_setting import DefaultSetting
-from multi.network import Port, Node, Arc, VesselPath, Request, ShipRoute, ContainerPath, VesselType, ODRange
 from multi.model.primal.determine_model import DetermineModel
 from multi.model.dual.dual_sub_problem import DualSubProblem
 from multi.algos.benders_lazy_cons_callback import BendersLazyConsCallback

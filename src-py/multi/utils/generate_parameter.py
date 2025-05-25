@@ -1,3 +1,4 @@
+from collections import defaultdict
 import numpy as np
 import time
 import os
@@ -158,14 +159,15 @@ class GenerateParameter:
                 
                 penalty *= DefaultSetting.PENALTY_COEFFICIENT
                 
-                request.penalty_cost = penalty
-                request.mean_demand = demand_value
                 demand_maximum_value = demand_value * self.uncertain_degree
-                request.variance_demand = demand_maximum_value
-                
+
+                penalty_cost_for_demand.append(penalty)
                 demand.append(demand_value)
                 demand_maximum.append(demand_maximum_value)
-                penalty_cost_for_demand.append(penalty)
+
+                request.penalty_cost = penalty
+                request.mean_demand = demand_value
+                request.variance_demand = demand_maximum_value
 
             except Exception as e:
                 logger.error(f"Error in set_requests: {e}")
@@ -200,13 +202,15 @@ class GenerateParameter:
         vessel = []
         vessel_capacity = []
         vessel_operation_cost = []
-        vessel_type_and_shipping_route = np.zeros(
-            (len(self.input_data.vessel_type_set), len(self.input_data.ship_route_set))
-        )
         shipping_route_vessel_num = np.zeros(len(self.param.shipping_route_set))
+
+        vessel_type_and_shipping_route = {}
         
         for i, vessel_type in enumerate(self.input_data.vessel_type_set.values()):
-            vessel_type_and_shipping_route[i][vessel_type.route_id - 1] = 1
+            if vessel_type.id not in vessel_type_and_shipping_route:
+                vessel_type_and_shipping_route[vessel_type.id] = defaultdict(int)
+            vessel_type_and_shipping_route[vessel_type.id][vessel_type.route_id] = 1
+
             shipping_route_vessel_num[vessel_type.route_id - 1] += 1
             
             vessel.append(vessel_type.id)
@@ -214,6 +218,7 @@ class GenerateParameter:
             vessel_operation_cost.append(vessel_type.cost)
             
         self.param.vessel_type_and_ship_route = vessel_type_and_shipping_route
+
         self.param.vessel_set = vessel
         self.param.vessel_capacity = vessel_capacity
         self.param.vessel_operation_cost = vessel_operation_cost
@@ -224,31 +229,35 @@ class GenerateParameter:
     def set_vessel_paths(self):
         """设置船舶路径参数"""
         # 设置航线与船舶路径的关系矩阵
-        ship_route_and_vessel_path = np.zeros(
-            (len(self.input_data.ship_route_set), len(self.input_data.vessel_paths))
-        )
+        ship_route_and_vessel_path = {}
         vessel_path_set = []
-        arc_and_vessel_path = np.zeros(
-            (len(self.input_data.traveling_arcs), len(self.input_data.vessel_paths))
-        )
+        arc_and_vessel_path = {}
         vessel_path_ship_route_set = []
         
         for w, vessel_path in enumerate(self.input_data.vessel_paths):
             vessel_path_id = vessel_path.vessel_path_id
             route_idx = vessel_path.route_id - 1
-            
-            ship_route_and_vessel_path[route_idx][w] = 1
+
+            # 设置航线与船舶路径的关系矩阵
+            if vessel_path.route_id not in ship_route_and_vessel_path:
+                ship_route_and_vessel_path[vessel_path.route_id] = defaultdict(int)
+            if vessel_path_id not in ship_route_and_vessel_path[vessel_path.route_id]:
+                ship_route_and_vessel_path[vessel_path.route_id][vessel_path_id] = 1
+
             vessel_path_ship_route_set.append(route_idx)
             
             # 设置弧与船舶路径的关系矩阵
             for nn, arc in enumerate(self.input_data.traveling_arcs):
+                if arc.traveling_arc_id not in arc_and_vessel_path: 
+                    arc_and_vessel_path[arc.traveling_arc_id] = defaultdict(int)
                 if arc.traveling_arc_id in vessel_path.arc_ids:
-                    arc_and_vessel_path[nn][w] = 1
+                    arc_and_vessel_path[arc.traveling_arc_id][vessel_path_id] = 1
                     
             vessel_path_set.append(vessel_path_id)
             
         self.param.arc_and_vessel_path = arc_and_vessel_path
         self.param.ship_route_and_vessel_path = ship_route_and_vessel_path
+
         self.param.vessel_path_set = vessel_path_set
         self.param.vessel_path_ship_route_index = vessel_path_ship_route_set
 
@@ -264,9 +273,7 @@ class GenerateParameter:
         empty_path_cost = []
         travel_time_on_laden_path = []
         path_set = []
-        arc_and_path = np.zeros(
-            (len(self.input_data.traveling_arc_set), len(self.input_data.container_paths))
-        )
+        arc_and_path = {}
         port_and_path = {}
 
         for x, container_path in enumerate(self.input_data.container_paths):
@@ -302,12 +309,16 @@ class GenerateParameter:
             
             # 设置弧与路径的关系矩阵
             for i, arc in enumerate(self.input_data.traveling_arcs):
+                if arc.traveling_arc_id not in arc_and_path:
+                    arc_and_path[arc.traveling_arc_id] = defaultdict(int)
                 if arc.traveling_arc_id in container_path.arcs_id:
-                    arc_and_path[i][x] = 1
+                    arc_and_path[arc.traveling_arc_id][container_path.container_path_id] = 1                    
 
             #  设置港口与路径的关系矩阵
             for port in container_path.ports_in_path:
-                port_and_path[port][container_path.id] = 1
+                if port.port not in port_and_path:
+                    port_and_path[port.port] = defaultdict(int)
+                port_and_path[port.port][container_path.container_path_id] = 1
                     
         self.param.laden_path_demurrage_cost = laden_path_demurrage_cost
         self.param.empty_path_demurrage_cost = empty_path_demurrage_cost
@@ -315,6 +326,7 @@ class GenerateParameter:
         self.param.empty_path_cost = empty_path_cost
         self.param.travel_time_on_path = travel_time_on_laden_path
         self.param.path_set = path_set
+
         self.param.arc_and_path = arc_and_path
         self.param.port_and_path = port_and_path
 
@@ -322,16 +334,16 @@ class GenerateParameter:
 
     def set_arc_capacity(self):
         """设置弧容量"""
-        for nn in range(len(self.param.traveling_arcs_set)):
+        for nn, arc in enumerate(self.input_data.traveling_arcs):
             capacity = 0
-            for r in range(len(self.param.shipping_route_set)):
-                for w in range(len(self.param.vessel_path_set)):
-                    for h in range(len(self.param.vessel_set)):
+            for r, route in enumerate(self.input_data.ship_routes):
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                    for h, vessel_type in enumerate(self.input_data.vessel_types):
                         capacity += (
-                            self.param.arc_and_vessel_path[nn][w] *
+                            self.param.arc_and_vessel_path[arc.traveling_arc_id][vessel_path.id] *
                             self.param.vessel_capacity[h] *
-                            self.param.ship_route_and_vessel_path[r][w] *
-                            self.param.vessel_type_and_ship_route[h][r]
+                            self.param.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.id] *
+                            self.param.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id]
                         )
                         
             if DefaultSetting.DEBUG_ENABLE and DefaultSetting.GENERATE_PARAM_ENABLE:
@@ -351,10 +363,10 @@ class GenerateParameter:
         
         alpha = 0.8 + 0.2 * self.get_rand_double()
         for x, port in enumerate(self.input_data.port_set.values()):
-            for request in self.input_data.requests:
+            for i, request in enumerate(self.input_data.requests):
                 if (port.port == request.origin_port and 
                     request.earliest_pickup_time < DefaultSetting.INITIAL_EMPTY_CONTAINERS):
-                    initial_empty_container[x] += alpha * self.param.demand[request.request_id - 1]
+                    initial_empty_container[x] += alpha * self.param.demand[i]
                     
         self.param.initial_empty_container = initial_empty_container
 

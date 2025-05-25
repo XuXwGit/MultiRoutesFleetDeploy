@@ -135,7 +135,7 @@ class BDwithPareto(AlgoFrame):
                 self.iteration += 1
             
             # 获取最终结果
-            self._get_final_results()
+            self._set_algo_results()
             
             # 输出结果
             self._output_results()
@@ -413,7 +413,7 @@ class BDwithPareto(AlgoFrame):
         import time
         return time.time()
         
-    def _get_final_results(self):
+    def _set_algo_results(self):
         """获取最终结果"""
         # 获取目标函数值
         self.obj = self.master_objective

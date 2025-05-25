@@ -1,5 +1,7 @@
 import numpy as np
 from typing import List, Dict, Any, Tuple
+
+from tqdm import tqdm
 from multi.model.base_model import BaseModel
 from multi.utils.parameter import Parameter
 from multi.utils.input_data import InputData
@@ -49,23 +51,24 @@ class BaseDualModel(BaseModel):
     3. 目标函数构建
     4. 求解方法
     """
-    
-    def __init__(self, in_data: InputData, param: Parameter):
+    _tau: int = 0
+
+
+    def __init__(self, input_data: InputData, param: Parameter):
         """初始化对偶问题
         
         Args:
             in_data: 输入数据
             param: 模型参数
         """
-        super().__init__(in_data, param)
+        super().__init__(input_data, param)
         
         # 对偶变量
         self.dual_variables = {
             'lambda': None,  # 容量约束对偶变量
-            'mu': None,      # 需求约束对偶变量
-            'nu': None,      # 时间约束对偶变量
-            'xi': None,      # 路径约束对偶变量
-            'eta': None      # 船舶约束对偶变量
+            'alpha': None,      # 需求约束对偶变量
+            'beta': None,      # 容量约束对偶变量
+            'gamma': None,      # 空箱流约束对偶变量
         }
         
         # 对偶目标值
@@ -74,8 +77,9 @@ class BaseDualModel(BaseModel):
         # 对偶间隙
         self.dual_gap = 0.0
         
+        self._tau = 0
+
         # 基本属性
-        self.tau = 0
         self.obj_expr = None
         self.scene = None
         
@@ -94,50 +98,57 @@ class BaseDualModel(BaseModel):
         self.objective = None
         
         # 设置输入数据和参数
-        self.in_data = in_data
+        self.input_data = input_data
         self.param = param
-        
+    
+    
+    def initialize(self):
+        """初始化模型"""
         # 创建CPLEX模型
         try:
             self.cplex = Model(name="BaseDualModel")
-            if in_data is not None and param is not None:
+            if self.in_data is not None and self.param is not None:
                 self.public_setting(self.cplex)
                 self.frame()
         except Exception as e:
             logger.error(f"Error in initialization: {str(e)}")
             raise
-        
+
     def build_variables(self):
         """构建变量"""
-        # 容量约束对偶变量
-        self.dual_variables['lambda'] = np.zeros((
-            len(self.in_data.port_set),
-            len(self.in_data.time_point_set)
-        ))
-        
+
         # 需求约束对偶变量
-        self.dual_variables['mu'] = np.zeros((
-            len(self.in_data.request_set),
-            len(self.in_data.time_point_set)
-        ))
+        self.alpha_var = [None] * len(self.in_data.requests)
+        for i, request in enumerate(self.in_data.requests):
+            self.alpha_var[i] = self.cplex.continuous_var(
+                lb=float('-inf'),
+                ub=request.penalty_cost,
+                name=f"alpha({i})"
+            )
+        self.dual_variables['alpha'] = self.alpha_var
+
+        # 容量约束对偶变量
+        self.beta_var = [None] * len(self.in_data.traveling_arcs)
+        for nn, arc in enumerate(self.in_data.traveling_arcs):
+            self.beta_var[nn] = self.cplex.continuous_var(
+                lb=float('-inf'),
+                ub=0,
+                name=f"beta({nn})"
+            )
+        self.dual_variables['beta'] = self.beta_var
+                
+        # 空箱约束对偶变量
+        self.gamma_var = [[None for _ in range(len(self.param.time_point_set))] 
+                         for _ in range(len(self.in_data.port_set))]
+        for pp in range(len(self.in_data.port_set)):
+            for t in range(0, len(self.param.time_point_set)):
+                self.gamma_var[pp][t] = self.cplex.continuous_var(
+                    lb=0,
+                    ub=float('inf'),
+                    name=f"gamma({pp})({t})"
+                )
+        self.dual_variables['gamma'] = self.gamma_var
         
-        # 时间约束对偶变量
-        self.dual_variables['nu'] = np.zeros((
-            len(self.in_data.port_set),
-            len(self.in_data.time_point_set)
-        ))
-        
-        # 路径约束对偶变量
-        self.dual_variables['xi'] = np.zeros((
-            len(self.in_data.container_path_set),
-            len(self.in_data.time_point_set)
-        ))
-        
-        # 船舶约束对偶变量
-        self.dual_variables['eta'] = np.zeros((
-            len(self.in_data.vessel_set),
-            len(self.in_data.ship_route_set)
-        ))
         
     def build_constraints(self):
         """构建约束"""
@@ -199,13 +210,22 @@ class BaseDualModel(BaseModel):
             Tuple[float, Dict[str, np.ndarray]]: 对偶目标值和变量值
         """
         # 构建变量
-        self.build_variables()
+        try:
+            self.build_variables()
+        except Exception as e:
+            raise RuntimeError(f"构建变量失败: {str(e)}")
         
         # 构建约束
-        self.build_constraints()
+        try:    
+            self.build_constraints()
+        except Exception as e:
+            raise RuntimeError(f"构建约束失败: {str(e)}")
         
         # 构建目标函数
-        self.build_objective()
+        try:
+            self.build_objective()
+        except Exception as e:
+            raise RuntimeError(f"构建目标函数失败: {str(e)}")
         
         # 求解
         self.optimize()
@@ -353,255 +373,290 @@ class BaseDualModel(BaseModel):
                 
         return obj_expr
         
-    def set_dual_constraint_x(self):
-        """设置对偶约束X"""
+    def set_dual_constraint_x_with_single_thread(self):
+        """设置对偶约束X（单线程原版）"""
         logger.info("=========Setting Dual Constraint X==========")
         self.c1 = []
-        
-        for i in range(len(self.param.demand)):
-            request = self.in_data.request_set[i]
+        for i, request in enumerate(self.in_data.requests):
             c1_k = [None] * request.number_of_laden_path
             self.c1.append(c1_k)
-            
             for k in range(request.number_of_laden_path):
                 j = request.laden_path_indexes[k]
+                laden_path = request.laden_paths[k]
                 left = self.cplex.linear_expr()
-                
                 # 第一项：α[i]
-                left.add_term(1, self.alpha_var[i])
-                
+                left.add_term(
+                    coeff=1, 
+                    dvar=self.alpha_var[i])
                 # 第二项：β[nn']
-                for nn in range(len(self.param.traveling_arcs_set)):
+                for nn, arc in enumerate(self.in_data.traveling_arcs):
                     left.add_term(
-                        self.param.arc_and_path[nn][j],
-                        self.beta_var[nn]
+                        coeff=self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id],
+                        dvar=self.beta_var[nn]
                     )
-                    
                 # 第三项：γ[p][t]
                 for t in range(1, len(self.param.time_point_set)):
                     for pp in range(len(self.param.port_set)):
                         # p == d(i)
                         if self.param.port_set[pp] == self.param.destination_of_demand[i]:
-                            for nn in range(len(self.param.traveling_arcs_set)):
-                                if (self.in_data.traveling_arc_set[nn].destination_port == self.param.port_set[pp] and
-                                    self.in_data.traveling_arc_set[nn].destination_time <= t - self.param.turn_over_time[pp] and
-                                    self.in_data.traveling_arc_set[nn].destination_time >= 1):
+                            for nn, arc in enumerate(self.in_data.traveling_arcs):
+                                if (arc.destination_port == self.param.port_set[pp] and
+                                    arc.destination_time <= t - self.param.turn_over_time[pp] and
+                                    arc.destination_time >= 1):
                                     left.add_term(
-                                        self.param.arc_and_path[nn][j],
-                                        self.gamma_var[pp][t]
+                                        coeff=self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id],
+                                        dvar=self.gamma_var[pp][t]
                                     )
-                                    
                         # p == o(i)
                         elif self.param.port_set[pp] == self.param.origin_of_demand[i]:
-                            for nn in range(len(self.param.traveling_arcs_set)):
-                                if (self.in_data.traveling_arc_set[nn].origin_port == self.param.port_set[pp] and
-                                    self.in_data.traveling_arc_set[nn].origin_time <= t and
-                                    self.in_data.traveling_arc_set[nn].origin_time >= 1):
+                            for nn, arc in enumerate(self.in_data.traveling_arcs):
+                                if (arc.origin_port == self.param.port_set[pp] and
+                                    arc.origin_time <= t and
+                                    arc.origin_time >= 1):
                                     left.add_term(
-                                        -self.param.arc_and_path[nn][j],
-                                        self.gamma_var[pp][t]
+                                        coeff=-self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id],
+                                        dvar=self.gamma_var[pp][t]
                                     )
-                                    
                 # 添加约束
                 constr_name = f"C-X_{i}_{k}"
                 self.c1[i][k] = self.cplex.add_constraint(
-                    left <= self.param.laden_path_cost[j],
+                    left <= laden_path.laden_path_cost,
                     constr_name
                 )
-                
         logger.info("=========Dual Constraint X Set==========")
+
+    def set_dual_constraint_x_with_multi_threads(self):
+        """设置对偶约束X（多线程优化版）"""
+        import concurrent.futures
+        from collections import defaultdict
+        logger.info("=========Setting Dual Constraint X (Multi-Threads)==========")
+        self.c1 = []
+        arc_dest_map = defaultdict(lambda: defaultdict(list))
+        arc_orig_map = defaultdict(lambda: defaultdict(list))
+        for nn, arc in enumerate(self.in_data.traveling_arcs):
+            arc_dest_map[arc.destination_port][arc.destination_time].append(nn)
+            arc_orig_map[arc.origin_port][arc.origin_time].append(nn)
+        args_list = []
+        for i, request in enumerate(self.in_data.requests):
+            request = self.in_data.requests[i]
+            c1_k = [None] * request.number_of_laden_path
+            self.c1.append(c1_k)
+            for k in range(request.number_of_laden_path):
+                args_list.append((i, k))
+        def process_dual_constraint_x(args):
+            try:
+                i, k = args
+                request = self.in_data.requests[i]
+                laden_path = request.laden_paths[k]
+                left = self.cplex.linear_expr()
+                left.add_term(
+                    coeff=1, 
+                    dvar=self.alpha_var[i]
+                )
+                for nn, arc in enumerate(self.in_data.traveling_arcs):
+                    left.add_term(
+                        coeff=self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id], 
+                        dvar=self.beta_var[nn]
+                    )
+                for t in range(1, len(self.param.time_point_set)):
+                    # p == d(i)
+                    pp = self.param.port_set.index(self.param.destination_of_demand[i])
+                    t_d = t - self.param.turn_over_time[pp]
+                    if t_d >= 1:
+                        for nn in arc_dest_map[self.param.port_set[pp]][t_d]:
+                            if 1 <= self.in_data.traveling_arcs[nn].destination_time <= t_d:
+                                left.add_term(
+                                    coeff=self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id], 
+                                    dvar=self.gamma_var[pp][t]
+                                )
+                    # p == o(i)
+                    pp = self.param.port_set.index(self.param.origin_of_demand[i])
+                    for nn in arc_orig_map[self.param.port_set[pp]][t]:
+                        if 1 <= self.in_data.traveling_arcs[nn].origin_time <= t:
+                            left.add_term(
+                                coeff=-self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id], 
+                                dvar=self.gamma_var[pp][t]
+                            )
+                constr_name = f"C-X_{i}_{k}"
+                return (i, k, self.cplex.add_constraint(left <= laden_path.laden_path_cost, constr_name))
+            except Exception as e:
+                logger.error(f"设置对偶约束X失败: {str(e)} {i} {k}")
+                return (i, k, None)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(process_dual_constraint_x, args_list))
+        for i, k, constraint in results:
+            self.c1[i][k] = constraint
+        logger.info("=========Dual Constraint X Set (Multi-Threads)==========")
+
+    def set_dual_constraint_x(self):
+        """设置对偶约束X（默认多线程封装）"""
+        if DefaultSetting.WHETHER_USE_MULTI_THREADS:
+            logger.info("=========Setting Dual Constraint X (Multi-Threads)==========")
+            self.set_dual_constraint_x_with_multi_threads()
+            logger.info("=========Dual Constraint X Set (Multi-Threads)==========")
+        else:
+            logger.info("=========Setting Dual Constraint X==========")
+            self.set_dual_constraint_x_with_single_thread()
+            logger.info("=========Dual Constraint X Set==========")
         
     def set_dual_constraint_y(self):
         """设置对偶约束Y"""
         logger.info("=========Setting Dual Constraint Y==========")
         self.c2 = []
         
-        for i in range(len(self.param.demand)):
-            request = self.in_data.request_set[i]
+        for i in tqdm(range(len(self.param.demand)), desc="设置对偶约束Y", ncols=80):
+            request = self.in_data.requests[i]
             c2_k = [None] * request.number_of_laden_path
             self.c2.append(c2_k)
             
-            for k in range(request.number_of_laden_path):
-                j = request.laden_path_indexes[k]
+            for k, laden_path in enumerate(request.laden_paths):
+                laden_path = request.laden_paths[k]
+                j = laden_path.laden_path_id
                 left = self.cplex.linear_expr()
                 
                 # 第一项：α[i]
-                left.add_term(1, self.alpha_var[i])
+                left.add_term(
+                    coeff=1, 
+                    dvar=self.alpha_var[i]
+                )
                 
                 # 第二项：β[nn']
-                for nn in range(len(self.param.traveling_arcs_set)):
+                for nn, arc in enumerate(self.in_data.traveling_arcs):
                     left.add_term(
-                        self.param.arc_and_path[nn][j],
-                        self.beta_var[nn]
+                        coeff=self.param.arc_and_path[arc.traveling_arc_id][laden_path.laden_path_id],
+                        dvar=self.beta_var[nn]
                     )
                     
                 # 添加约束
                 constr_name = f"C-Y_{i}_{k}"
                 self.c2[i][k] = self.cplex.add_constraint(
-                    left <= self.param.rental_cost * self.param.travel_time_on_path[j] + 
-                           self.param.laden_path_cost[j],
+                    left <= self.param.rental_cost * laden_path.travel_time + 
+                           laden_path.laden_path_cost,
                     constr_name
                 )
                 
         logger.info("=========Dual Constraint Y Set==========")
         
-    def set_dual_constraint_z(self):
-        """设置对偶约束Z"""
-        logger.info("=========Setting Dual Constraint Z==========")
-        if DefaultSetting.WHETHER_USE_MULTI_THREADS:
-            self.set_dual_constraint_z_with_multi_threads()
-        else:
-            self.set_dual_constraint_z_with_single_thread()
-            
-        logger.info("=========Dual Constraint Z Set==========")
-        
     def set_dual_constraint_z_with_single_thread(self):
         """使用单线程设置对偶约束Z"""
         self.c3 = []
-        
-        for i in range(len(self.param.demand)):
-            request = self.in_data.request_set[i]
+        for i in tqdm(range(len(self.param.demand)), desc="设置对偶约束Z", ncols=80):
+            request = self.in_data.requests[i]
             c3_k = [None] * request.number_of_empty_path
             self.c3.append(c3_k)
-            
             for k in range(request.number_of_empty_path):
-                j = request.empty_path_indexes[k]
+                empty_path = request.empty_paths[k]
+                j = empty_path.empty_path_id
                 left = self.cplex.linear_expr()
-                
-                # 第一项：β[nn']
-                for nn in range(len(self.param.traveling_arcs_set)):
+                for nn, arc in enumerate(self.in_data.traveling_arcs):
+                    arc_id = self.param.traveling_arcs_set[nn]
+                    arc = self.in_data.traveling_arc_set[arc_id]
                     left.add_term(
-                        self.param.arc_and_path[nn][j],
-                        self.beta_var[nn]
+                        coeff=self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id],
+                        dvar=self.beta_var[nn]
                     )
-                    
-                    # 第二项和第三项：γ[p][t]
                     for t in range(1, len(self.param.time_point_set)):
                         for pp in range(len(self.param.port_set)):
                             # p == o(i)
                             if self.param.port_set[pp] == self.param.origin_of_demand[i]:
-                                if (self.in_data.traveling_arc_set[nn].destination_port == self.param.port_set[pp] and
-                                    self.in_data.traveling_arc_set[nn].destination_time <= t and
-                                    self.in_data.traveling_arc_set[nn].destination_time >= 1):
+                                if (arc.destination_port.port == self.param.port_set[pp] and
+                                    arc.destination_time <= t and
+                                    arc.destination_time >= 1):
                                     left.add_term(
-                                        self.param.arc_and_path[nn][j],
-                                        self.gamma_var[pp][t]
+                                        coeff=self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id],
+                                        dvar=self.gamma_var[pp][t]
                                     )
-                                    
-                            # p
-                            if (self.in_data.traveling_arc_set[nn].origin_port == self.param.port_set[pp] and
-                                self.in_data.traveling_arc_set[nn].origin_time <= t and
-                                self.in_data.traveling_arc_set[nn].origin_time >= 1):
+                            # p 
+                            if (arc.origin_port.port == self.param.port_set[pp] and
+                                arc.origin_time <= t and
+                                arc.origin_time >= 1):
                                 left.add_term(
-                                    -self.param.arc_and_path[nn][j],
-                                    self.gamma_var[pp][t]
+                                    coeff=-self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id],
+                                    dvar=self.gamma_var[pp][t]
                                 )
-                                
-                # 添加约束
                 constr_name = f"C-Z_{i}_{k}"
                 self.c3[i][k] = self.cplex.add_constraint(
-                    left <= self.param.empty_path_cost[j],
+                    left <= empty_path.empty_path_cost,
                     constr_name
                 )
-                
+
     def set_dual_constraint_z_with_multi_threads(self):
-        """使用多线程设置对偶约束Z"""
+        """使用多线程设置对偶约束Z（以(i,k)为单位并行+预处理映射）"""
+        import concurrent.futures
+        from collections import defaultdict
         self.c3 = []
-        left_items = {}
-        lock = threading.Lock()
-        
-        # 创建工作队列
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futures = []
-            
-            for i in range(len(self.param.demand)):
-                request = self.in_data.request_set[i]
-                c3_k = [None] * request.number_of_empty_path
-                self.c3.append(c3_k)
-                
-                # 提交任务
-                future = executor.submit(
-                    self._process_constraint_z,
-                    i,
-                    request,
-                    left_items,
-                    lock
-                )
-                futures.append(future)
-                
-            # 等待所有任务完成
-            for future in futures:
-                future.result()
-                
-        # 添加约束
+        args_list = []
+        # 预处理 destination_port, origin_port 到弧的映射
+        dest_port_to_arcs = defaultdict(list)
+        orig_port_to_arcs = defaultdict(list)
+        for nn, arc_id in enumerate(self.param.traveling_arcs_set):
+            arc = self.in_data.traveling_arc_set[arc_id]
+            dest_port_to_arcs[arc.destination_port.port].append((nn, arc))
+            orig_port_to_arcs[arc.origin_port.port].append((nn, arc))
         for i in range(len(self.param.demand)):
-            request = self.in_data.request_set[i]
+            request = self.in_data.requests[i]
+            c3_k = [None] * request.number_of_empty_path
+            self.c3.append(c3_k)
             for k in range(request.number_of_empty_path):
-                j = request.empty_path_indexes[k]
-                constr_name = f"C-Z_{i}_{k}"
-                self.c3[i][k] = self.cplex.add_constraint(
-                    left_items[i][k] <= self.param.empty_path_cost[j],
-                    constr_name
-                )
-                
-    def _process_constraint_z(self, i: int, request: Request, left_items: Dict, lock: threading.Lock):
-        """处理对偶约束Z的单个任务
-        
-        Args:
-            i: 需求索引
-            request: 请求对象
-            left_items: 左侧表达式字典
-            lock: 线程锁
-        """
-        lefts = [None] * request.number_of_empty_path
-        
-        for k in range(request.number_of_empty_path):
+                args_list.append((i, k, request))
+        def process_z(args):
+            i, k, request = args
             j = request.empty_path_indexes[k]
+            empty_path = request.empty_paths[k]
             left = self.cplex.linear_expr()
-            
-            # 第一项：β[nn']
-            for nn in range(len(self.param.traveling_arcs_set)):
+            # β项
+            for nn, arc in enumerate(self.in_data.traveling_arcs):
                 left.add_term(
-                    self.param.arc_and_path[nn][j],
-                    self.beta_var[nn]
+                    coeff=self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id], 
+                    dvar=self.beta_var[nn]
                 )
-                
-                # 第二项和第三项：γ[p][t]
-                for t in range(1, len(self.param.time_point_set)):
-                    for pp in range(len(self.param.port_set)):
-                        # p == o(i)
-                        if self.param.port_set[pp] == self.param.origin_of_demand[i]:
-                            if (self.in_data.traveling_arc_set[nn].destination_port == self.param.port_set[pp] and
-                                self.in_data.traveling_arc_set[nn].destination_time <= t and
-                                self.in_data.traveling_arc_set[nn].destination_time >= 1):
+            # γ项
+            for pp in range(len(self.param.port_set)):
+                port = self.param.port_set[pp]
+                # p == o(i)
+                if port == self.param.origin_of_demand[i]:
+                    for nn, arc in dest_port_to_arcs[port]:
+                        for t in range(1, len(self.param.time_point_set)):
+                            if arc.destination_time <= t and arc.destination_time >= 1:
                                 left.add_term(
-                                    self.param.arc_and_path[nn][j],
-                                    self.gamma_var[pp][t]
+                                    coeff=self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id], 
+                                    dvar=self.gamma_var[pp][t]
                                 )
-                                
-                        # p
-                        if (self.in_data.traveling_arc_set[nn].origin_port == self.param.port_set[pp] and
-                            self.in_data.traveling_arc_set[nn].origin_time <= t and
-                            self.in_data.traveling_arc_set[nn].origin_time >= 1):
+                # p
+                for nn, arc in orig_port_to_arcs[port]:
+                    for t in range(1, len(self.param.time_point_set)):
+                        if arc.origin_time <= t and arc.origin_time >= 1:
                             left.add_term(
-                                -self.param.arc_and_path[nn][j],
-                                self.gamma_var[pp][t]
+                                coeff=-self.param.arc_and_path[arc.traveling_arc_id][empty_path.empty_path_id], 
+                                dvar=self.gamma_var[pp][t]
                             )
-                            
-            lefts[k] = left
-            
-        with lock:
-            left_items[i] = lefts
-            
+            constr_name = f"C-Z_{i}_{k}"
+            return (i, k, self.cplex.add_constraint(left <= empty_path.empty_path_cost, constr_name))
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(process_z, args_list))
+        for i, k, constraint in results:
+            self.c3[i][k] = constraint
+
+    def set_dual_constraint_z(self):
+        """设置对偶约束Z（自动选择单线程/多线程）"""
+        if DefaultSetting.WHETHER_USE_MULTI_THREADS:
+            logger.info("=========Setting Dual Constraint Z (Multi-Threads)==========")
+            self.set_dual_constraint_z_with_multi_threads()
+            logger.info("=========Dual Constraint Z Set (Multi-Threads)==========")
+        else:
+            logger.info("=========Setting Dual Constraint Z==========")
+            self.set_dual_constraint_z_with_single_thread()
+            logger.info("=========Dual Constraint Z Set==========")
+        
     def set_dual_constraint_g(self):
         """设置对偶约束G"""
         logger.info("=========Setting Dual Constraint G==========")
         self.c4 = [None] * len(self.param.demand)
         
-        for i in range(len(self.param.demand)):
+        for i, request in enumerate(self.in_data.requests):
             constr_name = f"C-G_{i}"
             self.c4[i] = self.cplex.add_constraint(
-                self.alpha_var[i] <= self.param.penalty_cost_for_demand[i],
+                self.alpha_var[i] <= request.penalty_cost,
                 constr_name
             )
             
@@ -687,38 +742,39 @@ class BaseDualModel(BaseModel):
             beta_value = self.get_beta_value()
             left = self.cplex.linear_expr()
             
-            for n in range(len(self.param.traveling_arcs_set)):
+            for n, arc in enumerate(self.in_data.traveling_arcs):
                 if beta_value[n] == 0:
                     continue
                     
-                for w in range(len(self.param.vessel_path_set)):
-                    r = self.in_data.vessel_path_set[w].route_id - 1
+                for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                    r = vessel_path.route_id - 1
                     
-                    for h in range(len(self.param.vessel_set)):
+                    for h, vessel_type in enumerate(self.in_data.vessel_types):
                         if DefaultSetting.FLEET_TYPE == "Homo":
-                            if (self.param.arc_and_vessel_path[n][w] *
-                                self.param.ship_route_and_vessel_path[r][w] *
-                                self.param.vessel_type_and_ship_route[h][r] *
-                                self.param.vessel_capacity[h] > 0):
+                            if (self.param.arc_and_vessel_path[arc.traveling_arc_id][vessel_path.id] *
+                                self.param.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.id] *
+                                self.param.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id] *
+                                vessel_type.capacity > 0):
                                 left.add_term(
-                                    self.param.arc_and_vessel_path[n][w] *
-                                    self.param.ship_route_and_vessel_path[r][w] *
-                                    self.param.vessel_type_and_ship_route[h][r] *
-                                    self.param.vessel_capacity[h] *
-                                    beta_value[n],
-                                    v_vars[h][r]
+                                    coeff=self.param.arc_and_vessel_path[arc.traveling_arc_id][vessel_path.id] *
+                                    self.param.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.id] *
+                                    self.param.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id] *
+                                    vessel_type.capacity,
+                                    dvar=v_vars[h][r]
                                 )
                         elif DefaultSetting.FLEET_TYPE == "Hetero":
                             left.add_term(
-                                self.param.arc_and_vessel_path[n][w] *
-                                self.param.vessel_capacity[h] *
-                                beta_value[n],
-                                v_vars[h][w]
+                                coeff=self.param.arc_and_vessel_path[arc.traveling_arc_id][vessel_path.id] *
+                                self.param.vessel_capacity[h],
+                                dvar=v_vars[h][w]
                             )
                         else:
                             logger.error("Error in Fleet type!")
                             
-            left.add_term(-1, eta_var)
+            left.add_term(
+                coeff=-1, 
+                dvar=eta_var
+            )
             
             return self.cplex.add_constraint(left <= -constant_item)
             
@@ -918,25 +974,6 @@ class BaseDualModel(BaseModel):
                     
         return flag
         
-    def get_capacity_on_arcs(self, v_value: List[List[int]]) -> List[float]:
-        """计算航段上的运力
-        
-        Args:
-            v_value: 船舶分配决策变量值
-            
-        Returns:
-            航段运力列表
-        """
-        capacitys = [0.0] * len(self.param.traveling_arcs_set)
-        
-        for h in range(len(self.param.vessel_set)):
-            for r in range(len(self.param.ship_route_set)):
-                if v_value[h][r] == 1:
-                    for n in range(len(self.param.traveling_arcs_set)):
-                        if self.param.traveling_arcs_set[n] in self.param.ship_route_set[r].arcs:
-                            capacitys[n] += self.param.vessel_set[h].capacity
-                            
-        return capacitys
         
     def public_setting(self, model: Model):
         """设置公共参数
@@ -945,14 +982,13 @@ class BaseDualModel(BaseModel):
             model: CPLEX模型
         """
         # 设置求解参数
-        model.parameters.mip.tolerances.mipgap = DefaultSetting.MIPGap
-        model.parameters.timelimit = DefaultSetting.TimeLimit
-        model.parameters.threads = DefaultSetting.Threads
-        model.parameters.mip.tolerances.integrality = DefaultSetting.IntegralityTolerance
+        model.parameters.mip.tolerances.mipgap = DefaultSetting.MIP_GAP_LIMIT
+        model.parameters.timelimit = DefaultSetting.MIP_TIME_LIMIT
+        model.parameters.threads = DefaultSetting.MAX_THREADS
         
         # 设置输出参数
-        model.parameters.mip.display = DefaultSetting.MIPDisplay
-        model.parameters.simplex.display = DefaultSetting.SimplexDisplay
+        # model.parameters.mip.display = DefaultSetting.MIPDisplay
+        # model.parameters.simplex.display = DefaultSetting.SimplexDisplay
         
     def export_model(self):
         """导出模型"""

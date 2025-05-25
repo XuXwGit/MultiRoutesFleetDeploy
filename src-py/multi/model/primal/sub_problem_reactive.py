@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
 from multi.utils.default_setting import DefaultSetting
-from multi.network import Port, Node, Arc, VesselPath, Request, ShipRoute, ContainerPath, VesselType, ODRange
 from multi.model.primal.base_primal_model import BasePrimalModel
 
 logger = logging.getLogger(__name__)

@@ -50,12 +50,12 @@ class Parameter:
         self.vessel_capacity: List[int] = []  # 船舶容量
         self.travel_time_on_path: List[int] = []  # 路径上的旅行时间
 
-        self.arc_and_vessel_path: List[List[int]] = []  # 弧与船舶路径的关系矩阵
-        self.arc_and_path: List[List[int]] = []  # 弧与路径的关系矩阵
-        self.ship_route_and_vessel_path: List[List[int]] = []  # 航线与船舶路径的关系矩阵
-        self.vessel_path_ship_route_index: List[int] = []  # 船舶路径对应的航线索引
-        self.shipping_route_vessel_num: List[int] = []  # 每个航线的船舶数量
-        self.vessel_type_and_ship_route: List[List[int]] = []  # 船舶类型与航线的关系矩阵
+        self.arc_and_vessel_path: Dict[int, Dict[int]] = dict  # 弧与船舶路径的关系矩阵
+        self.arc_and_path: Dict[int, Dict[int]] = dict  # 弧与路径的关系矩阵
+        self.ship_route_and_vessel_path: Dict[int, Dict[int]] = dict  # 航线与船舶路径的关系矩阵
+        self.vessel_path_ship_route_index: Dict[int, int] = dict  # 船舶路径对应的航线索引
+        self.shipping_route_vessel_num: Dict[int, int] = dict  # 每个航线的船舶数量
+        self.vessel_type_and_ship_route: Dict[int, Dict[int]] = dict  # 船舶类型与航线的关系矩阵
         self.port_and_path: Dict[str, Dict[int]] = dict 
         
         # 港口参数

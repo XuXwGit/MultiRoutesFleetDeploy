@@ -2,6 +2,7 @@ from docplex.mp.model import Model
 from docplex.mp.linear import LinearExpr
 import logging
 from typing import List, Dict, Any, Optional
+from multi.network.traveling_arc import TravelingArc
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
 from multi.utils.default_setting import DefaultSetting
@@ -10,6 +11,9 @@ import numpy as np
 import time
 from multi.entity.request import Request
 import os
+from tqdm import tqdm
+import concurrent.futures
+from collections import defaultdict
 
 # 配置根日志记录器
 logging.basicConfig(
@@ -88,7 +92,14 @@ class BasePrimalModel(BaseModel):
         self.mean_performance = 0.0
         self.worst_second_stage_cost = 0.0
         self.mean_second_stage_cost = 0.0
+
+        # cost
         self.operation_cost = 0.0
+        self.laden_cost = 0.0
+        self.empty_cost = 0.0
+        self.rental_cost = 0.0
+        self.penalty_cost = 0.0
+
         
         # 解
         self.v_var_value = None
@@ -97,20 +108,24 @@ class BasePrimalModel(BaseModel):
         # 设置输入数据和参数
         self.input_data = input_data
         self.param = param
+    
         
+
+    def initialize(self):
+        """初始化模型"""
         # 创建CPLEX模型
         try:
             self.cplex = Model(name=self.model_name)
-            if input_data is not None and param is not None:
+            if self.input_data is not None and self.param is not None:
                 self.public_setting(self.cplex)
                 self.frame()
         except Exception as e:
             logger.error(f"Error in initialization: {str(e)}")
             raise
-        
+
     def public_setting(self, model):
         """设置CPLEX求解器的公共参数"""
-        logger.info("=========Setting CPLEX Parameters==========")
+        logger.info("=========Setting CPLEX Parameters Start==========")
         logger.info("开始设置CPLEX参数...")
         
         try:
@@ -127,16 +142,41 @@ class BasePrimalModel(BaseModel):
             logger.info(f"已设置随机种子: {DefaultSetting.RANDOM_SEED}")
             
             logger.info("CPLEX参数设置完成")
-            logger.info("=========CPLEX Parameters Set==========")
+            logger.info("========= Setting CPLEX Parameters End==========")
         except Exception as e:
             logger.error(f"设置CPLEX参数时发生错误: {str(e)}")
             raise
         
     def frame(self):
         """框架方法，由子类实现具体内容"""
-        logger.info("=========Building Model Framework==========")
-        raise NotImplementedError("Subclass must implement abstract method")
+        logger.info("=========Building Model Framework Start==========")
+        self.set_decision_vars()
+        self.set_objectives()
+        self.set_constraints()
+        logger.error("=========Building Model Framework End==========")
         
+    def set_decision_vars(self):
+        """
+        设置决策变量，子类需要重写此方法
+        对应Java: protected void setDecisionVars() throws IloException
+        """
+        pass
+    
+    def set_constraints(self):
+        """
+        设置约束条件，子类需要重写此方法
+        对应Java: protected void setConstraints() throws IloException
+        """
+        pass
+    
+    def set_objectives(self):
+        """
+        设置目标函数，子类需要重写此方法
+        对应Java: protected void setObjectives() throws IloException
+        """
+        pass
+
+
     def set_vessel_decision_vars(self):
         """设置船舶决策变量"""
         logger.info("=========Setting Vessel Decision Variables==========")
@@ -190,12 +230,15 @@ class BasePrimalModel(BaseModel):
             self.xs["z2"] = self.z2Var
             
         self.gVar = [None] * len(self.param.demand)
+
+        logger.info("=========Setting Request Decision Variables Start==========")
         self.set_request_decision_vars_impl(self.xs, self.gVar)
-        logger.info("=========Request Decision Variables Set==========")
+        logger.info("=========Setting Request Decision Variables End==========")
         
     def set_request_decision_vars_impl(self, xs: Dict[str, List[List[Any]]], g_var: List[Any]):
         """设置请求决策变量的具体实现"""
-        for i in range(len(self.param.demand)):
+
+        for i in tqdm(range(len(self.param.demand)), desc="创建二阶段决策变量", ncols=80):
             request = self.input_data.requests[i]
             
             # 创建重箱运输变量
@@ -287,23 +330,22 @@ class BasePrimalModel(BaseModel):
             
             request = self.input_data.requests[i]
             # 添加重箱运输成本
-            for k in range(request.number_of_laden_path):
-                j = request.laden_path_indexes[k]
+            for k, laden_path in enumerate(request.laden_paths):
                 if "x" in self.xs:
-                    obj.add_term(coeff=self.param.laden_path_cost[j], dvar=self.xs["x"][i][k])
+                    obj.add_term(coeff=laden_path.laden_path_cost, dvar=self.xs["x"][i][k])
                 if "x1" in self.xs:
-                    obj.add_term(coeff=self.param.laden_path_cost[j], dvar=self.xs["x1"][i][k])
+                    obj.add_term(coeff=laden_path.laden_path_cost, dvar=self.xs["x1"][i][k])
                 if "y" in self.xs:
-                    obj.add_term(coeff=self.param.laden_path_cost[j], dvar=self.xs["y"][i][k])
-                    obj.add_term(coeff=self.param.rental_cost * self.param.travel_time_on_path[j], 
+                    obj.add_term(coeff=laden_path.laden_path_cost, dvar=self.xs["y"][i][k])
+                    obj.add_term(coeff=self.param.rental_cost * laden_path.travel_time_on_path, 
                                dvar=self.xs["y"][i][k])
                 if "z1" in self.xs:
-                    obj.add_term(coeff=self.param.laden_path_cost[j] * 0.5, dvar=self.xs["z1"][i][k])
+                    obj.add_term(coeff=laden_path.empty_path_cost, dvar=self.xs["z1"][i][k])
                 if "z2" in self.xs:
-                    obj.add_term(coeff=self.param.laden_path_cost[j] * 0.5 + 15, dvar=self.xs["z2"][i][k])
+                    obj.add_term(coeff=laden_path.empty_path_cost + 15, dvar=self.xs["z2"][i][k])
                     
             # 添加空箱运输成本
-            if DefaultSetting.IsEmptyReposition:
+            if DefaultSetting.IS_EMPTY_REPOSITION:
                 for k in range(request.number_of_empty_path):
                     j = request.empty_path_indexes[k]
                     obj.add_term(coeff=self.param.empty_path_cost[j], dvar=self.zVar[i][k])
@@ -325,7 +367,9 @@ class BasePrimalModel(BaseModel):
         for r in range(len(self.param.shipping_route_set)):
             expr = self.cplex.linear_expr()
             for h in range(len(self.param.vessel_set)):
-                expr.add_term(coeff=self.param.vessel_type_and_ship_route[h][r], dvar=self.vVar[h][r])
+                expr.add_term(
+                            coeff=self.param.vessel_type_and_ship_route[h][r], 
+                              dvar=self.vVar[h][r])
             self.cplex.add_constraint(expr == 1, f"C0_{r}")
             
     def set_vessel_constraint_hetero(self):
@@ -376,7 +420,7 @@ class BasePrimalModel(BaseModel):
         if u_value is None:
             u_value = [0] * len(self.param.demand)
             
-        for i in range(len(self.param.demand)):
+        for i in tqdm(range(len(self.param.demand)), desc="设置需求约束", ncols=80):
             expr = self.cplex.linear_expr()
             request = self.input_data.requests[i]
             
@@ -399,16 +443,14 @@ class BasePrimalModel(BaseModel):
                 f"C1_{i}"
             ))
             
-    def set_capacity_constraint(self):
-        """设置容量约束：运输量不能超过船舶容量"""
+    def set_capacity_constraint_with_single_thread(self):
+        """设置容量约束：运输量不能超过船舶容量（单线程原版）"""
         self.C2 = []
-        for n in range(len(self.param.traveling_arcs_set)):
+        for n in tqdm(range(len(self.param.traveling_arcs_set)), desc="设置容量约束", ncols=80):
             expr = self.cplex.linear_expr()
-            
             # 添加所有运输量
             for i in range(len(self.param.demand)):
                 request = self.input_data.requests[i]
-                
                 # 添加重箱运输量
                 for k in range(request.number_of_laden_path):
                     j = request.laden_path_indexes[k]
@@ -422,13 +464,11 @@ class BasePrimalModel(BaseModel):
                         expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.xs["z1"][i][k])
                     if "z2" in self.xs:
                         expr.add_term(coeff=self.param.arc_and_path[n][j] * 0.25, dvar=self.xs["z2"][i][k])
-                        
                 # 添加空箱运输量
-                if DefaultSetting.IsEmptyReposition:
+                if DefaultSetting.IS_EMPTY_REPOSITION:
                     for k in range(request.number_of_empty_path):
                         j = request.empty_path_indexes[k]
                         expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.zVar[i][k])
-                        
             # 添加船舶容量
             for h in range(len(self.param.vessel_set)):
                 for r in range(len(self.param.shipping_route_set)):
@@ -437,27 +477,72 @@ class BasePrimalModel(BaseModel):
                             self.param.ship_route_and_vessel_path[r][w] == 1 and
                             self.param.vessel_type_and_ship_route[h][r] == 1):
                             expr.add_term(coeff=-self.param.vessel_capacity[h], dvar=self.vVar[h][r])
-                            
             # 添加约束
             self.C2.append(self.cplex.add_constraint(
                 expr <= 0.0,
                 f"C2_{n}"
             ))
-            
+
+    def set_capacity_constraint_with_multi_threads(self):
+        """设置容量约束：运输量不能超过船舶容量（多线程优化版）"""
+        import concurrent.futures
+        self.C2 = []
+        def process_arc(n: TravelingArc):
+            expr = self.cplex.linear_expr()
+            # 添加所有运输量
+            for i in range(len(self.param.demand)):
+                request = self.input_data.requests[i]
+                # 添加重箱运输量
+                for k, laden_path in enumerate(request.laden_paths):
+                    if "x" in self.xs:
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][laden_path.laden_path_id], dvar=self.xs["x"][i][k])
+                    if "x1" in self.xs:
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][laden_path.laden_path_id], dvar=self.xs["x1"][i][k])
+                    if "y" in self.xs:
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][laden_path.laden_path_id], dvar=self.xs["y"][i][k])
+                    if "z1" in self.xs:
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][laden_path.laden_path_id], dvar=self.xs["z1"][i][k])
+                    if "z2" in self.xs:
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][laden_path.laden_path_id] * 0.25, dvar=self.xs["z2"][i][k])
+                # 添加空箱运输量
+                if DefaultSetting.IS_EMPTY_REPOSITION:
+                    for k, empty_path in enumerate(request.empty_paths):
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][empty_path.empty_path_id], dvar=self.zVar[i][k])
+            # 添加船舶容量
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                for r, route in enumerate(self.input_data.shipping_routes):
+                    for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                        if (self.param.arc_and_vessel_path[n.arc_id][vessel_path.vessel_path_id] == 1 and
+                            self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and
+                            self.param.vessel_type_and_ship_route[vessel.vessel_id][route.route_id] == 1):
+                            expr.add_term(coeff=-vessel.capacity, dvar=self.vVar[h][r])
+            # 添加约束
+            return self.cplex.add_constraint(
+                expr <= 0.0,
+                f"C2_{n}"
+            )
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(process_arc, self.input_data.traveling_arcs))
+        self.C2.extend(results)
+
+    def set_capacity_constraint(self):
+        """设置容量约束：运输量不能超过船舶容量（默认多线程封装）"""
+        return self.set_capacity_constraint_with_multi_threads()
+        # return self.set_capacity_constraint_with_single_thread()
+
     def set_empty_conservation_constraint(self):
         """设置空箱守恒约束"""
-        if DefaultSetting.IsEmptyReposition:
+        if DefaultSetting.IS_EMPTY_REPOSITION:
             self.set_empty_conservation_constraint_impl(self.xVar, self.zVar, 1)
         else:
             self.set_empty_conservation_constraint_impl(self.xVar, self.z1Var, 1)
-            if DefaultSetting.AllowFoldableContainer:
+            if DefaultSetting.ALLOW_FOLDABLE_CONTAINER:
                 self.set_empty_conservation_constraint_impl(self.x1Var, self.z2Var, 0.5)
                 
-    def set_empty_conservation_constraint_impl(self, x_var: List[List[Any]], 
+    def set_empty_conservation_constraint_impl_with_single_thread(self, x_var: List[List[Any]], 
                                              z_var: List[List[Any]], 
                                              initial_port_container_coeff: float):
-        """设置空箱守恒约束的具体实现
-        
+        """设置空箱守恒约束的具体实现（单线程原版）
         Args:
             x_var: 重箱运输变量
             z_var: 空箱运输变量
@@ -465,26 +550,145 @@ class BasePrimalModel(BaseModel):
         """
         self.C3 = []
         for p in range(len(self.param.port_set)):
+            port = self.param.port_set[p]
+            left = self.cplex.linear_expr()
             for t in range(1, len(self.param.time_point_set)):
-                expr = self.cplex.linear_expr()
-                
-                # 添加初始空箱量
-                expr.add_term(1, self.param.initial_empty_container[p])
-                
-                # 添加空箱运输量
                 for i in range(len(self.param.demand)):
                     request = self.input_data.requests[i]
-                    for k in range(request.number_of_empty_path):
-                        j = request.empty_path_indexes[k]
-                        if (self.param.port_and_path[p][j] == 1 and
-                            self.param.time_and_path[t][j] == 1):
-                            expr.add_term(coeff=-1, dvar=z_var[i][k])
-                            
-                # 添加约束
-                self.cplex.add_constraint(
-                    expr >= -self.param.initial_empty_container[p] * initial_port_container_coeff,
-                    f"C3_{p}_{t}"
-                )
+                    # Input Z flow
+                    if DefaultSetting.IS_EMPTY_REPOSITION:
+                        if request.origin_port == port:
+                            for k in range(request.number_of_empty_path):
+                                j = request.empty_path_indexes[k]
+                                for nn in range(len(self.param.traveling_arcs_set)):
+                                    arc = self.input_data.traveling_arc_set[nn]
+                                    if arc.destination_port == port and arc.destination_time == t:
+                                        left.add_term(self.param.arc_and_path[nn][j], z_var[i][k])
+                    # Input X flow
+                    if request.destination_port == port:
+                        for k in range(request.number_of_laden_path):
+                            j = request.laden_path_indexes[k]
+                            for nn in range(len(self.param.traveling_arcs_set)):
+                                arc_id = self.param.traveling_arcs_set[nn]
+                                arc = self.input_data.traveling_arc_set[arc_id]
+                                if arc.destination_port == port and arc.destination_time == t - DefaultSetting.DEFAULT_TURN_OVER_TIME:
+                                    left.add_term(self.param.arc_and_path[nn][j], x_var[i][k])
+                                    if DefaultSetting.ALLOW_FOLDABLE_CONTAINER and not DefaultSetting.IS_EMPTY_REPOSITION:
+                                        left.add_term(self.param.arc_and_path[nn][j], z_var[i][k])
+                    # Output X flow
+                    if request.origin_port == port:
+                        for k in range(request.number_of_laden_path):
+                            j = request.laden_path_indexes[k]
+                            for nn in range(len(self.param.traveling_arcs_set)):
+                                arc_id = self.param.traveling_arcs_set[nn]
+                                arc = self.input_data.traveling_arc_set[arc_id]
+                                if arc.origin_port == port and arc.origin_time == t:
+                                    left.add_term(-self.param.arc_and_path[nn][j], x_var[i][k])
+                                    if DefaultSetting.ALLOW_FOLDABLE_CONTAINER and not DefaultSetting.IS_EMPTY_REPOSITION:
+                                        left.add_term(-self.param.arc_and_path[nn][j], z_var[i][k])
+                    # Output Z flow
+                    if DefaultSetting.IS_EMPTY_REPOSITION:
+                        for k in range(request.number_of_empty_path):
+                            j = request.empty_path_indexes[k]
+                            for nn in range(len(self.param.traveling_arcs_set)):
+                                arc_id = self.param.traveling_arcs_set[nn]
+                                arc = self.input_data.traveling_arc_set[arc_id]
+                                if arc.origin_port == port and arc.origin_time == t:
+                                    left.add_term(-self.param.arc_and_path[nn][j], z_var[i][k])
+            initial_port_containers = self.param.initial_empty_container[p] * initial_port_container_coeff
+            self.C3.append(self.cplex.add_constraint(left >= -initial_port_containers, f"C3_{p}"))
+
+    def set_empty_conservation_constraint_impl_with_multi_threads(self, x_var: List[List[Any]], 
+                                             z_var: List[List[Any]], 
+                                             initial_port_container_coeff: float):
+        """设置空箱守恒约束的具体实现（多线程优化版）
+        Args:
+            x_var: 重箱运输变量
+            z_var: 空箱运输变量
+            initial_port_container_coeff: 初始港口集装箱系数
+        """
+        self.C3 = []
+        arc_dest_map = defaultdict(lambda: defaultdict(list))  # arc_dest_map[port][time] = [arc_idx, ...]
+        arc_orig_map = defaultdict(lambda: defaultdict(list))  # arc_orig_map[port][time] = [arc_idx, ...]
+        for nn, arc in enumerate(self.input_data.traveling_arcs):
+            arc_dest_map[arc.destination_port][arc.destination_time].append(nn)
+            arc_orig_map[arc.origin_port][arc.origin_time].append(nn)
+        origin_port_to_requests = defaultdict(list)
+        dest_port_to_requests = defaultdict(list)
+        for i, req in enumerate(self.input_data.requests):
+            origin_port_to_requests[req.origin_port].append(i)
+            dest_port_to_requests[req.destination_port].append(i)
+        def process_port(p):
+            port = self.param.port_set[p]
+            left = self.cplex.linear_expr()
+            for t in range(1, len(self.param.time_point_set)):
+                # Input Z flow
+                if DefaultSetting.IS_EMPTY_REPOSITION:
+                    for i in origin_port_to_requests[port]:
+                        request = self.input_data.requests[i]
+                        for k in range(request.number_of_empty_path):
+                            j = request.empty_path_indexes[k]
+                            for nn in arc_dest_map[port][t]:
+                                left.add_term(self.param.arc_and_path[nn][j], z_var[i][k])
+                # Input X flow
+                for i in dest_port_to_requests[port]:
+                    request = self.input_data.requests[i]
+                    for k in range(request.number_of_laden_path):
+                        j = request.laden_path_indexes[k]
+                        t_x = t - DefaultSetting.DEFAULT_TURN_OVER_TIME
+                        if t_x in arc_dest_map[port]:
+                            for nn in arc_dest_map[port][t_x]:
+                                left.add_term(
+                                    coeff=self.param.arc_and_path[nn][j], 
+                                    dvar=x_var[i][k]
+                                )
+                                if DefaultSetting.ALLOW_FOLDABLE_CONTAINER and not DefaultSetting.IS_EMPTY_REPOSITION:
+                                    left.add_term(
+                                        coeff=self.param.arc_and_path[nn][j], 
+                                        dvar=z_var[i][k]
+                                    )
+                # Output X flow
+                for i in origin_port_to_requests[port]:
+                    request = self.input_data.requests[i]
+                    for k in range(request.number_of_laden_path):
+                        j = request.laden_path_indexes[k]
+                        for nn in arc_orig_map[port][t]:
+                            left.add_term(
+                                coeff=-self.param.arc_and_path[nn][j], 
+                                dvar=x_var[i][k]
+                            )
+                            if DefaultSetting.ALLOW_FOLDABLE_CONTAINER and not DefaultSetting.IS_EMPTY_REPOSITION:
+                                left.add_term(
+                                    coeff=-self.param.arc_and_path[nn][j], 
+                                    dvar=z_var[i][k]
+                                )
+                # Output Z flow
+                if DefaultSetting.IS_EMPTY_REPOSITION:
+                    for i in origin_port_to_requests[port]:
+                        request = self.input_data.requests[i]
+                        for k in range(request.number_of_empty_path):
+                            j = request.empty_path_indexes[k]
+                            for nn in arc_orig_map[port][t]:
+                                left.add_term(
+                                    coeff=-self.param.arc_and_path[nn][j], 
+                                    dvar=z_var[i][k]
+                                )
+            initial_port_containers = self.param.initial_empty_container[p] * initial_port_container_coeff
+            return self.cplex.add_constraint(left >= -initial_port_containers, f"C3_{p}")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = list(executor.map(process_port, range(len(self.param.port_set))))
+        self.C3.extend(results)
+
+    def set_empty_conservation_constraint_impl(self, x_var: List[List[Any]], 
+                                             z_var: List[List[Any]], 
+                                             initial_port_container_coeff: float):
+        """设置空箱守恒约束的具体实现（默认多线程封装）
+        Args:
+            x_var: 重箱运输变量
+            z_var: 空箱运输变量
+            initial_port_container_coeff: 初始港口集装箱系数
+        """
+        return self.set_empty_conservation_constraint_impl_with_multi_threads(x_var, z_var, initial_port_container_coeff)
     
     def solve_model(self):
         """求解模型"""
@@ -494,7 +698,7 @@ class BasePrimalModel(BaseModel):
             self.cplex.solve()
             
             # 获取求解状态
-            self.solve_status = self.cplex.solution.get_status()
+            self.solve_status = self.cplex.get_solve_status()
             
             # 如果求解成功,获取结果
             if self.solve_status == "optimal":
@@ -530,108 +734,7 @@ class BasePrimalModel(BaseModel):
             "solve_status": self.solve_status
         } 
 
-    def calculate_sample_mean_performance(self, v_value: List[List[int]]) -> float:
-        """计算样本平均性能
-        
-        Args:
-            v_value: 船舶分配决策变量值
-            
-        Returns:
-            float: 样本平均性能值
-        """
-        filename = f"{self.model_name}-R{len(self.input_data.ship_route_set)}" \
-                  f"-T{self.param.time_horizon}-{DefaultSetting.FLEET_TYPE}" \
-                  f"-Tau{self.param.tau}-U{self.param.uncertain_degree}" \
-                  f"-S{self.random_seed}-SampleTestResult.txt"
-                  
-        file_path = os.path.join(DefaultSetting.ROOT_PATH, 
-                                DefaultSetting.ALGO_LOG_PATH, 
-                                filename)
-                                
-        with open(file_path, 'w') as f:
-            f.write("Sample\tOperationCost\tTotalTransCost\tLadenCost\t" \
-                   "EmptyCost\tRentalCost\tPenaltyCost\tTotalCost\n")
-            
-        # 计算运营成本
-        mp_operation_cost = self.get_operation_cost(v_value)
-        
-        # 初始化样本成本数组
-        sample_sub_opera_costs = [0] * self.num_sample_scenes
-        sample_laden_costs = [0] * self.num_sample_scenes
-        sample_empty_costs = [0] * self.num_sample_scenes
-        sample_rental_costs = [0] * self.num_sample_scenes
-        sample_penalty_costs = [0] * self.num_sample_scenes
-        
-        sum_sub_opera_costs = 0
-        worst_total_cost = 0
-        worst_second_cost = 0
-        
-        # 创建子问题并求解
-        sp = SubProblem(self.input_data, self.param, v_value)
-        for sce in range(self.num_sample_scenes):
-            sp.change_demand_constraint_coefficients(self.param.sample_scenes[sce])
-            sp.solve_model()
-            
-            # 记录成本
-            sample_sub_opera_costs[sce] = sp.get_total_cost()
-            sample_laden_costs[sce] = sp.get_laden_cost()
-            sample_empty_costs[sce] = sp.get_empty_cost()
-            sample_rental_costs[sce] = sp.get_rental_cost()
-            sample_penalty_costs[sce] = sp.get_penalty_cost()
-            
-            sum_sub_opera_costs += sp.get_total_cost()
-            
-            # 更新最差性能
-            if (mp_operation_cost + sample_sub_opera_costs[sce]) > worst_total_cost:
-                worst_total_cost = mp_operation_cost + sample_sub_opera_costs[sce]
-                worst_second_cost = sample_sub_opera_costs[sce]
-                
-            # 记录进度
-            self.draw_progress_bar((sce + 1) * 100 / self.num_sample_scenes)
-            
-            # 写入结果
-            with open(file_path, 'a') as f:
-                f.write(f"{sce}\t{mp_operation_cost}\t"
-                       f"{sample_sub_opera_costs[sce]}\t"
-                       f"{sample_laden_costs[sce]}\t"
-                       f"{sample_empty_costs[sce]}\t"
-                       f"{sample_rental_costs[sce]}\t"
-                       f"{sample_penalty_costs[sce]}\t"
-                       f"{mp_operation_cost + sample_sub_opera_costs[sce]}\n")
-                       
-        # 更新性能指标
-        self.worst_performance = worst_total_cost
-        self.worst_second_stage_cost = worst_second_cost
-        self.mean_performance = mp_operation_cost + sum_sub_opera_costs / self.num_sample_scenes
-        self.mean_second_stage_cost = sum_sub_opera_costs / self.num_sample_scenes
-        
-        return self.mean_performance
-        
-    def calculate_mean_performance(self) -> float:
-        """计算平均性能
-        
-        Returns:
-            float: 平均性能值
-        """
-        logger.info("Calculating Mean Performance ...")
-        
-        if self.use_history_solution:
-            if self.model_name in self.input_data.history_solution_set:
-                self.calculate_sample_mean_performance(
-                    self.solution_to_v_value(
-                        self.input_data.history_solution_set[self.model_name]
-                    )
-                )
-        else:
-            self.calculate_sample_mean_performance(self.v_var_value)
-            
-        logger.info(f"MeanPerformance = {self.mean_performance}")
-        logger.info(f"WorstPerformance = {self.worst_performance}")
-        logger.info(f"WorstSecondStageCost = {self.worst_second_stage_cost}")
-        logger.info(f"MeanSecondStageCost = {self.mean_second_stage_cost}")
-        logger.info(f"AlgoObjVal = {self.obj_val}")
-        
-        return self.mean_performance
+
 
     def solution_to_v_value(self, solution: List[int]) -> List[List[int]]:
         """将解决方案转换为船舶分配决策变量值

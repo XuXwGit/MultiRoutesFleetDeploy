@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
 from multi.utils.default_setting import DefaultSetting
-from multi.network import Port, Node, Arc, VesselPath, Request, ShipRoute, ContainerPath, VesselType, ODRange
 from multi.model.dual.base_dual_model import BaseDualModel
 import numpy as np
 from multi.model.dual.dual_sub_problem import DualSubProblem
@@ -514,7 +513,7 @@ class DualSubProblemReactive(DualSubProblem):
         # 对每条路径
         for j in range(len(self.in_data.container_path_set)):
             # 对每个时间点
-            for t in range(len(self.in_data.time_point_set)):
+            for t in range(len(self.param.time_point_set)):
                 # 计算调整值
                 adjustment = self.calculate_path_adjustment(j, t)
                 
@@ -538,7 +537,7 @@ class DualSubProblemReactive(DualSubProblem):
         # 对每个需求
         for i in range(len(self.in_data.request_set)):
             # 对每个时间点
-            for t in range(len(self.in_data.time_point_set)):
+            for t in range(len(self.param.time_point_set)):
                 # 计算调整值
                 adjustment = self.calculate_demand_adjustment(i, t)
                 
@@ -692,7 +691,7 @@ class DualSubProblemReactive(DualSubProblem):
         """更新历史信息"""
         # 更新路径选择历史
         for j in range(len(self.in_data.container_path_set)):
-            for t in range(len(self.in_data.time_point_set)):
+            for t in range(len(self.param.time_point_set)):
                 self.history['path_selection'].append({
                     'path': j,
                     'time': t,
@@ -710,7 +709,7 @@ class DualSubProblemReactive(DualSubProblem):
                 
         # 更新需求满足历史
         for i in range(len(self.in_data.request_set)):
-            for t in range(len(self.in_data.time_point_set)):
+            for t in range(len(self.param.time_point_set)):
                 self.history['demand_satisfaction'].append({
                     'request': i,
                     'time': t,

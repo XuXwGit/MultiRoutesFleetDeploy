@@ -1,425 +1,387 @@
+"""
+模型基类
+
+定义所有模型共用的属性和方法
+
+主要功能:
+1. 维护模型基本参数(in/p)
+2. 管理CPLEX求解器实例
+3. 记录求解结果(obj_val/obj_gap等)
+4. 提供基础设置方法(public_setting)
+
+关键属性:
+- in_data: 输入数据(网络结构、需求等)
+- p: 模型参数(成本系数、容量等)
+- cplex: CPLEX求解器实例
+- v_var_value: 船舶分配决策变量值
+- u_value: 对偶变量值
+
+@Author: XuXw
+@DateTime: 2024/12/4 21:54
+"""
 import logging
 import time
 import os
+from docplex.mp.model import Model  # 使用docplex.mp.model而非cplex
+from typing import List, Optional, Tuple, Any
 import numpy as np
-from typing import List, Dict, Any, Tuple
+
+from multi.utils.default_setting import DefaultSetting
 from multi.utils.input_data import InputData
 from multi.utils.parameter import Parameter
-from multi.utils.default_setting import DefaultSetting
-import docplex.mp.model as cpx
-
+from multi.utils.int_array2d_wrapper import IntArray2DWrapper  # 正确导入包装类
+# 设置日志
 logger = logging.getLogger(__name__)
 
+
 class BaseModel:
-    """
-    模型基类
+    """模型基类"""
     
-    定义所有模型共用的属性和方法
-    
-    主要功能:
-    1. 维护模型基本参数(in/p)
-    2. 管理CPLEX求解器实例
-    3. 记录求解结果(obj_val/obj_gap等)
-    4. 提供基础设置方法(public_setting)
-    
-    关键属性:
-    - input_data: 输入数据(网络结构、需求等)
-    - param: 模型参数(成本系数、容量等)
-    - model: CPLEX求解器实例
-    - v_var_value: 船舶分配决策变量值
-    - u_value: 对偶变量值
-    """
-    
-    def __init__(self, input_data: InputData, param: Parameter):
+    _obj_val = 0.0
+    _obj_gap = 0.0
+    _operation_cost = 0.0
+    _solve_time = 0.0
+    _v_var_value = []
+    _v_var_value_double = []
+    _u_value = []
+
+    def __init__(self, in_data: Optional[InputData] = None, p: Optional[Parameter] = None):
         """
-        模型基类构造函数
-        
-        初始化模型参数并创建CPLEX求解器实例
-        
-        Args:
-            input_data: 输入数据(网络结构、需求等)
-            param: 模型参数(成本系数、容量等)
+        对应Java构造函数：
+        - public BaseModel()
+        - public BaseModel(InputData in, Parameter p)
         """
-        self.input_data = input_data
-        self.param = param
-        self.model = None
-        self.model_name = None
-        self.obj_val = 0.0
-        self.obj_gap = 0.0
-        self.operation_cost = 0.0
-        self.solve_time = 0.0
-        self.v_var_value = None
-        self.v_var_value_double = None
-        self.u_value = None
+        # 如果是默认无参数构造函数，则不进行初始化
+        if in_data is None or p is None:
+            return
+            
+        # 基本属性
+        self._in_data = in_data  # 对应Java: protected InputData in
+        self._p = p  # 对应Java: protected Parameter p
+        self._cplex = None  # 对应Java: protected IloCplex cplex
+        self._model = ""  # 对应Java: protected String model
+        self._model_name = ""  # 对应Java: protected String modelName
+        self._obj_val = 0.0  # 对应Java: protected double objVal
+        self._obj_gap = 0.0  # 对应Java: protected double objGap
+        self._operation_cost = 0.0  # 对应Java: protected double operationCost
+        self._solve_time = 0.0  # 对应Java: protected double solveTime
+        self._v_var_value = []  # 对应Java: protected int[][] vVarValue
+        self._v_var_value_double = []  # 对应Java: protected double[][] vVarValueDouble
+        self._u_value = []  # 对应Java: protected double[] uValue
         
-        # 模型变量
-        self.variables = {}
-        
-        # 模型约束
-        self.constraints = {}
-        
-        # 模型目标函数
-        self.objective = None
-        
-        # 求解状态
-        self.solve_status = {
-            'iter': 0,
-            'obj_val': 0.0,
-            'gap': float('inf'),
-            'time': 0.0
-        }
-        
-        # 历史信息
-        self.history = {
-            'obj_val': [],
-            'gap': [],
-            'time': []
-        }
-        
-        try:
-            self.model = self.create_model()
-            self.public_setting(self.model)
-            self.frame()
-        except Exception as e:
-            logger.error(f"Error initializing BaseModel: {str(e)}")
-            raise
-    
-    def create_model(self):
+
+    def initialize(self):
         """
-        创建CPLEX求解器实例
-        
-        Returns:
-            docplex.mp.model.Model: CPLEX求解器实例
+        初始化模型
         """
         try:
-            model = cpx.Model(name=self.model_name if self.model_name else "BaseModel")
-            return model
+            # 创建CPLEX求解器实例（使用docplex中的Model）
+            self._cplex = Model(name=self._model_name or "base_model")
         except Exception as e:
-            logger.error(f"Error creating CPLEX model: {str(e)}")
-            raise
-    
-    def public_setting(self, model):
+            # 对应Java的: throw new RuntimeException(e)
+            raise RuntimeError(f"初始化CPLEX求解器失败: {str(e)}")
+
+        try:
+            # 设置CPLEX求解器参数
+            self.public_setting(self._cplex)
+        except Exception as e:
+            raise RuntimeError(f"设置求解器参数失败: {str(e)}")
+
+        try:
+            # 创建基本决策变量并添加基本约束
+            self.frame()    
+        except Exception as e:
+            raise RuntimeError(f"初始化模型失败: {str(e)}") 
+
+
+    def public_setting(self, cplex_model: Model):
         """
-        设置CPLEX求解器参数
-        
-        Args:
-            model: CPLEX求解器实例
+        设置CPLEX公共参数
+        对应Java: protected void publicSetting(IloCplex cplex)
         """
+        # 关闭输出日志
         if DefaultSetting.WHETHER_CLOSE_OUTPUT_LOG:
-            model.set_log_output(False)
+            cplex_model.context.solver.log_output = False
         
-        model.parameters.mip.tolerances.mipgap = DefaultSetting.MIP_GAP_LIMIT
-        model.parameters.timelimit = DefaultSetting.MIP_TIME_LIMIT
-        model.parameters.threads = DefaultSetting.MAX_THREADS
-        model.parameters.workmem = DefaultSetting.MAX_WORK_MEM
+        # 设置工作内存（docplex中的设置方式）
+        cplex_model.parameters.workmem = DefaultSetting.MAX_WORK_MEM
+        # 设置时间限制
+        cplex_model.parameters.timelimit = DefaultSetting.MIP_TIME_LIMIT
+        # 设置MIP Gap限制
+        cplex_model.parameters.mip.tolerances.mipgap = DefaultSetting.MIP_GAP_LIMIT
+        # 设置线程数
+        cplex_model.parameters.threads = DefaultSetting.MAX_THREADS
     
     def frame(self):
-        """构建模型框架"""
-        self.set_decision_vars()
-        self.set_objectives()
-        self.set_constraints()
+        """
+        创建模型框架，设置决策变量、目标函数和约束条件
+        对应Java: public void frame() throws IloException
+        """
+        # 记录开始时间
+        start = time.time()
         
+        # 设置决策变量
+        try:
+            self.set_decision_vars()
+            logger.debug(f"Set <{self._model_name}> DecisionVars Time = {(time.time() - start) * 1000}")
+        except Exception as e:
+            raise RuntimeError(f"设置决策变量失败: {str(e)}")
+        
+        # 设置目标函数
+        start = time.time()
+        try:
+            self.set_objectives()
+            logger.debug(f"Set <{self._model_name}> Objectives Time = {(time.time() - start) * 1000}")
+        except Exception as e:
+            raise RuntimeError(f"设置目标函数失败: {str(e)}")
+        
+        # 设置约束条件
+        start = time.time()
+        try:
+            self.set_constraints()
+            logger.debug(f"Set <{self._model_name}> Constraints Time = {(time.time() - start) * 1000}")
+        except Exception as e:
+            raise RuntimeError(f"设置约束条件失败: {str(e)}")
+    
     def set_decision_vars(self):
-        """设置决策变量
-        
-        具体实现由子类完成
         """
-        raise NotImplementedError("Subclass must implement set_decision_vars()")
-        
-    def set_objectives(self):
-        """设置目标函数
-        
-        具体实现由子类完成
+        设置决策变量，子类需要重写此方法
+        对应Java: protected void setDecisionVars() throws IloException
         """
-        raise NotImplementedError("Subclass must implement set_objectives()")
-        
+        pass
+    
     def set_constraints(self):
-        """设置约束条件
-        
-        具体实现由子类完成
         """
-        raise NotImplementedError("Subclass must implement set_constraints()")
+        设置约束条件，子类需要重写此方法
+        对应Java: protected void setConstraints() throws IloException
+        """
+        pass
+    
+    def set_objectives(self):
+        """
+        设置目标函数，子类需要重写此方法
+        对应Java: protected void setObjectives() throws IloException
+        """
+        pass
     
     def end(self):
         """
-        结束CPLEX求解器
+        结束CPLEX实例
+        对应Java: public void end()
         """
-        if self.model:
-            self.model.end()
+        if self._cplex:
+            self._cplex.end()
     
-    def get_solve_status(self) -> str:
+    def get_solve_status(self) -> int:
         """
         获取求解状态
-        
-        Returns:
-            str: 求解状态
+        对应Java: public IloCplex.Status getSolveStatus() throws IloException
         """
-        return self.model.get_solve_status()
+        if self._cplex and hasattr(self._cplex, 'solve_details'):
+            return self._cplex.solve_details.status_code
+        return -1
     
     def get_solve_status_string(self) -> str:
         """
         获取求解状态字符串
-        
-        Returns:
-            str: 求解状态字符串
+        对应Java: public String getSolveStatusString() throws IloException
         """
-        status = self.get_solve_status()
-        if status == "Optimal":
-            return "Optimal"
-        elif status == "Feasible":
-            return "Feasible"
-        elif status == "Infeasible":
-            return "Infeasible"
-        elif status == "Bounded":
-            return "Bounded"
-        else:
-            return "Others"
-    
-    def get_capacity_on_arcs(self, v_value: List[List[float]]) -> List[float]:
-        """
-        计算每个弧上的容量
+        if not self._cplex:
+            return "No CPLEX instance"
         
-        Args:
-            v_value: 船舶分配方案
+        if not hasattr(self._cplex, 'solve_details'):
+            return "Not solved yet"
             
-        Returns:
-            List[float]: 每个弧上的容量
-        """
-        capacities = [0.0] * len(self.param.traveling_arc_set)
+        status = self._cplex.solve_details.status
         
-        for n in range(len(self.param.traveling_arc_set)):
-            for w in range(len(self.param.vessel_path_set)):
-                r = self.input_data.vessel_path_set[w].route_id - 1
+        # DocPLEX状态映射
+        if status == "optimal":
+            return "Optimal"
+        elif status == "feasible":
+            return "Feasible"
+        elif status == "infeasible":
+            return "Infeasible"
+        elif status == "unbounded":
+            return "Unbounded"
+        return "Others"
+    
+    def get_capacity_on_arcs(self, v_value) -> List[float]:
+        """
+        计算航线上的容量
+        对应Java重载方法:
+        - protected double[] getCapacityOnArcs(double[][] vValue)
+        - protected double[] getCapacityOnArcs(int[][] vValue)
+        """
+        # 初始化容量数组
+        capacities = [0.0] * len(self._p.traveling_arcs_set)
+        
+        # 计算每条弧上的容量
+        for n in range(len(self._p.traveling_arcs_set)):
+            # 对应Java: capacities[n] = 0;
+            capacities[n] = 0.0
+            
+            # 遍历所有船舶路径 w∈Ω
+            for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                # 获取路径w对应的航线r
+                r =vessel_path.route_id
                 
-                for h in range(len(self.param.vessel_set)):
-                    if DefaultSetting.FLEET_TYPE == "Homo":
-                        capacities[n] += (self.param.arc_and_vessel_path[n][w] *
-                                       self.param.ship_route_and_vessel_path[r][w] *
-                                       self.param.vessel_type_and_ship_route[h][r] *
-                                       self.param.vessel_capacity[h] *
-                                       v_value[h][r])
-                    elif DefaultSetting.FLEET_TYPE == "Hetero":
-                        capacities[n] += (self.param.arc_and_vessel_path[n][w] *
-                                       self.param.vessel_capacity[h] *
-                                       v_value[h][w])
-                    else:
-                        logger.error("Error in Fleet type!")
-                        raise ValueError("Invalid fleet type")
+                # 遍历所有船舶类型 h \in Hr: r(w) = r
+                for h,  in enumerate(self.in_data.vessel_types):
+                    # 检查船舶类型h是否可用于航线r
+                    if self._p.vessel_type_set[h].route_id == r + 1:
+                        # 检查路径w是否经过弧n
+                        if self._p.vessel_path_arc[w][n] != 0:
+                            # 累加容量
+                            capacities[n] += v_value[w][h] * self._p.vessel_type_set[h].capacity
         
         return capacities
     
-    def get_capacity_on_arcs(self, v_value: List[List[int]]) -> List[float]:
-        """
-        计算每个弧上的容量
-        
-        Args:
-            v_value: 船舶分配方案
-            
-        Returns:
-            List[float]: 每个弧上的容量
-        """
-        v_value_double = [[float(v) for v in row] for row in v_value]
-        return self.get_capacity_on_arcs(v_value_double)
-    
     def export_model(self):
         """
-        导出模型到LP文件
+        导出模型文件
+        对应Java: protected void exportModel() throws IloException
         """
-        model_file_path = os.path.join(DefaultSetting.ROOT_PATH, 
-                                     DefaultSetting.export_model_path)
+        # 构建模型文件路径
+        model_file_path = os.path.join(DefaultSetting.ROOT_PATH, DefaultSetting.EXPORT_MODEL_PATH)
         
-        try:
-            # 创建目录（如果不存在）
-            os.makedirs(model_file_path, exist_ok=True)
-            
-            # 导出模型
-            filename = f"{self.model_name}.lp"
-            self.model.write(os.path.join(model_file_path, filename))
-            
-        except Exception as e:
-            logger.error(f"Error exporting model: {str(e)}")
-            raise
-
-    def build_variables(self):
-        """构建变量"""
-        raise NotImplementedError("Subclasses must implement build_variables()")
+        # 确保目录存在
+        os.makedirs(model_file_path, exist_ok=True)
         
-    def build_constraints(self):
-        """构建约束"""
-        raise NotImplementedError("Subclasses must implement build_constraints()")
+        # 构建文件名
+        filename = f"{self._model_name}.lp"
+        full_path = os.path.join(model_file_path, filename)
         
-    def build_objective(self):
-        """构建目标函数"""
-        raise NotImplementedError("Subclasses must implement build_objective()")
-        
-    def solve(self) -> Tuple[float, Dict[str, Any]]:
-        """求解模型
-        
-        Returns:
-            Tuple[float, Dict[str, Any]]: 目标函数值和求解状态
-        """
-        try:
-            # 构建问题
-            self.build_variables()
-            self.build_constraints()
-            self.build_objective()
-            
-            # 求解问题
-            self.optimize()
-            
-            return self.objective, self.solve_status
-            
-        except Exception as e:
-            logger.error(f"Error in solving model: {str(e)}")
-            raise
-            
-    def optimize(self):
-        """优化求解"""
-        raise NotImplementedError("Subclasses must implement optimize()")
-        
-    def get_solution(self) -> Dict[str, np.ndarray]:
-        """获取解
-        
-        Returns:
-            Dict[str, np.ndarray]: 解
-        """
-        return self.variables
-        
-    def get_objective(self) -> float:
-        """获取目标函数值
-        
-        Returns:
-            float: 目标函数值
-        """
-        return self.objective
-        
-    def get_solve_status(self) -> Dict[str, Any]:
-        """获取求解状态
-        
-        Returns:
-            Dict[str, Any]: 求解状态
-        """
-        return self.solve_status
-        
-    def update_solve_status(self, obj_val: float, gap: float, time: float):
-        """更新求解状态
-        
-        Args:
-            obj_val: 目标函数值
-            gap: 对偶间隙
-            time: 求解时间
-        """
-        self.solve_status['obj_val'] = obj_val
-        self.solve_status['gap'] = gap
-        self.solve_status['time'] = time
-        
-        # 更新历史信息
-        self.history['obj_val'].append(obj_val)
-        self.history['gap'].append(gap)
-        self.history['time'].append(time)
-        
-    def calculate_objective(self) -> float:
-        """计算目标函数值
-        
-        Returns:
-            float: 目标函数值
-        """
-        return self.objective
-        
-    def calculate_gap(self) -> float:
-        """计算对偶间隙
-        
-        Returns:
-            float: 对偶间隙
-        """
-        return self.solve_status['gap']
-        
-    def calculate_solve_time(self) -> float:
-        """计算求解时间
-        
-        Returns:
-            float: 求解时间
-        """
-        return self.solve_status['time']
-        
-    def get_history(self) -> Dict[str, List[float]]:
-        """获取历史信息
-        
-        Returns:
-            Dict[str, List[float]]: 历史信息
-        """
-        return self.history
-        
-    def reset(self):
-        """重置模型"""
-        # 重置变量
-        self.variables = {}
-        
-        # 重置约束
-        self.constraints = {}
-        
-        # 重置目标函数
-        self.objective = None
-        
-        # 重置求解状态
-        self.solve_status = {
-            'iter': 0,
-            'obj_val': 0.0,
-            'gap': float('inf'),
-            'time': 0.0
-        }
-        
-        # 重置历史信息
-        self.history = {
-            'obj_val': [],
-            'gap': [],
-            'time': []
-        }
-        
-    def print_solution(self):
-        """打印解"""
-        logger.info("Solution:")
-        logger.info(f"Objective value: {self.objective:.2f}")
-        logger.info(f"Gap: {self.solve_status['gap']:.4f}")
-        logger.info(f"Solve time: {self.solve_status['time']:.2f}s")
-        
-    def print_history(self):
-        """打印历史信息"""
-        logger.info("History:")
-        logger.info(f"Objective values: {self.history['obj_val']}")
-        logger.info(f"Gaps: {self.history['gap']}")
-        logger.info(f"Solve times: {self.history['time']}")
-        
-    def save_solution(self, file_path: str):
-        """保存解
-        
-        Args:
-            file_path: 文件路径
-        """
-        import json
-        
-        solution = {
-            'objective': self.objective,
-            'variables': {k: v.tolist() for k, v in self.variables.items()},
-            'solve_status': self.solve_status,
-            'history': self.history
-        }
-        
-        with open(file_path, 'w') as f:
-            json.dump(solution, f, indent=4)
-            
-    def load_solution(self, file_path: str):
-        """加载解
-        
-        Args:
-            file_path: 文件路径
-        """
-        import json
-        
-        with open(file_path, 'r') as f:
-            solution = json.load(f)
-            
-        self.objective = solution['objective']
-        self.variables = {k: np.array(v) for k, v in solution['variables'].items()}
-        self.solve_status = solution['solve_status']
-        self.history = solution['history'] 
+        # 导出模型
+        if self._cplex:
+            self._cplex.export_as_lp(full_path)
+    
+    # Getter和Setter方法
+    @property
+    def in_data(self) -> InputData:
+        """对应Java: getIn() 通过@Getter自动生成"""
+        return self._in_data
+    
+    @in_data.setter
+    def in_data(self, value: InputData):
+        """对应Java: setIn() 通过@Setter自动生成"""
+        self._in_data = value
+    
+    @property
+    def p(self) -> Parameter:
+        """对应Java: getP() 通过@Getter自动生成"""
+        return self._p
+    
+    @property
+    def param(self) -> Parameter:
+        """对应Java: getParam() 通过@Getter自动生成"""
+        return self._p
+    
+    @param.setter
+    def param(self, value: Parameter):
+        """对应Java: setP() 通过@Setter自动生成"""
+        self._p = value
+    
+    @property
+    def tau(self) -> int:
+        """对应Java: getTau() 通过@Getter自动生成"""
+        return self._tau
+    
+    @property
+    def cplex(self):
+        """对应Java: getCplex() 通过@Getter自动生成"""
+        return self._cplex
+    
+    @cplex.setter
+    def cplex(self, value: Model):
+        """对应Java: setCplex() 通过@Setter自动生成"""
+        self._cplex = value
+    
+    @property
+    def model(self) -> str:
+        """对应Java: getModel() 通过@Getter自动生成"""
+        return self._model
+    
+    @model.setter
+    def model(self, value: str):
+        """对应Java: setModel() 通过@Setter自动生成"""
+        self._model = value
+    
+    @property
+    def model_name(self) -> str:
+        """对应Java: getModelName() 通过@Getter自动生成"""
+        return self._model_name
+    
+    @model_name.setter
+    def model_name(self, value: str):
+        """对应Java: setModelName() 通过@Setter自动生成"""
+        self._model_name = value
+    
+    @property
+    def obj_val(self) -> float:
+        """对应Java: getObjVal() 通过@Getter自动生成"""
+        return self._obj_val
+    
+    @obj_val.setter
+    def obj_val(self, value: float):
+        """对应Java: setObjVal() 通过@Setter自动生成"""
+        self._obj_val = value
+    
+    @property
+    def obj_gap(self) -> float:
+        """对应Java: getObjGap() 通过@Getter自动生成"""
+        return self._obj_gap
+    
+    @obj_gap.setter
+    def obj_gap(self, value: float):
+        """对应Java: setObjGap() 通过@Setter自动生成"""
+        self._obj_gap = value
+    
+    @property
+    def operation_cost(self) -> float:
+        """对应Java: getOperationCost() 通过@Getter自动生成"""
+        return self._operation_cost
+    
+    @operation_cost.setter
+    def operation_cost(self, value: float):
+        """对应Java: setOperationCost() 通过@Setter自动生成"""
+        self._operation_cost = value
+    
+    @property
+    def solve_time(self) -> float:
+        """对应Java: getSolveTime() 通过@Getter自动生成"""
+        return self._solve_time
+    
+    @solve_time.setter
+    def solve_time(self, value: float):
+        """对应Java: setSolveTime() 通过@Setter自动生成"""
+        self._solve_time = value
+    
+    @property
+    def v_var_value(self) -> List[List[int]]:
+        """对应Java: getVVarValue() 通过@Getter自动生成"""
+        return self._v_var_value
+    
+    @v_var_value.setter
+    def v_var_value(self, value: List[List[int]]):
+        """对应Java: setVVarValue() 通过@Setter自动生成"""
+        self._v_var_value = value
+    
+    @property
+    def v_var_value_double(self) -> List[List[float]]:
+        """对应Java: getVVarValueDouble() 通过@Getter自动生成"""
+        return self._v_var_value_double
+    
+    @v_var_value_double.setter
+    def v_var_value_double(self, value: List[List[float]]):
+        """对应Java: setVVarValueDouble() 通过@Setter自动生成"""
+        self._v_var_value_double = value
+    
+    @property
+    def u_value(self) -> List[float]:
+        """对应Java: getUValue() 通过@Getter自动生成"""
+        return self._u_value
+    
+    @u_value.setter
+    def u_value(self, value: List[float]):
+        """对应Java: setUValue() 通过@Setter自动生成"""
+        self._u_value = value 

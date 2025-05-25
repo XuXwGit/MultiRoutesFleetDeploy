@@ -15,8 +15,19 @@ class TravelingArc(Arc):
         round_trip: 往返次数
         travel_time: 运输时间
     """
-    def __init__(self, arc_id: int, route_id: int, round_trip: int, travel_time: int, origin_node: Node, destination_node: Node, cost: float = 0, capacity: float = 0):
-        super().__init__(arc_id, origin_node, destination_node, cost, capacity)
+    def __init__(self, 
+                 arc_id: int, 
+                 route_id: int, 
+                 round_trip: int, 
+                 travel_time: int, 
+                 origin_node: Node, 
+                 destination_node: Node
+                 ):
+        
+        super().__init__(arc_id, 
+                         origin_node, 
+                         destination_node, 
+                        )
         self.traveling_arc_id = arc_id
         self.route_id = route_id
         self.round_trip = round_trip

@@ -92,6 +92,16 @@ class ShipRoute:
         self._ship_route_id = value
     
     @property
+    def route_id(self) -> int:
+        """对应Java: getRouteID()"""
+        return self._ship_route_id
+    
+    @route_id.setter
+    def route_id(self, value: int):
+        """对应Java: setRouteID(int routeID)"""
+        self._ship_route_id = value
+
+    @property
     def cycle_time(self) -> int:
         """对应Java: getCycleTime()"""
         return self._cycle_time

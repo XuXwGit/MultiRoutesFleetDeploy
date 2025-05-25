@@ -151,3 +151,13 @@ class InputData:
         
         self.total_laden_paths_num = total_laden_paths
         self.total_empty_paths_num = total_empty_paths 
+
+
+
+    @property
+    def vessel_types(self) -> List[VesselType]:
+        return list(self.vessel_type_set.values())
+
+    @property
+    def shipping_routes(self) -> List[ShipRoute]:
+        return list(self.ship_route_set.values())

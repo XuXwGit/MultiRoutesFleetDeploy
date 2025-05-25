@@ -48,6 +48,15 @@ class VesselType:
         """
         self._id = value
     
+    @property   
+    def vessel_id(self) -> int:
+        """
+        获取船舶ID
+        对应Java: getVesselID()
+        """
+        return self._id
+
+
     @property
     def capacity(self) -> int:
         """

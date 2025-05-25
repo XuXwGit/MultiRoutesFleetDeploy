@@ -20,47 +20,33 @@ class MasterProblem(BasePrimalModel):
     3. 目标函数构建
     4. 求解方法
     """
-    
-    def __init__(self, model: Model, input_data: InputData, param: Parameter):
+    type: str
+
+    def __init__(self, input_data: InputData, param: Parameter, model: Model = None, type: str = ""):
         """初始化主问题
         
         Args:
+            input_data: 输入数据
+            param: 模型参数
             model: CPLEX模型实例
-            input_data: 输入数据
-            param: 模型参数
+            type: 问题类型("Reactive"或"Stochastic")
         """
         super().__init__()
         self.in_data = input_data
         self.param = param
         self.model_name = f"MP-R{len(input_data.ship_route_set)}-T{param.time_horizon}-{self.fleet_type}-S{self.random_seed}"
-        
+        self.type = type
         try:
-            self.cplex = model
+            if model != None:
+                self.cplex = model
+            else:
+                self.cplex = Model()
             self.public_setting(self.cplex)
             self.frame()
         except Exception as e:
             logger.error(f"Error in initialization: {str(e)}")
             raise
-            
-    def __init__(self, input_data: InputData, param: Parameter):
-        """初始化主问题(无模型实例)
         
-        Args:
-            input_data: 输入数据
-            param: 模型参数
-        """
-        super().__init__()
-        self.in_data = input_data
-        self.param = param
-        self.model_name = f"MP-R{len(input_data.ship_route_set)}-T{param.time_horizon}-{self.fleet_type}-S{self.random_seed}"
-        
-        try:
-            self.cplex = Model()
-            self.public_setting(self.cplex)
-            self.frame()
-        except Exception as e:
-            logger.error(f"Error in initialization: {str(e)}")
-            raise
             
     def __init__(self, input_data: InputData, param: Parameter, type: str):
         """初始化主问题(指定类型)
@@ -94,7 +80,12 @@ class MasterProblem(BasePrimalModel):
     def set_decision_vars(self):
         """设置决策变量"""
         # 第一阶段变量
-        self.set_vessel_decision_vars()
+        if self.type == "Reactive":
+                self.set_reactive_decision_vars()
+        elif self.type == "Stochastic":
+                self.set_stochastic_decision_vars()
+        else:
+            self.set_vessel_decision_vars()
         
         # 辅助决策变量
         self.eta_var = self.cplex.continuous_var(0, float('inf'), name="Eta")
@@ -137,7 +128,7 @@ class MasterProblem(BasePrimalModel):
         
     def get_v_vars(self) -> List[List]:
         """获取船舶分配变量"""
-        return self.v_var
+        return self.vVar
         
     def get_eta_var(self):
         """获取对偶变量"""
@@ -149,14 +140,15 @@ class MasterProblem(BasePrimalModel):
         
     def set_objectives(self):
         """设置目标函数"""
-        obj = LinearExpr()
-        
-        # 添加船舶运营成本
-        obj = self.get_vessel_operation_cost_obj(obj)
-        
-        obj.add_term(1, self.eta_var)
-        
-        self.cplex.minimize(obj)
+                # 第一阶段变量
+        if self.type == "Reactive":
+                self.set_reactive_objectives()
+        else:
+            obj = LinearExpr()
+            # 添加船舶运营成本
+            obj = self.get_vessel_operation_cost_obj(obj)
+            obj.add_term(1, self.eta_var)
+            self.cplex.minimize(obj)
         
     def set_reactive_objectives(self):
         """设置反应式目标函数"""
@@ -181,6 +173,7 @@ class MasterProblem(BasePrimalModel):
         
     def set_constraints(self):
         """设置约束条件"""
+        
         # 每条船舶航线分配一种类型的船舶
         self.set_constraint1()
         
@@ -226,11 +219,11 @@ class MasterProblem(BasePrimalModel):
                 r = self.in_data.vessel_path_set[w].route_id - 1
                 for h in range(len(self.param.vessel_set)):
                     left.add_term(
-                        -self.param.vessel_type_and_ship_route[h][r] *
+                        coeff=-self.param.vessel_type_and_ship_route[h][r] *
                         self.param.ship_route_and_vessel_path[r][w] *
                         self.param.arc_and_vessel_path[nn][w] *
                         self.param.vessel_capacity[h],
-                        self.v_var[h][r]
+                        dvar=self.v_var[h][r]
                     )
                     
             self.cplex.add_constraint(left <= 0, name=f"C3({nn+1})")
@@ -245,17 +238,20 @@ class MasterProblem(BasePrimalModel):
                 
                 for k in range(od.number_of_empty_path):
                     j = od.empty_path_indexes[k]
-                    left.add_term(self.param.arc_and_path[nn][j], z_var[i][k])
+                    left.add_term(
+                        coeff=self.param.arc_and_path[nn][j], 
+                        dvar=z_var[i][k]
+                    )
                     
             for w in range(len(self.param.vessel_path_set)):
                 r = self.in_data.vessel_path_set[w].route_id - 1
                 for h in range(len(self.param.vessel_set)):
                     left.add_term(
-                        -self.param.vessel_type_and_ship_route[h][r] *
+                        coeff=-self.param.vessel_type_and_ship_route[h][r] *
                         self.param.ship_route_and_vessel_path[r][w] *
                         self.param.arc_and_vessel_path[nn][w] *
                         self.param.vessel_capacity[h],
-                        self.v_var2[h][w]
+                        dvar=self.v_var2[h][w]
                     )
                     
             self.cplex.add_constraint(left <= 0, name=f"C3({nn+1})")
@@ -312,24 +308,27 @@ class MasterProblem(BasePrimalModel):
                 for h in range(len(self.param.vessel_set)):
                     if self.fleet_type == "Homo":
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta_value[n],
-                            self.v_var[h][r]
+                            dvar=self.v_var[h][r]
                         )
                     elif self.fleet_type == "Hetero":
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.vessel_capacity[h] *
                             beta_value[n],
-                            self.v_var[h][w]
+                            dvar=self.v_var[h][w]
                         )
                     else:
                         logger.error("Error in Fleet type!")
                         
-        left.add_term(-1, self.eta_var)
+        left.add_term(
+            coeff=-1, 
+            dvar=self.eta_var
+        )
         self.cplex.add_constraint(left <= -constant_item)
         
     def add_feasibility_cut(self, constant_item: float, beta_value: List[float]):
@@ -342,19 +341,19 @@ class MasterProblem(BasePrimalModel):
                 for h in range(len(self.param.vessel_set)):
                     if self.fleet_type == "Homo":
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta_value[n],
-                            self.v_var[h][r]
+                            dvar=self.v_var[h][r]
                         )
                     elif self.fleet_type == "Hetero":
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.vessel_capacity[h] *
                             beta_value[n],
-                            self.v_var[h][w]
+                            dvar=self.v_var[h][w]
                         )
                     else:
                         logger.error("Error in Fleet type!")
@@ -371,24 +370,27 @@ class MasterProblem(BasePrimalModel):
                 for w in range(len(self.param.vessel_path_set)):
                     for h in range(len(self.param.vessel_set)):
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta1_value[n],
-                            self.v_var[h][r]
+                            dvar=self.v_var[h][r]
                         )
                         
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta2_value[n],
-                            self.v_var2[h][w]
+                            dvar=self.v_var2[h][w]
                         )
                         
-        left.add_term(-1, self.eta_var)
+        left.add_term(
+            coeff=-1, 
+            dvar=self.eta_var
+        )
         self.cplex.add_constraint(left <= -constant_item)
         
     def add_reactive_feasibility_cut(self, constant_item: float,
@@ -401,21 +403,21 @@ class MasterProblem(BasePrimalModel):
                 for w in range(len(self.param.vessel_path_set)):
                     for h in range(len(self.param.vessel_set)):
                         left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta1_value[n],
-                            self.v_var[h][r]
+                            dvar=self.v_var[h][r]
                         )
                         
-                        left.add_term(
-                            self.param.arc_and_vessel_path[n][w] *
+                        left.add_term(  
+                            coeff=self.param.arc_and_vessel_path[n][w] *
                             self.param.ship_route_and_vessel_path[r][w] *
                             self.param.vessel_type_and_ship_route[h][r] *
                             self.param.vessel_capacity[h] *
                             beta2_value[n],
-                            self.v_var2[h][w]
+                            dvar=self.v_var2[h][w]
                         )
                         
         self.cplex.add_constraint(left <= -constant_item)

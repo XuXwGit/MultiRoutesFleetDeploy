@@ -44,6 +44,11 @@ class VesselPath:
     
     # Getter和Setter方法
     @property
+    def id(self) -> int:
+        return self._vessel_path_id
+
+
+    @property
     def vessel_path_id(self) -> int:
         """
         获取船舶路径ID

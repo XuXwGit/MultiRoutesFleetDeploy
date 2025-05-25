@@ -55,6 +55,21 @@ class DetermineModel(BasePrimalModel):
         if model_type != "UseMeanValue":
             self.model_name += f"-{model_type}"
 
+        self.initialize()
+
+    def solve(self):
+        """求解模型"""
+        start_time = time.time()
+        self.solve_model()
+        solve_time = time.time() - start_time
+        logger.info(f"SolveTime = {solve_time:.2f}")
+        
+        if DefaultSetting.WHETHER_CALCULATE_MEAN_PERFORMANCE:
+            self.calculate_mean_performance()
+
+    
+    def initialize(self):
+        """初始化模型"""
         if DefaultSetting.WHETHER_PRINT_PROCESS or DefaultSetting.WHETHER_PRINT_ITERATION:
             logger.info("=========DetermineModel==========")
         try:
@@ -67,17 +82,14 @@ class DetermineModel(BasePrimalModel):
         except Exception as e:
             logger.error(f"Error initializing BaseModel: {str(e)}")
             raise
-        
-        start_time = time.time()
-        self.solve_model()
-        solve_time = time.time() - start_time
-        logger.info(f"SolveTime = {solve_time:.2f}")
-        
-        if DefaultSetting.WHETHER_CALCULATE_MEAN_PERFORMANCE:
-            self.calculate_mean_performance()
+
         
     def frame(self):
         """构建模型框架"""
+        self.build_model()
+
+    def build_model(self):
+        """构建模型"""
         self.set_decision_vars()
         self.set_objectives()
         self.set_constraints()
@@ -104,10 +116,21 @@ class DetermineModel(BasePrimalModel):
         
     def set_constraints(self):
         """设置约束条件"""
+        logger.info("=========Setting Vessel Allocation Constraint Start==========")
         self.set_constraint0()  # 船舶分配约束
+        logger.info("=========Setting Vessel Allocation Constraint End==========")
+
+        logger.info("=========Setting Demand Constraint Start==========")
         self.set_constraint1()  # 需求满足约束
+        logger.info("=========Setting Demand Constraint End==========")
+
+        logger.info("=========Setting Capacity Constraint Start==========")
         self.set_constraint2()  # 容量约束
+        logger.info("=========Setting Capacity Constraint End==========")
+
+        logger.info("=========Setting Empty Conservation Constraint Start==========")
         self.set_constraint3()  # 流量平衡约束
+        logger.info("=========Setting Empty Conservation Constraint End==========")
         
     def set_constraint0(self):
         """设置船舶分配约束: 每条航线必须分配一艘船舶"""
