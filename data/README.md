@@ -268,8 +268,9 @@ VesselPathID	ShippingRouteID	NumOfArcs	ArcIDs	OriginTime	DestinationTime
 | RequestID | 需求编号 | int      | request_id |
 | Demand    | 需求量   | int      | demand     |
 **示例：**
-SceneID	RequestID	Demand
-1	1001	15
+| SceneID	| RequestID	| Demand |
+|---------|-----------|--------|
+| 1	| 1001	| 15 |
 
 ---
 
