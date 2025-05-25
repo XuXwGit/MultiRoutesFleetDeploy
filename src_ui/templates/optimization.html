@@ -239,7 +239,7 @@
                                                         <div class="mb-2">
                                                                 <label class="form-label">鲁棒系数</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="robustness" step="100" value="1.0"
+                                                                        name="robustness" step="100" value="1"
                                                                         placeholder="请输入鲁棒系数" title="请输入鲁棒系数">
                                                         </div>
                                                         <div class="mb-2">
@@ -320,10 +320,9 @@
                                                                         <div class="mb-2">
                                                                                 <label class="form-label">求解算法</label>
                                                                                 <select class="form-select"
-                                                                                        name="solver" title="请选择求解算法">
-                                                                                        <option value="cplex">Cplex
-                                                                                                Solver</option>
-                                                                                        <option value="benders">Benders
+                                                                                        name="algorithm"
+                                                                                        title="请选择求解算法">
+                                                                                        <option value="bd">Benders
                                                                                                 Decomposition
                                                                                         </option>
                                                                                         <option value="ccg">C&CG
@@ -332,7 +331,9 @@
                                                                                         </option>
                                                                                         <option value="ccgpap">CCG&PAP
                                                                                         </option>
-                                                                </select>
+                                                                                        <option value="cplex">Cplex
+                                                                                                Solver</option>
+                                                                                        </select>
                                                         </div>
                                                         <div class="mb-2">
                                                                 <label class="form-label">最大迭代次数 (0-1000)</label>

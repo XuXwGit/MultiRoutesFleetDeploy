@@ -40,7 +40,7 @@
         },
         {
             "name": "Performance Test - Small Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -58,7 +58,7 @@
         },
         {
             "name": "Performance Test - Large Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -76,7 +76,7 @@
         },
         {
             "name": "Performance Test - Middle Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -94,7 +94,7 @@
         },
         {
             "name": "Sensitivity Analysis - Small Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -112,7 +112,7 @@
         },
         {
             "name": "Sensitivity Analysis - Large Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -130,7 +130,7 @@
         },
         {
             "name": "Sensitivity Analysis - Middle Scale (Python)",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src-py/run.py",
             "args": [
@@ -147,31 +147,38 @@
             "justMyCode": true
         },
         {
-            "name": "Flask Backend",
+            "name": "Python: 运行多航线船舶调度算法",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src_ui/app.py",
+            "program": "${workspaceFolder}/src-py/run.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
-            "env": {
-                "FLASK_APP": "app.py",
-                "FLASK_ENV": "development",
-                "FLASK_DEBUG": "1"
-            },
             "args": [
-                "--host=0.0.0.0",
-                "--port=5000"
+                "--instance", "1",
+                "--experiment", "1",
+                "--root", "D:/Master/Codes/2-MultiRoutesFleetDeploy",
+                "--mip_gap", "0.01",
+                "--random_seed", "42",
+                "--budget_coeff", "0.1",
+                "--uncertain_degree", "0.5",
+                "--analysis_flag", "P",
+                "--time_horizon", "60",
+                "--turn_over_time", "14",
+                "--empty_rent_cost", "30",
+                "--penalty_coeff", "1.0",
+                "--port_load_cost", "30",
+                "--port_unload_cost", "30",
+                "--port_transship_cost", "50",
+                "--laden_stay_cost", "160",
+                "--laden_stay_free_time", "7",
+                "--empty_stay_cost", "80",
+                "--empty_stay_free_time", "7",
+                "--robustness", "100",
+                "--demand_fluctuation", "0.1",
+                "--algorithm", "bd",
+                "--max_iter", "100",
+                "--max_time", "100",
+                "--max_gap", "0.01",
             ]
-        },
-        {
-            "name": "Frontend Development Server",
-            "type": "chrome",
-            "request": "launch",
-            "url": "http://localhost:5000",
-            "webRoot": "${workspaceFolder}/src_ui/templates",
-            "sourceMapPathOverrides": {
-                "webpack:///src/*": "${webRoot}/*"
-            }
         }
     ]
 }

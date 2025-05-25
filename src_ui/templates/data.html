@@ -66,16 +66,25 @@
                                                         <label for="importType" class="form-label">数据类型</label>
                                                         <select class="form-select" id="importType" aria-label="选择数据类型"
                                                                 title="选择数据类型">
-                                                                <optgroup label="基础数据">
+                                                                <optgroup label="基础网络数据">
                                                                         <option value="ships">船舶数据</option>
                                                                         <option value="routes">航线数据</option>
                                                                         <option value="ports">港口数据</option>
                                                                 </optgroup>
-                                                                <optgroup label="优化数据">
+                                                                <optgroup label="时空网络数据">
                                                                         <option value="nodes">时空节点数据</option>
                                                                         <option value="transship">转运弧数据</option>
                                                                         <option value="traveling">航段弧数据</option>
+                                                                </optgroup>
+                                                                <optgroup label="路径相关数据">
+                                                                        <option value="vesselpaths">航行轮回路径数据</option>
                                                                         <option value="paths">候选运输路径数据</option>
+                                                                        <option value="laden_paths">重箱路径数据</option>
+                                                                        <option value="empty_paths">空箱路径数据</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="需求模拟数据">
+                                                                                <option value="demand_range">需求范围数据
+                                                                                </option>
                                                                         <option value="requests">需求序列数据</option>
                                                                 </optgroup>
                                                         </select>
@@ -108,16 +117,25 @@
                                                         <label for="exportType" class="form-label">数据类型</label>
                                                         <select class="form-select" id="exportType" aria-label="选择数据类型"
                                                                 title="选择数据类型">
-                                                                <optgroup label="基础数据">
+                                                                <optgroup label="基础网络数据">
                                                                         <option value="ships">船舶数据</option>
                                                                         <option value="routes">航线数据</option>
                                                                         <option value="ports">港口数据</option>
                                                                 </optgroup>
-                                                                <optgroup label="优化数据">
+                                                                <optgroup label="时空网络数据">
                                                                         <option value="nodes">时空节点数据</option>
                                                                         <option value="transship">转运弧数据</option>
                                                                         <option value="traveling">航段弧数据</option>
+                                                                </optgroup>
+                                                                <optgroup label="路径相关数据">
+                                                                        <option value="vesselpaths">航行轮回路径数据</option>
                                                                         <option value="paths">候选运输路径数据</option>
+                                                                        <option value="laden_paths">重箱路径数据</option>
+                                                                        <option value="empty_paths">空箱路径数据</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="需求模拟数据">
+                                                                                <option value="demand_range">需求范围数据
+                                                                                </option>
                                                                         <option value="requests">需求序列数据</option>
                                                                 </optgroup>
                                                         </select>
@@ -145,18 +163,31 @@
                                                         <label for="viewType" class="form-label">数据类型</label>
                                                         <select class="form-select" id="viewType" aria-label="选择数据类型"
                                                                 title="选择数据类型" onchange="refreshDataView()">
-                                                                <optgroup label="基础数据">
-                                                                        <option value="ships">船舶数据</option>
-                                                                        <option value="routes">航线数据</option>
-                                                                        <option value="ports">港口数据</option>
-                                                                </optgroup>
-                                                                <optgroup label="优化数据">
-                                                                        <option value="nodes">时空节点数据</option>
-                                                                        <option value="transship">转运弧数据</option>
-                                                                        <option value="traveling">航段弧数据</option>
-                                                                        <option value="paths">候选运输路径数据</option>
-                                                                        <option value="requests">需求序列数据</option>
-                                                                </optgroup>
+                                                                        <optgroup label="基础网络数据">
+                                                                                <option value="ships">船舶数据</option>
+                                                                                <option value="routes">航线数据</option>
+                                                                                <option value="ports">港口数据</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="时空网络数据">
+                                                                                <option value="nodes">时空节点数据</option>
+                                                                                <option value="transship">转运弧数据</option>
+                                                                                <option value="traveling">航段弧数据</option>
+                                                                        </optgroup>
+                                                                        <optgroup label="路径相关数据">
+                                                                                <option value="vesselpaths">航行轮回路径数据
+                                                                                </option>
+                                                                                <option value="paths">候选运输路径数据</option>
+                                                                                <option value="laden_paths">重箱路径数据
+                                                                                </option>
+                                                                                <option value="empty_paths">空箱路径数据
+                                                                                </option>
+                                                                                </optgroup>
+                                                                                <optgroup label="需求模拟数据">
+                                                                                        <option value="demand_range">
+                                                                                                需求范围数据
+                                                                                        </option>
+                                                                                <option value="requests">需求序列数据</option>
+                                                                                </optgroup>
                                                         </select>
                                                 </div>
                                                 <div class="mb-3">

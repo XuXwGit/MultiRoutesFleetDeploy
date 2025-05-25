@@ -12,6 +12,7 @@
   - TravelingArcs（航行弧）
   - TransshipArcs（转运弧）
   - Paths（路径）
+  - VesselPaths（航行往返路径）
   - LadenPaths（重载路径）
   - EmptyPaths（空载路径）
 
@@ -139,6 +140,23 @@
 
 ---
 
+
+### VesselPaths
+| 字段名（英文） | 字段名（中文） | 类型 | 说明 |
+|--------------------|---------------|---------|------------------------------|
+| VesselPathID | 路径ID | int | 航行轮回路径唯一编号 |
+| ShippingRouteID | 航线ID | int | 该路径所属的航线编号 |
+| NumOfArcs | 弧段数 | int | 路径包含的弧段数量 |
+| ArcIDs | 弧段ID序列 | string | 该路径包含的弧段ID（逗号分隔）|
+| OriginTime | 起点时间 | int | 路径起点节点的时间 |
+| DestinationTime | 终点时间 | int | 路径终点节点的时间 |
+
+**示例：**
+VesselPathID	ShippingRouteID	NumOfArcs	ArcIDs	OriginTime	DestinationTime
+1	1	14	1,2,3,4,5,6,7,8,9,10,11,12,13,14	3	87
+
+---
+
 ### Paths.txt
 | 字段            | 字段说明     | 类型   | 数据库字段         |
 |-----------------|--------------|--------|--------------------|
@@ -210,7 +228,7 @@
 | RequestID         | 需求编号     | int    | request_id         |
 | OriginPort        | 起点港口     | str    | origin_port        |
 | DestinationPort   | 终点港口     | str    | destination_port   |
-| WiEarliest        | 最早发运时刻 | int    | wi_earliest        |
+| EarliestPickupTime        | 最早发运时刻 | int    | wi_earliest        |
 | LatestDestinationTime | 最晚到达时刻 | int | latest_destination_time |
 | LadenPaths        | 可选重载路径 | str    | laden_paths        |
 | NumberOfLadenPath | 重载路径数   | int    | number_of_laden_path|

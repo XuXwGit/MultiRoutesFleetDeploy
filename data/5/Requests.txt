@@ -1,4 +1,4 @@
-RequestID	OriginPort	DestinationPort	WiEarliest	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
+RequestID	OriginPort	DestinationPort	EarliestPickupTime	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
 1	AGADIR	ANTWERP	1	26	36,37	2	0	0
 2	AGADIR	ANTWERP	8	33	36,37,38,39,40	5	0	0
 3	AGADIR	ANTWERP	15	40	39,40,41,42,43	5	2685,11981	2

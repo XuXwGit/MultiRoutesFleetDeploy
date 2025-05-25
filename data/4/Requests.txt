@@ -1,4 +1,4 @@
-RequestID	OriginPort	DestinationPort	WiEarliest	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
+RequestID	OriginPort	DestinationPort	EarliestPickupTime	LatestDestinationTime	LadenPaths	NumberOfLadenPath	EmptyPaths	NumberOfEmptyPath
 1	BALBOA	BUSAN(KOREA)	1	58	0	0	0	0
 2	BALBOA	BUSAN(KOREA)	8	65	0	0	0	0
 3	BALBOA	BUSAN(KOREA)	15	72	0	0	0	0
