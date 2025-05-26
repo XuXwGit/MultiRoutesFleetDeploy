@@ -37,7 +37,7 @@ class LadenPath:
     earliest_setup_time: int  # 最早设置时间
     arrival_time_to_destination: int  # 到达目的地时间
     path_time: int  # 路径时间
-    path_id: int  # 路径ID
+    path_id: int  # 路径ID（建议主流程用container_path_id，path_id仅为兼容）
     number_of_arcs: int  # 弧的数量
     container_path: Optional[ContainerPath] = None  # 集装箱路径对象
     transshipment_port: List[str] = field(default_factory=list)  # 转运港口列表

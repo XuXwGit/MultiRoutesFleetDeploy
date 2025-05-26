@@ -134,23 +134,81 @@ class DetermineModel(BasePrimalModel):
         
     def set_constraint0(self):
         """设置船舶分配约束: 每条航线必须分配一艘船舶"""
-        for r in range(len(self.param.shipping_route_set)):
+        for r, route in enumerate(self.input_data.shipping_routes):
             expr = self.cplex.linear_expr()
-            for h in range(len(self.param.vessel_set)):
-                expr.add_term(coeff=1.0, dvar=self.vVar[h][r])
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                expr.add_term(coeff=1.0, dvar=self.vVars[h][r])
             self.cplex.add_constraint(expr == 1.0, f"C0_{r}")
             
     def set_constraint1(self):
-        """设置需求满足约束: 运输量必须满足需求"""
+        """设置需求满足约束: 运输量必须满足需求
+        
+        数学模型:
+        Σ_p (x_ip + y_ip) + g_i = d_i, ∀i ∈ I
+        其中:
+            d_i: 需求量
+            g_i: 需求未满足量
+            x_ip, y_ip: 各类集装箱运输量
+        对应Java注释:
+        /*
+        demand satisfaction constraint
+        /sum{X+Y}+g = d
+        */
+        /**
+        * 设置需求满足约束
+        * Σ_p (x_ip + y_ip) + g_i = d_i, ∀i ∈ I
+        * 其中:
+        * d_i: 需求量
+        * g_i: 需求未满足量
+        */
+        """
         self.set_demand_constraint()
         
             
     def set_constraint2(self):
-        """设置容量约束: 运输量不能超过船舶容量"""
+        """设置容量约束: 运输量不能超过船舶容量
+        
+        数学模型:
+        Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        其中:
+            a_np: 路径p是否使用弧n
+            C_h: 船舶类型h的容量
+            V_hr: 船舶类型h分配到航线r的二元变量
+            x_ip, y_ip, z_ip: 各类集装箱运输量
+        对应Java注释:
+        /*
+        vessel capacity constraint
+        /sum{X+Y+Z} <= V
+        */
+        /**
+        * 设置船舶容量约束(对应数学模型中式8)
+        * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        * 其中:
+        * a_np: 路径p是否使用弧n
+        * C_h: 船舶类型h的容量
+        */
+        """
         self.set_capacity_constraint()
             
     def set_constraint3(self):
-        """设置流量平衡约束: 每个节点的流入量等于流出量"""
+        """设置流量平衡约束: 每个节点的流入量等于流出量
+        
+        数学模型:
+        初始空箱量 + Σ_输入流 - Σ_输出流 = 0, ∀p ∈ P, t ∈ T
+        其中:
+            p: 港口
+            t: 时间点
+            输入流/输出流: 各类集装箱的流入/流出
+        对应Java注释:
+        /*
+        empty container conservation constraint
+        inflow - outflow = initial
+        */
+        /**
+        * 设置空箱守恒约束
+        * 初始空箱量 + Σ_输入流 - Σ_输出流 = 0, ∀p ∈ P, t ∈ T
+        */
+        """
         self.set_empty_conservation_constraint()
         
                 
@@ -177,14 +235,14 @@ class DetermineModel(BasePrimalModel):
                 
                 # 获取船舶分配变量值
                 self.vVar_value = [
-                    [self.vVar[h][r].solution_value for r in range(len(self.param.shipping_route_set))]
-                    for h in range(len(self.param.vessel_set))
+                    [self.vVars[h][r].solution_value for r in range(len(self.param.shipping_route_set))]
+                    for h, vessel in enumerate(self.input_data.vessel_types)
                 ]
                 
                 # 获取第二次船舶分配变量值
                 self.vVar_value2 = [
-                    [self.vVar[h][r].solution_value for r in range(len(self.param.shipping_route_set))]
-                    for h in range(len(self.param.vessel_set))
+                    [self.vVars[h][r].solution_value for r in range(len(self.param.shipping_route_set))]
+                    for h, vessel in enumerate(self.input_data.vessel_types)
                 ]
                 
                 # 获取期望成本变量值
@@ -193,7 +251,7 @@ class DetermineModel(BasePrimalModel):
                 # 计算运营成本
                 self.operation_cost = sum(
                     self.param.vessel_operation_cost[h] * self.vVar_value[h][r]
-                    for h in range(len(self.param.vessel_set))
+                    for h, vessel in enumerate(self.input_data.vessel_types)
                     for r in range(len(self.param.shipping_route_set))
                 )
                 
@@ -209,20 +267,35 @@ class DetermineModel(BasePrimalModel):
         """
         添加新场景
         
-        Args:
-            scene: 新场景信息
+        数学模型:
+        对于每个新场景r:
+        Σ_k y_{rk} - scene_x_r = 0
+        其中:
+            y_{rk}: 场景r下的决策变量
+            scene_x_r: 场景r的辅助变量
+        对应Java注释:
+        /*
+        scenario extension constraint
+        /sum{y_{rk}} - scene_x_r = 0
+        */
+        /**
+        * 添加场景扩展约束
+        * Σ_k y_{rk} - scene_x_r = 0
+        * 其中:
+        * y_{rk}: 场景r下的决策变量
+        * scene_x_r: 场景r的辅助变量
+        */
         """
         try:
             # 添加场景相关变量
             scene_vars = {}
             for r in range(len(self.param.demand)):
                 scene_vars[r] = self.cplex.binary_var(name=f"scene_x_{r}")
-            
             # 添加场景相关约束
             for r in range(len(self.param.demand)):
                 expr = self.cplex.linear_expr()
                 for k in range(len(self.param.shipping_route_set)):
-                    expr.add_term(coeff=1.0, dvar=self.yVar[r][k])
+                    expr.add_term(coeff=1.0, dvar=self.yVars[r][k])
                 expr.add_term(coeff=-1.0, dvar=scene_vars[r])
                 self.cplex.linear_constraints.add(
                     lin_expr=[expr],
@@ -230,17 +303,14 @@ class DetermineModel(BasePrimalModel):
                     rhs=[0.0],
                     names=[f"scene_request_satisfaction_{r}"]
                 )
-            
             # 更新目标函数
             scene_cost = sum(
                 scene["request"][r].cost * scene_vars[r]
                 for r in range(len(self.param.demand))
             )
-            
             self.cplex.objective.set_linear(
                 self.cplex.linear_expr() + scene_cost
             )
-            
         except Exception as e:
             logger.error(f"Error in adding scene to determine model: {str(e)}")
             raise

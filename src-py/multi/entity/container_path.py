@@ -140,35 +140,38 @@ class ContainerPath:
     
 
     @property
-    def path_id(self) -> int:
+    def id(self) -> int:
         """
         获取路径ID
-        对应Java: getPathID()
+        对应Java: getId()
         """
         return self._container_path_id
 
-    # Getter和Setter方法
+    @property
+    def path_id(self) -> int:
+        """
+        获取路径ID（别名，等价于container_path_id，建议主流程不用此属性）
+        """
+        return self._container_path_id
+
     @property
     def container_path_id(self) -> int:
         """
-        获取集装箱路径ID
-        对应Java: getContainerPathID()
+        获取集装箱路径ID（主ID，建议主流程全部用此属性）
         """
         return self._container_path_id
-    
+
     @property
     def laden_path_id(self) -> int:
         """
-        获取集装箱路径ID
-        对应Java: getContainerPathID()
+        获取重箱路径ID（别名，等价于container_path_id，建议主流程不用此属性）
         """
         return self._container_path_id
-    
+
     @property
     def empty_path_id(self) -> int:
         """
-        获取空集装箱路径ID
-        对应Java: getEmptyPathID()
+        获取空箱路径ID（别名，等价于container_path_id，建议主流程不用此属性）
         """
         return self._container_path_id
 
@@ -439,6 +442,15 @@ class ContainerPath:
         """
         self._arcs = value
     
+    @property
+    def cost(self) -> float:
+        """
+        获取路径成本
+        对应Java: getCost()
+        """
+        return self._path_cost
+
+
     @property
     def path_cost(self) -> float:
         """

@@ -47,8 +47,8 @@ class Port:
         self._turn_over_time: int = turn_over_time  # 对应Java: private int turnOverTime
         
         # 成本属性
-        self._laden_demurral_cost: float = laden_demurrage_cost  # 对应Java: private double ladenDemurralCost
-        self._empty_demurral_cost: float = empty_demurrage_cost  # 对应Java: private double emptyDemurralCost
+        self._laden_demurrage_cost: float = laden_demurrage_cost  # 对应Java: private double ladenDemurrangeCost
+        self._empty_demurrage_cost: float = empty_demurrage_cost  # 对应Java: private double emptyDemurrangeCost
         self._loading_cost: float = loading_cost  # 对应Java: private double loadingCost
         self._discharge_cost: float = discharge_cost  # 对应Java: private double dischargeCost
         self._transshipment_cost: float = transshipment_cost  # 对应Java: private double transshipmentCost
@@ -104,20 +104,20 @@ class Port:
         self._turn_over_time = value
     
     @property
-    def laden_demurral_cost(self) -> float:
-        return self._laden_demurral_cost
+    def laden_demurrage_cost(self) -> float:
+        return self._laden_demurrage_cost
     
-    @laden_demurral_cost.setter
-    def laden_demurral_cost(self, value: float):
-        self._laden_demurral_cost = value
-    
+    @laden_demurrage_cost.setter
+    def laden_demurrage_cost(self, value: float):
+        self._laden_demurrage_cost = value
+
     @property
-    def empty_demurral_cost(self) -> float:
-        return self._empty_demurral_cost
+    def empty_demurrage_cost(self) -> float:
+        return self._empty_demurrage_cost
     
-    @empty_demurral_cost.setter
-    def empty_demurral_cost(self, value: float):
-        self._empty_demurral_cost = value
+    @empty_demurrage_cost.setter
+    def empty_demurrage_cost(self, value: float):
+        self._empty_demurrage_cost = value
     
     @property
     def loading_cost(self) -> float:

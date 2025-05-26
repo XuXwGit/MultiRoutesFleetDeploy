@@ -37,38 +37,40 @@ logger = logging.getLogger(__name__)
 class BaseModel:
     """模型基类"""
     
-    _obj_val = 0.0
-    _obj_gap = 0.0
-    _operation_cost = 0.0
-    _solve_time = 0.0
-    _v_var_value = []
-    _v_var_value_double = []
-    _u_value = []
+    cplex: Model = None
+    _fleet_type = DefaultSetting.FLEET_TYPE
+    _random_seed = DefaultSetting.RANDOM_SEED
 
-    def __init__(self, in_data: Optional[InputData] = None, p: Optional[Parameter] = None):
+    def __init__(self, input_data: Optional[InputData] = None, p: Optional[Parameter] = None):
         """
         对应Java构造函数：
         - public BaseModel()
         - public BaseModel(InputData in, Parameter p)
         """
         # 如果是默认无参数构造函数，则不进行初始化
-        if in_data is None or p is None:
+        if input_data is None or p is None:
             return
             
         # 基本属性
-        self._in_data = in_data  # 对应Java: protected InputData in
+        self._input_data = input_data  # 对应Java: protected InputData in
         self._p = p  # 对应Java: protected Parameter p
-        self._cplex = None  # 对应Java: protected IloCplex cplex
+
         self._model = ""  # 对应Java: protected String model
-        self._model_name = ""  # 对应Java: protected String modelName
-        self._obj_val = 0.0  # 对应Java: protected double objVal
-        self._obj_gap = 0.0  # 对应Java: protected double objGap
-        self._operation_cost = 0.0  # 对应Java: protected double operationCost
-        self._solve_time = 0.0  # 对应Java: protected double solveTime
-        self._v_var_value = []  # 对应Java: protected int[][] vVarValue
-        self._v_var_value_double = []  # 对应Java: protected double[][] vVarValueDouble
-        self._u_value = []  # 对应Java: protected double[] uValue
-        
+
+        # 统一为实例变量
+        self.obj_val = 0.0
+        self.obj_gap = 0.0
+        self.solve_time = 0.0
+        self.v_var_value = []
+        self.u_value = []
+        self.operation_cost = 0.0
+        self.laden_cost = 0.0
+        self.empty_cost = 0.0
+        self.rental_cost = 0.0
+        self.penalty_cost = 0.0
+
+        self.cplex = None
+        self.objective = None
 
     def initialize(self):
         """
@@ -76,14 +78,14 @@ class BaseModel:
         """
         try:
             # 创建CPLEX求解器实例（使用docplex中的Model）
-            self._cplex = Model(name=self._model_name or "base_model")
+            self.cplex = Model(name=self._model_name or "base_model")
         except Exception as e:
             # 对应Java的: throw new RuntimeException(e)
             raise RuntimeError(f"初始化CPLEX求解器失败: {str(e)}")
 
         try:
             # 设置CPLEX求解器参数
-            self.public_setting(self._cplex)
+            self.public_setting(self.cplex)
         except Exception as e:
             raise RuntimeError(f"设置求解器参数失败: {str(e)}")
 
@@ -169,16 +171,16 @@ class BaseModel:
         结束CPLEX实例
         对应Java: public void end()
         """
-        if self._cplex:
-            self._cplex.end()
+        if self.cplex:
+            self.cplex.end()
     
     def get_solve_status(self) -> int:
         """
         获取求解状态
         对应Java: public IloCplex.Status getSolveStatus() throws IloException
         """
-        if self._cplex and hasattr(self._cplex, 'solve_details'):
-            return self._cplex.solve_details.status_code
+        if self.cplex and hasattr(self.cplex, 'solve_details'):
+            return self.cplex.solve_details.status_code
         return -1
     
     def get_solve_status_string(self) -> str:
@@ -186,22 +188,22 @@ class BaseModel:
         获取求解状态字符串
         对应Java: public String getSolveStatusString() throws IloException
         """
-        if not self._cplex:
+        if not self.cplex:
             return "No CPLEX instance"
         
-        if not hasattr(self._cplex, 'solve_details'):
+        if not hasattr(self.cplex, 'solve_details'):
             return "Not solved yet"
             
-        status = self._cplex.solve_details.status
+        status = self.cplex.solve_details.status
         
         # DocPLEX状态映射
-        if status == "optimal":
+        if "optimal" in status:
             return "Optimal"
-        elif status == "feasible":
+        elif "feasible" in status:
             return "Feasible"
-        elif status == "infeasible":
+        elif "infeasible" in status:
             return "Infeasible"
-        elif status == "unbounded":
+        elif "unbounded" in status:
             return "Unbounded"
         return "Others"
     
@@ -215,25 +217,31 @@ class BaseModel:
         # 初始化容量数组
         capacities = [0.0] * len(self._p.traveling_arcs_set)
         
+        if v_value is None or len(v_value) == 0:
+            return capacities
+
         # 计算每条弧上的容量
-        for n in range(len(self._p.traveling_arcs_set)):
+        for n, arc in enumerate(self.input_data.traveling_arcs):
             # 对应Java: capacities[n] = 0;
             capacities[n] = 0.0
             
             # 遍历所有船舶路径 w∈Ω
-            for w, vessel_path in enumerate(self.in_data.vessel_paths):
+            for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 # 获取路径w对应的航线r
-                r =vessel_path.route_id
+                r =vessel_path.route_id - 1
                 
-                # 遍历所有船舶类型 h \in Hr: r(w) = r
-                for h,  in enumerate(self.in_data.vessel_types):
-                    # 检查船舶类型h是否可用于航线r
-                    if self._p.vessel_type_set[h].route_id == r + 1:
-                        # 检查路径w是否经过弧n
-                        if self._p.vessel_path_arc[w][n] != 0:
-                            # 累加容量
-                            capacities[n] += v_value[w][h] * self._p.vessel_type_set[h].capacity
-        
+                # 遍历所有船舶类型 h \in Hr
+                for h, vessel_type in enumerate(self.input_data.vessel_types):
+                    try:
+                        if DefaultSetting.FLEET_TYPE == "Homo":
+                            capacities[n] += self.p.arc_and_vessel_path[arc.id][vessel_path.id] * self.p.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.id] * self.p.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id] * vessel_type.capacity * v_value[h][r]
+                        elif DefaultSetting.FLEET_TYPE == "Hetero":
+                            capacities[n] += self.p.arc_and_vessel_path[arc.id][vessel_path.id] * vessel_type.capacity * v_value[h][w]
+                        else:
+                            logger.error("Error in Fleet type!")
+                    except Exception as e:
+                        logger.error(f"Error in getCapacityOnArcs: {str(e)}")
+
         return capacities
     
     def export_model(self):
@@ -252,19 +260,19 @@ class BaseModel:
         full_path = os.path.join(model_file_path, filename)
         
         # 导出模型
-        if self._cplex:
-            self._cplex.export_as_lp(full_path)
+        if self.cplex:
+            self.cplex.export_as_lp(full_path)
     
     # Getter和Setter方法
     @property
-    def in_data(self) -> InputData:
+    def input_data(self) -> InputData:
         """对应Java: getIn() 通过@Getter自动生成"""
-        return self._in_data
+        return self._input_data
     
-    @in_data.setter
-    def in_data(self, value: InputData):
+    @input_data.setter
+    def input_data(self, value: InputData):
         """对应Java: setIn() 通过@Setter自动生成"""
-        self._in_data = value
+        self._input_data = value
     
     @property
     def p(self) -> Parameter:
@@ -285,16 +293,6 @@ class BaseModel:
     def tau(self) -> int:
         """对应Java: getTau() 通过@Getter自动生成"""
         return self._tau
-    
-    @property
-    def cplex(self):
-        """对应Java: getCplex() 通过@Getter自动生成"""
-        return self._cplex
-    
-    @cplex.setter
-    def cplex(self, value: Model):
-        """对应Java: setCplex() 通过@Setter自动生成"""
-        self._cplex = value
     
     @property
     def model(self) -> str:
@@ -326,6 +324,10 @@ class BaseModel:
         """对应Java: setObjVal() 通过@Setter自动生成"""
         self._obj_val = value
     
+    def set_obj_val(self, value: float):
+        """对应Java: setObjVal() 通过@Setter自动生成"""
+        self._obj_val = value
+
     @property
     def obj_gap(self) -> float:
         """对应Java: getObjGap() 通过@Getter自动生成"""
@@ -335,7 +337,11 @@ class BaseModel:
     def obj_gap(self, value: float):
         """对应Java: setObjGap() 通过@Setter自动生成"""
         self._obj_gap = value
-    
+
+    def set_obj_gap(self, value: float):
+        """对应Java: setObjGap() 通过@Setter自动生成"""
+        self._obj_gap = value
+
     @property
     def operation_cost(self) -> float:
         """对应Java: getOperationCost() 通过@Getter自动生成"""
@@ -346,6 +352,10 @@ class BaseModel:
         """对应Java: setOperationCost() 通过@Setter自动生成"""
         self._operation_cost = value
     
+    def set_operation_cost(self, value: float):
+        """对应Java: setOperationCost() 通过@Setter自动生成"""
+        self._operation_cost = value
+
     @property
     def solve_time(self) -> float:
         """对应Java: getSolveTime() 通过@Getter自动生成"""
@@ -356,6 +366,10 @@ class BaseModel:
         """对应Java: setSolveTime() 通过@Setter自动生成"""
         self._solve_time = value
     
+    def set_solve_time(self, value: float):
+        """对应Java: setSolveTime() 通过@Setter自动生成"""
+        self._solve_time = value
+
     @property
     def v_var_value(self) -> List[List[int]]:
         """对应Java: getVVarValue() 通过@Getter自动生成"""
@@ -365,7 +379,16 @@ class BaseModel:
     def v_var_value(self, value: List[List[int]]):
         """对应Java: setVVarValue() 通过@Setter自动生成"""
         self._v_var_value = value
-    
+
+    @v_var_value.setter
+    def v_var_value(self, value: List[List[float]]):
+        """对应Java: setVVarValue() 通过@Setter自动生成"""
+        self._v_var_value = value
+
+    def set_v_var_value(self, value):
+        """对应Java: setVVarValue() 通过@Setter自动生成"""
+        self._v_var_value = value
+
     @property
     def v_var_value_double(self) -> List[List[float]]:
         """对应Java: getVVarValueDouble() 通过@Getter自动生成"""
@@ -385,3 +408,28 @@ class BaseModel:
     def u_value(self, value: List[float]):
         """对应Java: setUValue() 通过@Setter自动生成"""
         self._u_value = value 
+
+    def set_u_value(self, value: List[float]):
+        """对应Java: setUValue() 通过@Setter自动生成"""
+        self._u_value = value
+
+    @property
+    def fleet_type(self) -> str:
+        """对应Java: getFleetType() 通过@Getter自动生成"""
+        return self._fleet_type
+    
+    @fleet_type.setter
+    def fleet_type(self, value: str):
+        """对应Java: setFleetType() 通过@Setter自动生成"""
+        self._fleet_type = value
+
+
+    @property
+    def random_seed(self) -> int:
+        """对应Java: getRandomSeed() 通过@Getter自动生成"""
+        return self._random_seed
+    
+    @random_seed.setter
+    def random_seed(self, value: int):
+        """对应Java: setRandomSeed() 通过@Setter自动生成"""
+        self._random_seed = value

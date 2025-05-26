@@ -23,17 +23,17 @@ class BaseAlgoFrame:
     子类需要实现具体的算法逻辑
     """
     
-    def __init__(self):
+    def __init__(self, input_data: InputData, param: Parameter):
         """
         初始化算法框架基类
         """
-        self.in_data = None  # 输入数据
-        self.p = None  # 模型参数
-        self.gap = 0  # 间隙
-        self.obj = 0  # 目标函数值
-        self.solve_time = 0  # 求解时间
-        self.iter = 0  # 迭代次数
-        self.iteration = 0  # 当前迭代次数
+        self.input_data: InputData = input_data  # 输入数据
+        self.param: Parameter = param  # 模型参数
+        self.gap: float = 0  # 间隙
+        self.obj: float = 0  # 目标函数值
+        self.solve_time: float = 0  # 求解时间
+        self.iter: int = 0  # 迭代次数
+        self.iteration: int = 0  # 当前迭代次数
         
         # 记录上下界历史
         self.upper = [0] * (DefaultSetting.MAX_ITERATION_NUM + 1)
@@ -122,3 +122,18 @@ class BaseAlgoFrame:
             目标函数值
         """
         return self.obj 
+    
+
+    @property
+    def in_data(self) -> InputData:
+        """
+        获取输入数据
+        """
+        return self.input_data
+    
+    @property
+    def p(self) -> Parameter:
+        """
+        获取模型参数
+        """
+        return self.param

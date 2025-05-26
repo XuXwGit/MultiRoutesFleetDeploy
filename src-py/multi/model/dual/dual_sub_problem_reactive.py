@@ -112,14 +112,14 @@ class DualSubProblemReactive(DualSubProblem):
         创建决策变量
         """
         # 需求对偶变量 alpha[i]
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             self.alpha_var[i] = self.model.addVar(
                 vtype="C",
                 name=f"alpha_{i}"
             )
         
         # 运力约束对偶变量 beta1[n]和beta2[n]
-        for n in range(self.in_data.arc_num):
+        for n in range(self.input_data.arc_num):
             self.beta_var1[n] = self.model.addVar(
                 vtype="C",
                 ub=0,  # beta <= 0
@@ -132,9 +132,9 @@ class DualSubProblemReactive(DualSubProblem):
             )
         
         # 空箱量对偶变量 gamma[p][t]
-        for p in range(self.in_data.port_num):
+        for p in range(self.input_data.port_num):
             self.gamma_var[p] = {}
-            for t in range(1, self.in_data.time_horizon + 1):
+            for t in range(1, self.input_data.time_horizon + 1):
                 self.gamma_var[p][t] = self.model.addVar(
                     vtype="C",
                     lb=0,  # gamma >= 0
@@ -142,14 +142,14 @@ class DualSubProblemReactive(DualSubProblem):
                 )
         
         # 辅助变量 lambda[i]
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             self.lambda_var[i] = self.model.addVar(
                 vtype="C",
                 name=f"lambda_{i}"
             )
         
         # 不确定需求变量 miu[i]
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             self.miu_var[i] = self.model.addVar(
                 vtype="B",
                 name=f"miu_{i}"
@@ -161,27 +161,27 @@ class DualSubProblemReactive(DualSubProblem):
         """
         # 第一部分: 需求项
         demand_term = sum(
-            self.in_data.requests[i].demand * self.alpha_var[i]
-            for i in range(self.in_data.request_num)
+            self.input_data.requests[i].demand * self.alpha_var[i]
+            for i in range(self.input_data.request_num)
         )
         
         # 第二部分: 运力项(第一组)
         capacity_term1 = sum(
             self._get_capacity_on_arc1(n) * self.beta_var1[n]
-            for n in range(self.in_data.arc_num)
+            for n in range(self.input_data.arc_num)
         )
         
         # 第二部分: 运力项(第二组)
         capacity_term2 = sum(
             self._get_capacity_on_arc2(n) * self.beta_var2[n]
-            for n in range(self.in_data.arc_num)
+            for n in range(self.input_data.arc_num)
         )
         
         # 第三部分: 空箱量项
         empty_term = sum(
-            -self.in_data.ports[p].initial_empty * self.gamma_var[p][t]
-            for p in range(self.in_data.port_num)
-            for t in range(1, self.in_data.time_horizon + 1)
+            -self.input_data.ports[p].initial_empty * self.gamma_var[p][t]
+            for p in range(self.input_data.port_num)
+            for t in range(1, self.input_data.time_horizon + 1)
         )
         
         # 设置目标函数
@@ -208,29 +208,29 @@ class DualSubProblemReactive(DualSubProblem):
         创建对偶约束
         """
         # 需求约束
-        for i in range(self.in_data.request_num):
-            for j in range(self.in_data.requests[i].path_num):
-                path = self.in_data.requests[i].paths[j]
+        for i in range(self.input_data.request_num):
+            for j in range(self.input_data.requests[i].path_num):
+                path = self.input_data.requests[i].paths[j]
                 
                 # 构建约束左端
                 left = self.alpha_var[i]
                 
                 # 添加航段项(第一组)
-                for n in range(self.in_data.arc_num):
-                    if self.in_data.arcs[n] in path.arcs:
+                for n in range(self.input_data.arc_num):
+                    if self.input_data.arcs[n] in path.arcs:
                         left += self.beta_var1[n]
                 
                 # 添加航段项(第二组)
-                for n in range(self.in_data.arc_num):
-                    if self.in_data.arcs[n] in path.arcs:
+                for n in range(self.input_data.arc_num):
+                    if self.input_data.arcs[n] in path.arcs:
                         left += self.beta_var2[n]
                 
                 # 添加港口项
-                for p in range(self.in_data.port_num):
-                    for t in range(1, self.in_data.time_horizon + 1):
-                        if self.in_data.ports[p] == path.destination_port and t <= path.destination_time - self.in_data.ports[p].turnover_time:
+                for p in range(self.input_data.port_num):
+                    for t in range(1, self.input_data.time_horizon + 1):
+                        if self.input_data.ports[p] == path.destination_port and t <= path.destination_time - self.input_data.ports[p].turnover_time:
                             left += self.gamma_var[p][t]
-                        if self.in_data.ports[p] == path.origin_port and t <= path.origin_time:
+                        if self.input_data.ports[p] == path.origin_port and t <= path.origin_time:
                             left -= self.gamma_var[p][t]
                 
                 # 添加约束
@@ -240,30 +240,30 @@ class DualSubProblemReactive(DualSubProblem):
                 )
         
         # 运力约束(第一组)
-        for n in range(self.in_data.arc_num):
-            for i in range(self.in_data.request_num):
-                for j in range(self.in_data.requests[i].path_num):
-                    path = self.in_data.requests[i].paths[j]
-                    if self.in_data.arcs[n] in path.arcs:
+        for n in range(self.input_data.arc_num):
+            for i in range(self.input_data.request_num):
+                for j in range(self.input_data.requests[i].path_num):
+                    path = self.input_data.requests[i].paths[j]
+                    if self.input_data.arcs[n] in path.arcs:
                         self.model.addConstr(
                             self.beta_var1[n] <= 0,
                             name=f"dual_capacity1_{n}_{i}_{j}"
                         )
         
         # 运力约束(第二组)
-        for n in range(self.in_data.arc_num):
-            for i in range(self.in_data.request_num):
-                for j in range(self.in_data.requests[i].path_num):
-                    path = self.in_data.requests[i].paths[j]
-                    if self.in_data.arcs[n] in path.arcs:
+        for n in range(self.input_data.arc_num):
+            for i in range(self.input_data.request_num):
+                for j in range(self.input_data.requests[i].path_num):
+                    path = self.input_data.requests[i].paths[j]
+                    if self.input_data.arcs[n] in path.arcs:
                         self.model.addConstr(
                             self.beta_var2[n] <= 0,
                             name=f"dual_capacity2_{n}_{i}_{j}"
                         )
         
         # 空箱量约束
-        for p in range(self.in_data.port_num):
-            for t in range(1, self.in_data.time_horizon + 1):
+        for p in range(self.input_data.port_num):
+            for t in range(1, self.input_data.time_horizon + 1):
                 self.model.addConstr(
                     self.gamma_var[p][t] >= 0,
                     name=f"dual_empty_{p}_{t}"
@@ -275,7 +275,7 @@ class DualSubProblemReactive(DualSubProblem):
         """
         # 预算约束
         self.u_constr = self.model.addConstr(
-            sum(self.miu_var[i] for i in range(self.in_data.request_num)) <= self.tau,
+            sum(self.miu_var[i] for i in range(self.input_data.request_num)) <= self.tau,
             name="uncertain_set"
         )
     
@@ -285,7 +285,7 @@ class DualSubProblemReactive(DualSubProblem):
         """
         M = 1e6  # 大M值
         
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             # lambda[i] <= alpha[i]
             self.model.addConstr(
                 self.lambda_var[i] <= self.alpha_var[i],
@@ -321,13 +321,13 @@ class DualSubProblemReactive(DualSubProblem):
             航段运力
         """
         capacity = 0
-        arc = self.in_data.arcs[arc_idx]
+        arc = self.input_data.arcs[arc_idx]
         
-        for i in range(self.in_data.vessel_num):
-            for j in range(self.in_data.route_num):
+        for i in range(self.input_data.vessel_num):
+            for j in range(self.input_data.route_num):
                 if self.v_var_value1[i][j] == 1:
-                    vessel = self.in_data.vessel_types[i]
-                    route = self.in_data.ship_routes[j]
+                    vessel = self.input_data.vessel_types[i]
+                    route = self.input_data.ship_routes[j]
                     if arc in route.arcs:
                         capacity += vessel.capacity
         
@@ -344,13 +344,13 @@ class DualSubProblemReactive(DualSubProblem):
             航段运力
         """
         capacity = 0
-        arc = self.in_data.arcs[arc_idx]
+        arc = self.input_data.arcs[arc_idx]
         
-        for i in range(self.in_data.vessel_num):
-            for j in range(self.in_data.path_num):
+        for i in range(self.input_data.vessel_num):
+            for j in range(self.input_data.path_num):
                 if self.v_var_value2[i][j] == 1:
-                    vessel = self.in_data.vessel_types[i]
-                    path = self.in_data.vessel_paths[j]
+                    vessel = self.input_data.vessel_types[i]
+                    path = self.input_data.vessel_paths[j]
                     if arc in path.arcs:
                         capacity += vessel.capacity
         
@@ -370,7 +370,7 @@ class DualSubProblemReactive(DualSubProblem):
                 
                 self.set_obj_val(self.cplex.objective_value)
                 self.set_solve_time(end_time - start_time)
-                self.set_obj_gap(self.cplex.mip_relative_gap)
+                self.set_obj_gap(self.cplex.solve_details.mip_relative_gap)
                 
                 # 更新u值
                 self.u_value = np.zeros(len(self.param.demand), dtype=float)
@@ -378,10 +378,10 @@ class DualSubProblemReactive(DualSubProblem):
                 request_list = []
                 
                 for i in range(len(self.param.demand)):
-                    request[i] = self.cplex.get_value(self.miu_var[i])
-                    if self.cplex.get_value(self.miu_var[i]) != 0:
+                    request[i] = self.cplex.solution.get_value(self.miu_var[i])
+                    if self.cplex.solution.get_value(self.miu_var[i]) != 0:
                         tolerance = self.cplex.parameters.mip.tolerances.integrality
-                        if self.cplex.get_value(self.miu_var[i]) >= 1 - tolerance:
+                        if self.cplex.solution.get_value(self.miu_var[i]) >= 1 - tolerance:
                             self.u_value[i] = 1
                             request_list.append(i)
                             
@@ -402,10 +402,10 @@ class DualSubProblemReactive(DualSubProblem):
                     from multi.model.primal.sub_problem import SubProblem
                     from multi.model.dual.dual_problem import DualProblem
                     
-                    sp = SubProblem(self.in_data, self.param, self.v_var_value, request)
+                    sp = SubProblem(self.input_data, self.param, self.v_var_value, request)
                     sp.solve_model()
                     
-                    dp = DualProblem(self.in_data, self.param, self.v_var_value, request)
+                    dp = DualProblem(self.input_data, self.param, self.v_var_value, request)
                     dp.solve_model()
                     
                     logger.info(f"SP-Obj = \t{sp.get_obj_val():.2f}")
@@ -511,7 +511,7 @@ class DualSubProblemReactive(DualSubProblem):
     def adjust_path_selection(self):
         """调整路径选择"""
         # 对每条路径
-        for j in range(len(self.in_data.container_path_set)):
+        for j in range(len(self.input_data.container_path_set)):
             # 对每个时间点
             for t in range(len(self.param.time_point_set)):
                 # 计算调整值
@@ -523,9 +523,9 @@ class DualSubProblemReactive(DualSubProblem):
     def adjust_vessel_assignment(self):
         """调整船舶分配"""
         # 对每艘船舶
-        for h in range(len(self.in_data.vessel_set)):
+        for h in range(len(self.input_data.vessel_set)):
             # 对每条航线
-            for r in range(len(self.in_data.ship_route_set)):
+            for r in range(len(self.input_data.ship_route_set)):
                 # 计算调整值
                 adjustment = self.calculate_vessel_adjustment(h, r)
                 
@@ -535,7 +535,7 @@ class DualSubProblemReactive(DualSubProblem):
     def adjust_demand_satisfaction(self):
         """调整需求满足"""
         # 对每个需求
-        for i in range(len(self.in_data.request_set)):
+        for i in range(len(self.input_data.request_set)):
             # 对每个时间点
             for t in range(len(self.param.time_point_set)):
                 # 计算调整值
@@ -690,7 +690,7 @@ class DualSubProblemReactive(DualSubProblem):
     def update_history(self):
         """更新历史信息"""
         # 更新路径选择历史
-        for j in range(len(self.in_data.container_path_set)):
+        for j in range(len(self.input_data.container_path_set)):
             for t in range(len(self.param.time_point_set)):
                 self.history['path_selection'].append({
                     'path': j,
@@ -699,8 +699,8 @@ class DualSubProblemReactive(DualSubProblem):
                 })
                 
         # 更新船舶分配历史
-        for h in range(len(self.in_data.vessel_set)):
-            for r in range(len(self.in_data.ship_route_set)):
+        for h in range(len(self.input_data.vessel_set)):
+            for r in range(len(self.input_data.ship_route_set)):
                 self.history['vessel_assignment'].append({
                     'vessel': h,
                     'route': r,
@@ -708,7 +708,7 @@ class DualSubProblemReactive(DualSubProblem):
                 })
                 
         # 更新需求满足历史
-        for i in range(len(self.in_data.request_set)):
+        for i in range(len(self.input_data.request_set)):
             for t in range(len(self.param.time_point_set)):
                 self.history['demand_satisfaction'].append({
                     'request': i,
@@ -764,6 +764,6 @@ class DualSubProblemReactive(DualSubProblem):
             
         # 添加新约束
         self.u_constr = self.cplex.addConstr(
-            sum(self.miu_var[i] for i in range(self.in_data.request_num)) <= self.tau,
+            sum(self.miu_var[i] for i in range(self.input_data.request_num)) <= self.tau,
             name="uncertain_set"
         ) 

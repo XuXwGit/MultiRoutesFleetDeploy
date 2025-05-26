@@ -45,12 +45,10 @@ class DualSubProblem(BaseDualModel):
             tau: 预算约束参数
         """
         super().__init__(input_data, param)
-        self.lambda_var = []  # 辅助变量
-        self.miu_var = []  # 不确定需求变量
-        self.u_constr = None  # 不确定集约束
-        self.obj_val = 0  # 目标函数值
+        self.lambda_var = {}  # 辅助变量
+        self.miu_var = {}  # 不确定需求变量
+        self.u_constr = {}  # 不确定集约束
         self.sub_obj = 0  # 子问题目标函数值
-        self.mip_gap = 0  # MIP间隙
         
         # 子问题索引
         self.sub_problem_index = 0
@@ -175,12 +173,12 @@ class DualSubProblem(BaseDualModel):
                 
                 self.set_obj_val(self.cplex.objective_value)
                 self.set_solve_time(end_time - start_time)
-                self.set_obj_gap(self.cplex.mip_relative_gap)
+                self.set_obj_gap(self.cplex.solve_details.mip_relative_gap)
                 
                 # 更新u值
                 self.u_value = np.zeros(len(self.param.demand), dtype=float)
                 for i in range(len(self.param.demand)):
-                    if self.cplex.get_value(self.miu_var[i]) > 0.5:
+                    if self.cplex.solution.get_value(self.miu_var[i]) > 0.5:
                         self.u_value[i] = 1.0
                         
                 if DefaultSetting.DEBUG_ENABLE and DefaultSetting.DUAL_SUB_ENABLE:
@@ -214,7 +212,7 @@ class DualSubProblem(BaseDualModel):
         for i in range(len(self.param.demand)):
             determine_cost += (
                 self.param.demand[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         # 第二部分：船舶容量项
@@ -222,7 +220,7 @@ class DualSubProblem(BaseDualModel):
         for n in range(len(self.param.traveling_arcs_set)):
             determine_cost += (
                 capacitys[n] *
-                self.cplex.get_value(self.beta_var[n])
+                self.cplex.solution.get_value(self.beta_var[n])
             )
             
         # 第三部分：初始空箱项
@@ -230,7 +228,7 @@ class DualSubProblem(BaseDualModel):
             for t in range(1, len(self.param.time_point_set)):
                 determine_cost += (
                     -self.param.initial_empty_container[pp] *
-                    self.cplex.get_value(self.gamma_var[pp][t])
+                    self.cplex.solution.get_value(self.gamma_var[pp][t])
                 )
                 
         return determine_cost
@@ -247,7 +245,7 @@ class DualSubProblem(BaseDualModel):
         for i in range(len(self.param.demand)):
             uncertain_cost += (
                 self.param.maximum_demand_variation[i] *
-                self.cplex.get_value(self.miu_var[i])
+                self.cplex.solution.get_value(self.miu_var[i])
             )
             
         return uncertain_cost
@@ -267,7 +265,7 @@ class DualSubProblem(BaseDualModel):
         for i in range(len(self.param.demand)):
             dual_obj_val += (
                 self.param.demand[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         # 第二部分：船舶容量项
@@ -275,7 +273,7 @@ class DualSubProblem(BaseDualModel):
         for n in range(len(self.param.traveling_arcs_set)):
             dual_obj_val += (
                 capacitys[n] *
-                self.cplex.get_value(self.beta_var[n])
+                self.cplex.solution.get_value(self.beta_var[n])
             )
             
         # 第三部分：初始空箱项
@@ -283,14 +281,14 @@ class DualSubProblem(BaseDualModel):
             for t in range(1, len(self.param.time_point_set)):
                 dual_obj_val += (
                     -self.param.initial_empty_container[pp] *
-                    self.cplex.get_value(self.gamma_var[pp][t])
+                    self.cplex.solution.get_value(self.gamma_var[pp][t])
                 )
                 
         # 第四部分：不确定需求项
         for i in range(len(self.param.demand)):
             dual_obj_val += (
                 self.param.maximum_demand_variation[i] *
-                self.cplex.get_value(self.miu_var[i])
+                self.cplex.solution.get_value(self.miu_var[i])
             )
             
         return dual_obj_val
@@ -321,14 +319,14 @@ class DualSubProblem(BaseDualModel):
         创建决策变量
         """
         # 需求对偶变量 alpha[i]
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             self.alpha_var[i] = self.model.addVar(
                 vtype="C",
                 name=f"alpha_{i}"
             )
         
         # 运力约束对偶变量 beta[n]
-        for n in range(self.in_data.arc_num):
+        for n in range(self.input_data.arc_num):
             self.beta_var[n] = self.model.addVar(
                 vtype="C",
                 ub=0,  # beta <= 0
@@ -336,9 +334,9 @@ class DualSubProblem(BaseDualModel):
             )
         
         # 空箱量对偶变量 gamma[p][t]
-        for p in range(self.in_data.port_num):
+        for p in range(self.input_data.port_num):
             self.gamma_var[p] = {}
-            for t in range(1, self.in_data.time_horizon + 1):
+            for t in range(1, self.input_data.time_horizon + 1):
                 self.gamma_var[p][t] = self.model.addVar(
                     vtype="C",
                     lb=0,  # gamma >= 0
@@ -346,14 +344,15 @@ class DualSubProblem(BaseDualModel):
                 )
         
         # 辅助变量 lambda[i]
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             self.lambda_var[i] = self.model.addVar(
                 vtype="C",
                 name=f"lambda_{i}"
             )
         
         # 不确定需求变量 miu[i]
-        for i in range(self.in_data.request_num):
+        self.miu_var = [None] * len(self.param.demand)
+        for i in range(self.input_data.request_num):
             self.miu_var[i] = self.model.addVar(
                 vtype="B",
                 name=f"miu_{i}"
@@ -365,21 +364,21 @@ class DualSubProblem(BaseDualModel):
         """
         # 第一部分: 需求项
         demand_term = sum(
-            self.in_data.requests[i].demand * self.alpha_var[i]
-            for i in range(self.in_data.request_num)
+            self.input_data.requests[i].demand * self.alpha_var[i]
+            for i in range(self.input_data.request_num)
         )
         
         # 第二部分: 运力项
         capacity_term = sum(
             self._get_capacity_on_arc(n) * self.beta_var[n]
-            for n in range(self.in_data.arc_num)
+            for n in range(self.input_data.arc_num)
         )
         
         # 第三部分: 空箱量项
         empty_term = sum(
-            -self.in_data.ports[p].initial_empty * self.gamma_var[p][t]
-            for p in range(self.in_data.port_num)
-            for t in range(1, self.in_data.time_horizon + 1)
+            -self.input_data.ports[p].initial_empty * self.gamma_var[p][t]
+            for p in range(self.input_data.port_num)
+            for t in range(1, self.input_data.time_horizon + 1)
         )
         
         # 设置目标函数
@@ -406,24 +405,24 @@ class DualSubProblem(BaseDualModel):
         创建对偶约束
         """
         # 需求约束
-        for i in range(self.in_data.request_num):
-            for j in range(self.in_data.requests[i].path_num):
-                path = self.in_data.requests[i].paths[j]
+        for i in range(self.input_data.request_num):
+            for j in range(self.input_data.requests[i].path_num):
+                path = self.input_data.requests[i].paths[j]
                 
                 # 构建约束左端
                 left = self.alpha_var[i]
                 
                 # 添加航段项
-                for n in range(self.in_data.arc_num):
-                    if self.in_data.arcs[n] in path.arcs:
+                for n in range(self.input_data.arc_num):
+                    if self.input_data.arcs[n] in path.arcs:
                         left += self.beta_var[n]
                 
                 # 添加港口项
-                for p in range(self.in_data.port_num):
-                    for t in range(1, self.in_data.time_horizon + 1):
-                        if self.in_data.ports[p] == path.destination_port and t <= path.destination_time - self.in_data.ports[p].turnover_time:
+                for p in range(self.input_data.port_num):
+                    for t in range(1, self.input_data.time_horizon + 1):
+                        if self.input_data.ports[p] == path.destination_port and t <= path.destination_time - self.input_data.ports[p].turnover_time:
                             left += self.gamma_var[p][t]
-                        if self.in_data.ports[p] == path.origin_port and t <= path.origin_time:
+                        if self.input_data.ports[p] == path.origin_port and t <= path.origin_time:
                             left -= self.gamma_var[p][t]
                 
                 # 添加约束
@@ -433,19 +432,19 @@ class DualSubProblem(BaseDualModel):
                 )
         
         # 运力约束
-        for n in range(self.in_data.arc_num):
-            for i in range(self.in_data.request_num):
-                for j in range(self.in_data.requests[i].path_num):
-                    path = self.in_data.requests[i].paths[j]
-                    if self.in_data.arcs[n] in path.arcs:
+        for n in range(self.input_data.arc_num):
+            for i in range(self.input_data.request_num):
+                for j in range(self.input_data.requests[i].path_num):
+                    path = self.input_data.requests[i].paths[j]
+                    if self.input_data.arcs[n] in path.arcs:
                         self.model.addConstr(
                             self.beta_var[n] <= 0,
                             name=f"dual_capacity_{n}_{i}_{j}"
                         )
         
         # 空箱量约束
-        for p in range(self.in_data.port_num):
-            for t in range(1, self.in_data.time_horizon + 1):
+        for p in range(self.input_data.port_num):
+            for t in range(1, self.input_data.time_horizon + 1):
                 self.model.addConstr(
                     self.gamma_var[p][t] >= 0,
                     name=f"dual_empty_{p}_{t}"
@@ -456,8 +455,8 @@ class DualSubProblem(BaseDualModel):
         创建不确定集约束
         """
         # 预算约束
-        self.u_constr = self.model.addConstr(
-            sum(self.miu_var[i] for i in range(self.in_data.request_num)) <= self.tau,
+        self.u_constr[f"uncertain_set"] = self.cplex.add_constraint(
+            self.cplex.sum(self.miu_var[i] for i in range(self.input_data.request_num)) <= self.tau,
             name="uncertain_set"
         )
     
@@ -467,7 +466,7 @@ class DualSubProblem(BaseDualModel):
         """
         M = 1e6  # 大M值
         
-        for i in range(self.in_data.request_num):
+        for i in range(self.input_data.request_num):
             # lambda[i] <= alpha[i]
             self.model.addConstr(
                 self.lambda_var[i] <= self.alpha_var[i],
@@ -503,13 +502,13 @@ class DualSubProblem(BaseDualModel):
             航段运力
         """
         capacity = 0
-        arc = self.in_data.arcs[arc_idx]
+        arc = self.input_data.arcs[arc_idx]
         
-        for i in range(self.in_data.vessel_num):
-            for j in range(self.in_data.route_num):
+        for i in range(self.input_data.vessel_num):
+            for j in range(self.input_data.route_num):
                 if self.v_var_value[i][j] == 1:
-                    vessel = self.in_data.vessel_types[i]
-                    route = self.in_data.ship_routes[j]
+                    vessel = self.input_data.vessel_types[i]
+                    route = self.input_data.ship_routes[j]
                     if arc in route.arcs:
                         capacity += vessel.capacity
         
@@ -518,12 +517,8 @@ class DualSubProblem(BaseDualModel):
     def set_dual_decision_vars(self):
         """设置决策变量"""
         
-        # 创建不确定变量
-        self.miu_var = [None] * len(self.param.demand)
-        
         # 创建辅助变量
-        self.lambda_var = [None] * len(self.param.demand)
-        
+        self.lambda_var = {}
         # 创建变量
         for i in range(len(self.param.demand)):
             var_name = f"lambda({i})"
@@ -548,7 +543,8 @@ class DualSubProblem(BaseDualModel):
     def set_objectives(self):
         """设置目标函数"""
         self.obj_expr = self.get_obj_expr(self.v_var_value)
-        self.objective = self.cplex.maximize(self.obj_expr)
+        self.objective = self.obj_expr
+        self.cplex.maximize(self.obj_expr)
         
     def get_obj_expr(self, v_value: List[List[int]]) -> LinearExpr:
         """获取目标函数表达式
@@ -565,8 +561,8 @@ class DualSubProblem(BaseDualModel):
         # 不确定性目标函数
         for i in range(len(self.param.demand)):
             obj_expr.add_term(
-                self.param.maximum_demand_variation[i],
-                self.lambda_var[i]
+                coeff=self.param.maximum_demand_variation[i],
+                dvar=self.lambda_var[i]
             )
             
         return obj_expr
@@ -614,7 +610,7 @@ class DualSubProblem(BaseDualModel):
                 dvar=self.miu_var[i]
             )
             
-        self.u_constr = self.cplex.add_constraint(
+        self.u_constr[f"C-U"] = self.cplex.add_constraint(
             left <= self.tau,
             "C-U"
         )
@@ -733,17 +729,17 @@ class DualSubProblem(BaseDualModel):
         
         # I. 第一部分: 正常需求项
         for i in range(len(self.param.demand)):
-            cost += self.param.demand[i] * self.cplex.get_value(self.alpha_var[i])
+            cost += self.param.demand[i] * self.cplex.solution.get_value(self.alpha_var[i])
             
         # II. 第二部分: 船舶容量项
         capacitys = self.get_capacity_on_arcs(self.v_var_value)
         for n in range(len(self.param.traveling_arcs_set)):
-            cost += capacitys[n] * self.cplex.get_value(self.beta_var[n])
+            cost += capacitys[n] * self.cplex.solution.get_value(self.beta_var[n])
             
         # III. 第三部分: 初始空箱项
         for pp in range(len(self.param.port_set)):
             for t in range(1, len(self.param.time_point_set)):
-                cost += -self.param.initial_empty_container[pp] * self.cplex.get_value(self.gamma_var[pp][t])
+                cost += -self.param.initial_empty_container[pp] * self.cplex.solution.get_value(self.gamma_var[pp][t])
                 
         return cost
         
@@ -755,7 +751,7 @@ class DualSubProblem(BaseDualModel):
         """
         cost = 0.0
         for i in range(len(self.param.demand)):
-            cost += self.param.maximum_demand_variation[i] * self.cplex.get_value(self.lambda_var[i])
+            cost += self.param.maximum_demand_variation[i] * self.cplex.solution.get_value(self.lambda_var[i])
         return cost
         
     def print_solution(self):

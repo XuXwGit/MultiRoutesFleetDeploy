@@ -1,3 +1,4 @@
+from asyncio.log import logger
 import time
 import cplex
 from typing import List, Dict
@@ -63,15 +64,15 @@ class DetermineModelReactive(BasePrimalModel):
         """构建模型框架"""
         self.set_decision_vars()
         self.set_objectives()
-        self.set_constraints()
+        self.set_constraints() 
         
     def set_decision_vars(self):
         """设置决策变量"""
         # 设置船舶分配决策变量
-        self.vVar = []
-        for h in range(len(self.param.vessel_set)):
+        self.vVars = []
+        for h, vessel in enumerate(self.input_data.vessel_types):
             v_var_row = []
-            for r in range(len(self.param.shipping_route_set)):
+            for r, route in enumerate(self.input_data.shipping_routes):
                 var_name = f"v_{h}_{r}"
                 v_var_row.append(self.cplex.variables.add(
                     types=[self.cplex.variables.type.binary],
@@ -81,9 +82,9 @@ class DetermineModelReactive(BasePrimalModel):
             
         # 设置第二次船舶分配决策变量
         self.vVar2 = []
-        for h in range(len(self.param.vessel_set)):
+        for h, vessel in enumerate(self.input_data.vessel_types):
             v_var_row = []
-            for r in range(len(self.param.shipping_route_set)):
+            for r, route in enumerate(self.input_data.shipping_routes):
                 var_name = f"v2_{h}_{r}"
                 v_var_row.append(self.cplex.variables.add(
                     types=[self.cplex.variables.type.binary],
@@ -104,20 +105,20 @@ class DetermineModelReactive(BasePrimalModel):
         # 添加集装箱运输成本
         for i in range(len(self.param.demand)):
             # 添加需求未满足惩罚成本
-            obj.add_term(self.param.penalty_cost_for_demand[i], self.gVar[i])
+            obj.add_term(self.param.penalty_cost_for_demand[i], self.gVars[i])
             
-            request = self.input_data.request_set[i]
+            request = self.input_data.requests[i]
             # 添加重箱运输成本
             for k in range(request.number_of_laden_path):
                 j = request.laden_path_indexes[k]
                 obj.add_term(self.param.laden_path_cost[j], self.xVar[i][k])
-                obj.add_term(self.param.laden_path_cost[j], self.yVar[i][k])
-                obj.add_term(self.param.rental_cost * self.param.travel_time_on_path[j], self.yVar[i][k])
+                obj.add_term(self.param.laden_path_cost[j], self.yVars[i][k])
+                obj.add_term(self.param.rental_cost * self.param.travel_time_on_path[j], self.yVars[i][k])
                 
             # 添加空箱运输成本
             for k in range(request.number_of_empty_path):
                 j = request.empty_path_indexes[k]
-                obj.add_term(self.param.empty_path_cost[j], self.zVar[i][k])
+                obj.add_term(self.param.empty_path_cost[j], self.zVars[i][k])
                 
         self.cplex.objective.set_sense(self.cplex.objective.sense.minimize)
         self.cplex.objective.set_linear(obj)
@@ -132,10 +133,10 @@ class DetermineModelReactive(BasePrimalModel):
         
     def set_constraint0(self):
         """设置船舶分配约束: 每条航线必须分配一艘船舶"""
-        for r in range(len(self.param.shipping_route_set)):
+        for r, route in enumerate(self.input_data.shipping_routes):
             expr = self.cplex.linear_expr()
-            for h in range(len(self.param.vessel_set)):
-                expr.add_term(1.0, self.vVar[h][r])
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                expr.add_term(1.0, self.vVars[h][r])
             self.cplex.linear_constraints.add(
                 lin_expr=[expr],
                 senses=["E"],
@@ -145,72 +146,94 @@ class DetermineModelReactive(BasePrimalModel):
             
     def set_constraint1(self):
         """设置需求满足约束: 运输量必须满足需求"""
-        self.C1 = []
+        self.C1 = {}
         for i in range(len(self.param.demand)):
             expr = self.cplex.linear_expr()
-            request = self.input_data.request_set[i]
+            request = self.input_data.requests[i]
             
             # 添加重箱运输量
             for k in range(request.number_of_laden_path):
                 expr.add_term(1.0, self.xVar[i][k])
-                expr.add_term(1.0, self.yVar[i][k])
+                expr.add_term(1.0, self.yVars[i][k])
                 
             # 添加需求未满足量
-            expr.add_term(1.0, self.gVar[i])
+            expr.add_term(1.0, self.gVars[i])
             
             # 添加约束
-            self.C1.append(self.cplex.linear_constraints.add(
+            self.C1[(i, k)] = self.cplex.linear_constraints.add(
                 lin_expr=[expr],
                 senses=["E"],
                 rhs=[self.param.demand[i]],
-                names=[f"C1_{i}"]
-            )[0])
+                names=[f"C1_{i}_{k}"]
+            )[0]
             
+    
     def set_constraint2(self):
-        """设置容量约束: 运输量不能超过船舶容量"""
-        self.C2 = []
+        """设置容量约束: 运输量不能超过船舶容量
+        
+        数学模型:
+        Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        其中:
+            a_np: 路径p是否使用弧n
+            C_h: 船舶类型h的容量
+            V_hr: 船舶类型h分配到航线r的二元变量
+            x_ip, y_ip, z_ip: 各类集装箱运输量
+        对应Java注释:
+        /*
+        vessel capacity constraint
+        /sum{X+Y+Z} <= V
+        */
+        /**
+        * 设置船舶容量约束(对应数学模型中式8)
+        * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        * 其中:
+        * a_np: 路径p是否使用弧n
+        * C_h: 船舶类型h的容量
+        */
+        """
+        self.C2 = {}
         for n in range(len(self.param.traveling_arcs_set)):
             expr = self.cplex.linear_expr()
             
             # 添加所有运输量
             for i in range(len(self.param.demand)):
-                request = self.input_data.request_set[i]
+                request = self.input_data.requests[i]
                 
                 # 添加重箱运输量
                 for k in range(request.number_of_laden_path):
                     j = request.laden_path_indexes[k]
                     if self.param.arc_and_path[n][j] == 1:
                         expr.add_term(1.0, self.xVar[i][k])
-                        expr.add_term(1.0, self.yVar[i][k])
+                        expr.add_term(1.0, self.yVars[i][k])
                         
                 # 添加空箱运输量
                 for k in range(request.number_of_empty_path):
                     j = request.empty_path_indexes[k]
                     if self.param.arc_and_path[n][j] == 1:
-                        expr.add_term(1.0, self.zVar[i][k])
+                        expr.add_term(1.0, self.zVars[i][k])
                         
             # 添加船舶容量
-            for h in range(len(self.param.vessel_set)):
-                for r in range(len(self.param.shipping_route_set)):
-                    for w in range(len(self.param.vessel_path_set)):
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                for r, route in enumerate(self.input_data.shipping_routes):
+                    for w, vessel_path in enumerate(self.input_data.vessel_paths):
                         if (self.param.arc_and_vessel_path[n][w] == 1 and
-                            self.param.ship_route_and_vessel_path[r][w] == 1 and
+                            self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and
                             self.param.vessel_type_and_ship_route[h][r] == 1):
-                            expr.add_term(-self.param.vessel_capacity[h], self.vVar[h][r])
+                            expr.add_term(-self.param.vessel_capacity[h], self.vVars[h][r])
                             
             # 添加约束
-            self.C2.append(self.cplex.linear_constraints.add(
+            self.C2[(n, i, k)] = self.cplex.linear_constraints.add(
                 lin_expr=[expr],
                 senses=["L"],
                 rhs=[0.0],
-                names=[f"C2_{n}"]
-            )[0])
+                names=[f"C2_{n}_{i}_{k}"]
+            )[0]
             
     def set_constraint3(self):
         """设置流量平衡约束: 每个节点的流入量等于流出量"""
-        self.C3 = []
+        self.C3 = {}
         for p in range(len(self.param.port_set)):
-            self.C3.append([])
+            self.C3[p] = {}
             for t in range(1, len(self.param.time_point_set)):
                 expr = self.cplex.linear_expr()
                 
@@ -219,27 +242,27 @@ class DetermineModelReactive(BasePrimalModel):
                 
                 # 添加空箱运输量
                 for i in range(len(self.param.demand)):
-                    request = self.input_data.request_set[i]
+                    request = self.input_data.requests[i]
                     for k in range(request.number_of_empty_path):
                         j = request.empty_path_indexes[k]
                         if (self.param.port_and_path[p][j] == 1 and
                             self.param.time_and_path[t][j] == 1):
-                            expr.add_term(-1.0, self.zVar[i][k])
+                            expr.add_term(-1.0, self.zVars[i][k])
                             
                 # 添加约束
-                self.C3[p].append(self.cplex.linear_constraints.add(
+                self.C3[p][(t, i, k)] = self.cplex.linear_constraints.add(
                     lin_expr=[expr],
                     senses=["E"],
                     rhs=[0.0],
-                    names=[f"C3_{p}_{t}"]
-                )[0])
+                    names=[f"C3_{p}_{t}_{i}_{k}"]
+                )[0]
                 
     def set_constraint4(self):
         """设置反应式调整约束: 第二次船舶分配必须与第一次分配一致"""
-        for h in range(len(self.param.vessel_set)):
-            for r in range(len(self.param.shipping_route_set)):
+        for h, vessel in enumerate(self.input_data.vessel_types):
+            for r, route in enumerate(self.input_data.shipping_routes):
                 expr = self.cplex.linear_expr()
-                expr.add_term(1.0, self.vVar[h][r])
+                expr.add_term(1.0, self.vVars[h][r])
                 expr.add_term(-1.0, self.vVar2[h][r])
                 self.cplex.linear_constraints.add(
                     lin_expr=[expr],
@@ -254,9 +277,9 @@ class DetermineModelReactive(BasePrimalModel):
             logger.info("Optimal solution found!")
             logger.info(f"Objective value: {self.obj_val:.2f}")
             logger.info("Vessel allocation:")
-            for h in range(len(self.param.vessel_set)):
-                for r in range(len(self.param.shipping_route_set)):
-                    if self.cplex.solution.get_values(self.vVar[h][r]) > 0.5:
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                for r, route in enumerate(self.input_data.shipping_routes):
+                    if self.cplex.solution.get_values(self.vVars[h][r]) > 0.5:
                         logger.info(f"Vessel {h} assigned to route {r}")
         else:
             logger.info(f"No optimal solution found. Status: {self.solve_status}") 

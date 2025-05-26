@@ -85,7 +85,7 @@ class DualProblem(BaseDualModel):
                 
                 self.set_obj_val(self.cplex.objective_value)
                 self.set_solve_time(end_time - start_time)
-                self.set_obj_gap(self.cplex.mip_relative_gap)
+                self.set_obj_gap(self.cplex.solve_details.mip_relative_gap)
                 
                 if DefaultSetting.DEBUG_ENABLE and DefaultSetting.DUAL_ENABLE:
                     logger.info("------------------------------------------------------------------------")
@@ -118,7 +118,7 @@ class DualProblem(BaseDualModel):
         for i in range(len(self.param.demand)):
             determine_cost += (
                 self.param.demand[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         # 第二部分：船舶容量项
@@ -126,7 +126,7 @@ class DualProblem(BaseDualModel):
         for n in range(len(self.param.traveling_arcs_set)):
             determine_cost += (
                 capacitys[n] *
-                self.cplex.get_value(self.beta_var[n])
+                self.cplex.solution.get_value(self.beta_var[n])
             )
             
         # 第三部分：初始空箱项
@@ -134,7 +134,7 @@ class DualProblem(BaseDualModel):
             for t in range(1, len(self.param.time_point_set)):
                 determine_cost += (
                     -self.param.initial_empty_container[pp] *
-                    self.cplex.get_value(self.gamma_var[pp][t])
+                    self.cplex.solution.get_value(self.gamma_var[pp][t])
                 )
                 
         return determine_cost
@@ -152,7 +152,7 @@ class DualProblem(BaseDualModel):
             uncertain_cost += (
                 self.param.maximum_demand_variation[i] *
                 self.u_value[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         return uncertain_cost
@@ -172,7 +172,7 @@ class DualProblem(BaseDualModel):
         for i in range(len(self.param.demand)):
             dual_obj_val += (
                 self.param.demand[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         # 第二部分：船舶容量项
@@ -180,7 +180,7 @@ class DualProblem(BaseDualModel):
         for n in range(len(self.param.traveling_arcs_set)):
             dual_obj_val += (
                 capacitys[n] *
-                self.cplex.get_value(self.beta_var[n])
+                self.cplex.solution.get_value(self.beta_var[n])
             )
             
         # 第三部分：初始空箱项
@@ -188,7 +188,7 @@ class DualProblem(BaseDualModel):
             for t in range(1, len(self.param.time_point_set)):
                 dual_obj_val += (
                     -self.param.initial_empty_container[pp] *
-                    self.cplex.get_value(self.gamma_var[pp][t])
+                    self.cplex.solution.get_value(self.gamma_var[pp][t])
                 )
                 
         # 第四部分：需求变化项
@@ -196,7 +196,7 @@ class DualProblem(BaseDualModel):
             dual_obj_val += (
                 self.param.maximum_demand_variation[i] *
                 self.u_value[i] *
-                self.cplex.get_value(self.alpha_var[i])
+                self.cplex.solution.get_value(self.alpha_var[i])
             )
             
         return dual_obj_val 

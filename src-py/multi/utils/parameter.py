@@ -3,6 +3,8 @@ import numpy as np
 from typing import List, Dict, Any
 from dataclasses import dataclass, field
 
+from multi.utils.default_setting import DefaultSetting
+
 logger = logging.getLogger(__name__)
 
 @dataclass
@@ -27,8 +29,8 @@ class Parameter:
     
     # 时间参数
     time_horizon: int = 0  # 时间范围(天)
-    tau: int = 0           # 需求响应时间窗口(天)
-    uncertain_degree: float = 0.0  # 不确定度系数[0,1]
+    tau: int = DefaultSetting.ROBUSTNESS           # 需求响应时间窗口(天)
+    uncertain_degree: float = DefaultSetting.DEFAULT_UNCERTAIN_DEGREE  # 不确定度系数[0,1]
     
     # 成本参数
     rental_cost: float = 0.0  # 集装箱租赁成本(美元/TEU)

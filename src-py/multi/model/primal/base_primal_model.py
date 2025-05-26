@@ -54,6 +54,16 @@ class BasePrimalModel(BaseModel):
     5. 求解
     6. 结果获取
     """
+
+    # 决策变量
+    vVars: List[List[Any]] = []
+    xVars: List[List[Any]] = []
+    x1Vars: List[List[Any]] = []
+    yVars: List[List[Any]] = []
+    zVars: List[List[Any]] = []
+    z1Vars: List[List[Any]] = []
+    z2Vars: List[List[Any]] = []
+
     
     def __init__(self, input_data: InputData = None, param: Parameter = None):
         """
@@ -67,25 +77,26 @@ class BasePrimalModel(BaseModel):
         
         # 基本属性
         self.model_name = "BasePrimalModel"
-        self.obj_val = 0  # 目标函数值
-        self.solve_status = None  # 求解状态
-        self.solve_time = 0  # 求解时间
+        self.v_var_value = None
+        self.u_value = []
+        self.solve_status = None
+        self.solution = None
         
-        # 决策变量
-        self.vVar: List[List[Any]] = []  # 船舶分配决策变量
-        self.xVar: List[List[Any]] = []  # 普通箱运输量决策变量
-        self.x1Var: List[List[Any]] = []  # 折叠箱运输量决策变量
-        self.yVar: List[List[Any]] = []  # 租赁箱运输量决策变量
-        self.zVar: List[List[Any]] = []  # 空箱重定向决策变量
-        self.z1Var: List[List[Any]] = []  # 调度空普通箱
-        self.z2Var: List[List[Any]] = []  # 调度空折叠箱
+        # 决策变量  
+        self.vVars: List[List[Any]] = []  # 船舶分配决策变量
+        self.xVars: List[List[Any]] = []  # 普通箱运输量决策变量
+        self.x1Vars: List[List[Any]] = []  # 折叠箱运输量决策变量
+        self.yVars: List[List[Any]] = []  # 租赁箱运输量决策变量
+        self.zVars: List[List[Any]] = []  # 空箱重定向决策变量
+        self.z1Vars: List[List[Any]] = []  # 调度空普通箱
+        self.z2Vars: List[List[Any]] = []  # 调度空折叠箱
         self.xs: Dict[str, List[List[Any]]] = {}  # 运输量决策变量字典
-        self.gVar: List[Any] = []  # 需求未满足惩罚变量
+        self.gVars: List[Any] = []  # 需求未满足惩罚变量
         
         # 约束条件
-        self.C1: List[Any] = []  # 需求满足约束
-        self.C2: List[Any] = []  # 容量约束
-        self.C3: List[List[Any]] = []  # 流量平衡约束
+        self.C1: Dict[str, Any] = {}  # 需求满足约束
+        self.C2: Dict[str, Any] = {}  # 容量约束
+        self.C3: Dict[str, Any] = {}  # 空箱守恒约束
         
         # 性能指标
         self.worst_performance = 0.0
@@ -93,23 +104,8 @@ class BasePrimalModel(BaseModel):
         self.worst_second_stage_cost = 0.0
         self.mean_second_stage_cost = 0.0
 
-        # cost
-        self.operation_cost = 0.0
-        self.laden_cost = 0.0
-        self.empty_cost = 0.0
-        self.rental_cost = 0.0
-        self.penalty_cost = 0.0
-
-        
-        # 解
-        self.v_var_value = None
-        self.solution = None
-        
-        # 设置输入数据和参数
-        self.input_data = input_data
-        self.param = param
-    
-        
+        self.demand_rhs_vars = {}  # 用于动态调整需求约束右端项
+        self.capacity_rhs_vars = {}  # 用于锁定右端项变量的等式约束
 
     def initialize(self):
         """初始化模型"""
@@ -153,7 +149,7 @@ class BasePrimalModel(BaseModel):
         self.set_decision_vars()
         self.set_objectives()
         self.set_constraints()
-        logger.error("=========Building Model Framework End==========")
+        logger.info("=========Building Model Framework End==========")
         
     def set_decision_vars(self):
         """
@@ -181,12 +177,12 @@ class BasePrimalModel(BaseModel):
         """设置船舶决策变量"""
         logger.info("=========Setting Vessel Decision Variables==========")
         if DefaultSetting.FLEET_TYPE == "Homo":
-            self.vVar = [[None for _ in range(len(self.param.shipping_route_set))] 
+            self.vVars = [[None for _ in range(len(self.param.shipping_route_set))] 
                         for _ in range(len(self.param.vessel_set))]
             self.v_var_value = [[0 for _ in range(len(self.param.shipping_route_set))] 
                               for _ in range(len(self.param.vessel_set))]
         elif DefaultSetting.FLEET_TYPE == "Hetero":
-            self.vVar = [[None for _ in range(len(self.param.vessel_path_set))] 
+            self.vVars = [[None for _ in range(len(self.param.vessel_path_set))] 
                         for _ in range(len(self.param.vessel_set))]
             self.v_var_value = [[0 for _ in range(len(self.param.vessel_path_set))] 
                               for _ in range(len(self.param.vessel_set))]
@@ -195,15 +191,15 @@ class BasePrimalModel(BaseModel):
             raise ValueError("Invalid fleet type")
             
         # 创建变量
-        for h in range(len(self.param.vessel_set)):
+        for h, vessel in enumerate(self.input_data.vessel_types):
             if DefaultSetting.FLEET_TYPE == "Homo":
-                for r in range(len(self.param.shipping_route_set)):
+                for r, route in enumerate(self.input_data.shipping_routes):
                     var_name = f"V({self.param.vessel_set[h]})({self.param.shipping_route_set[r]})"
-                    self.vVar[h][r] = self.cplex.binary_var(name=var_name)
+                    self.vVars[h][r] = self.cplex.binary_var(name=var_name)
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w in range(len(self.param.vessel_path_set)):
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
                     var_name = f"V({self.param.vessel_set[h]})({self.param.vessel_path_set[w]})"
-                    self.vVar[h][w] = self.cplex.binary_var(name=var_name)
+                    self.vVars[h][w] = self.cplex.binary_var(name=var_name)
                     
         logger.info("=========Vessel Decision Variables Set==========")
         
@@ -211,28 +207,29 @@ class BasePrimalModel(BaseModel):
         """设置请求决策变量"""
         logger.info("=========Setting Request Decision Variables==========")
         self.xs = {}
-        self.xVar = []
-        self.xs["x"] = self.xVar
+        self.xVars = []
+        self.xs["x"] = self.xVars
         
         if DefaultSetting.ALLOW_FOLDABLE_CONTAINER:
-            self.x1Var = []
-            self.xs["x1"] = self.x1Var
+            self.x1Vars = []
+            self.xs["x1"] = self.x1Vars
             
-        self.yVar = []
-        self.xs["y"] = self.yVar
+        self.yVars = []
+        self.xs["y"] = self.yVars
         
         if DefaultSetting.IS_EMPTY_REPOSITION:
-            self.zVar = []
+            self.zVars = []
+            self.xs["z"] = self.zVars
         else:
-            self.z1Var = []
-            self.xs["z1"] = self.z1Var
-            self.z2Var = []
-            self.xs["z2"] = self.z2Var
+            self.z1Vars = []
+            self.xs["z1"] = self.z1Vars
+            self.z2Vars = []
+            self.xs["z2"] = self.z2Vars
             
-        self.gVar = [None] * len(self.param.demand)
+        self.gVars = [None] * len(self.param.demand)
 
         logger.info("=========Setting Request Decision Variables Start==========")
-        self.set_request_decision_vars_impl(self.xs, self.gVar)
+        self.set_request_decision_vars_impl(self.xs, self.gVars)
         logger.info("=========Setting Request Decision Variables End==========")
         
     def set_request_decision_vars_impl(self, xs: Dict[str, List[List[Any]]], g_var: List[Any]):
@@ -255,7 +252,8 @@ class BasePrimalModel(BaseModel):
                 
             # 创建空箱运输变量
             if DefaultSetting.IS_EMPTY_REPOSITION:
-                self.zVar.append([None] * request.number_of_empty_path)
+                if "z" in xs:
+                    xs["z"].append([None] * request.number_of_empty_path)
                 
             # 创建变量
             for k in range(request.number_of_laden_path):
@@ -277,8 +275,9 @@ class BasePrimalModel(BaseModel):
                     
             if DefaultSetting.IS_EMPTY_REPOSITION:
                 for k in range(request.number_of_empty_path):
-                    var_name = f"z({i+1})({request.empty_path_indexes[k]})"
-                    self.zVar[i][k] = self.cplex.continuous_var(lb=0, name=var_name)
+                    if "z" in xs:
+                        var_name = f"z({i+1})({request.empty_path_indexes[k]})"
+                        xs["z"][i][k] = self.cplex.continuous_var(lb=0, name=var_name)
                     
             # 创建需求未满足惩罚变量
             var_name = f"g({i+1})"
@@ -294,23 +293,23 @@ class BasePrimalModel(BaseModel):
             添加船舶运营成本后的目标函数表达式
         """
         # 添加固定运营成本
-        for h in range(len(self.param.vessel_set)):
-            for w in range(len(self.param.vessel_path_set)):
+        for h, vessel_type in enumerate(self.input_data.vessel_types):
+            for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 # r(航线) == r
                 r = self.input_data.vessel_paths[w].route_id - 1
                 
                 if DefaultSetting.FLEET_TYPE == "Homo":
                     # vesselTypeAndShipRoute == 1 : r(h) = r
                     obj.add_term(
-                        coeff=self.param.vessel_type_and_ship_route[h][r] *
-                        self.param.ship_route_and_vessel_path[r][w] *
+                        coeff=self.param.vessel_type_and_ship_route[vessel_type.vessel_id][vessel_type.route_id] *
+                        self.param.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.vessel_path_id] *
                         self.param.vessel_operation_cost[h],
-                        dvar=self.vVar[h][r]
+                        dvar=self.vVars[h][r]
                     )
                 elif DefaultSetting.FLEET_TYPE == "Hetero":
                     obj.add_term(
                         coeff=self.param.vessel_operation_cost[h],
-                        dvar=self.vVar[h][w]
+                        dvar=self.vVars[h][w]
                     )
                     
         return obj
@@ -326,7 +325,7 @@ class BasePrimalModel(BaseModel):
         """
         for i in range(len(self.param.demand)):
             # 添加需求未满足惩罚成本
-            obj.add_term(coeff=self.param.penalty_cost_for_demand[i], dvar=self.gVar[i])
+            obj.add_term(coeff=self.param.penalty_cost_for_demand[i], dvar=self.gVars[i])
             
             request = self.input_data.requests[i]
             # 添加重箱运输成本
@@ -348,7 +347,7 @@ class BasePrimalModel(BaseModel):
             if DefaultSetting.IS_EMPTY_REPOSITION:
                 for k in range(request.number_of_empty_path):
                     j = request.empty_path_indexes[k]
-                    obj.add_term(coeff=self.param.empty_path_cost[j], dvar=self.zVar[i][k])
+                    obj.add_term(coeff=self.param.empty_path_cost[j], dvar=self.zVars[i][k])
                     
         return obj  
         
@@ -364,133 +363,110 @@ class BasePrimalModel(BaseModel):
             
     def set_vessel_constraint_homo(self):
         """设置同质船队约束"""
-        for r in range(len(self.param.shipping_route_set)):
+        for r, route in enumerate(self.input_data.shipping_routes):
             expr = self.cplex.linear_expr()
-            for h in range(len(self.param.vessel_set)):
+            for h, vessel in enumerate(self.input_data.vessel_types):
                 expr.add_term(
-                            coeff=self.param.vessel_type_and_ship_route[h][r], 
-                              dvar=self.vVar[h][r])
+                            coeff=self.param.vessel_type_and_ship_route[vessel.vessel_id][route.route_id], 
+                              dvar=self.vVars[h][r])
             self.cplex.add_constraint(expr == 1, f"C0_{r}")
             
     def set_vessel_constraint_hetero(self):
         """设置异质船队约束"""
         # 约束1：每条航线必须分配一艘船舶
-        for w in range(len(self.param.vessel_path_set)):
+        for w, vessel_path in enumerate(self.input_data.vessel_paths):
             expr = self.cplex.linear_expr()
-            for h in range(len(self.param.vessel_set)):
-                expr.add_term(coeff=1, dvar=self.vVar[h][w])
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                expr.add_term(coeff=1, dvar=self.vVars[h][w])
             self.cplex.add_constraint(expr == 1, f"C0_{w}")
             
         # 约束2：每艘船舶在同一时间只能分配一次
-        for h in range(len(self.param.vessel_set)):
+        index_to_vessel_path_id = {w: vessel_path.vessel_path_id for w, vessel_path in enumerate(self.input_data.vessel_paths)}
+        for h, vessel in enumerate(self.input_data.vessel_types):
             expr = self.cplex.linear_expr()
-            for r in range(len(self.param.shipping_route_set)):
+            for r, route in enumerate(self.input_data.shipping_routes):
                 n_r = self.param.num_of_round_trips[r]
-                for w in range(len(self.param.vessel_path_set)):
-                    if self.param.ship_route_and_vessel_path[r][w] == 1:
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                    if self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1:
+                        for w2, vessel_path2 in enumerate(self.input_data.vessel_paths):
+                            if w != w2 and vessel_path.route_id == vessel_path2.route_id:
+                                expr.add_term(coeff=1, dvar=self.vVars[h][w2])
                         for i in range(n_r):
                             if w + i >= len(self.param.vessel_path_set):
                                 break
-                            if self.param.ship_route_and_vessel_path[r][w+i] == 1:
-                                expr.add_term(coeff=1, dvar=self.vVar[h][w+i])
+                            if self.param.ship_route_and_vessel_path[route.route_id][index_to_vessel_path_id[w+i]] == 1:
+                                expr.add_term(coeff=1, dvar=self.vVars[h][w+i])
                         break
             self.cplex.add_constraint(expr <= 1, f"C1_{h}")
             
         # 约束3：船舶循环约束
-        for w in range(len(self.param.vessel_path_set)):
+        index_to_vessel_path_id = {w: vessel_path.vessel_path_id for w, vessel_path in enumerate(self.input_data.vessel_paths)}
+        for w, vessel_path in enumerate(self.input_data.vessel_paths):
             r = self.input_data.vessel_paths[w].route_id - 1
             n_r = self.param.num_of_round_trips[r]
             if w + n_r > len(self.param.vessel_path_set) - 1:
                 continue
-            for h in range(len(self.param.vessel_set)):
-                if (self.param.ship_route_and_vessel_path[r][w] == 1 and 
-                    self.param.ship_route_and_vessel_path[r][w+n_r] == 1):
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                if (self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and 
+                    self.param.ship_route_and_vessel_path[route.route_id][index_to_vessel_path_id[w+n_r]] == 1):
                     expr = self.cplex.linear_expr()
-                    expr.add_term(coeff=1, dvar=self.vVar[h][w])
-                    expr.add_term(coeff=-1, dvar=self.vVar[h][w+n_r])
+                    expr.add_term(coeff=1, dvar=self.vVars[h][w])
+                    expr.add_term(coeff=-1, dvar=self.vVars[h][w+n_r])
                     self.cplex.add_constraint(expr == 0, f"C2_{h}_{w}")
                     
-    def set_demand_constraint(self, u_value: List[float] = None):
-        """设置需求约束
-        
-        Args:
-            u_value: 需求变化系数
-        """
-        self.C1 = []
-        if u_value is None:
-            u_value = [0] * len(self.param.demand)
-            
-        for i in tqdm(range(len(self.param.demand)), desc="设置需求约束", ncols=80):
-            expr = self.cplex.linear_expr()
-            request = self.input_data.requests[i]
-            
-            # 添加重箱运输量
-            for k in range(request.number_of_laden_path):
-                if "x" in self.xs:
-                    expr.add_term(coeff=1, dvar=self.xs["x"][i][k])
-                if "x1" in self.xs:
-                    expr.add_term(coeff=1, dvar=self.xs["x1"][i][k])
-                if "y" in self.xs:
-                    expr.add_term(coeff=1, dvar=self.xs["y"][i][k])
-                    
-            # 添加需求未满足量
-            expr.add_term(coeff=1, dvar=self.gVar[i])
-            
-            # 添加约束
-            self.C1.append(self.cplex.add_constraint(
-                expr == self.param.demand[i] + 
-                self.param.maximum_demand_variation[i] * u_value[i],
-                f"C1_{i}"
-            ))
-            
     def set_capacity_constraint_with_single_thread(self):
-        """设置容量约束：运输量不能超过船舶容量（单线程原版）"""
-        self.C2 = []
+        """设置容量约束：运输量不能超过船舶容量（单线程原版）
+        
+        数学模型:
+        Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        其中:
+            a_np: 路径p是否使用弧n
+            C_h: 船舶类型h的容量
+            V_hr: 船舶类型h分配到航线r的二元变量
+            x_ip, y_ip, z_ip: 各类集装箱运输量
+        对应Java注释:
+        /*
+        vessel capacity constraint
+        /sum{X+Y+Z} <= V
+        */
+        /**
+        * 设置船舶容量约束(对应数学模型中式8)
+        * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+        * 其中:
+        * a_np: 路径p是否使用弧n
+        * C_h: 船舶类型h的容量
+        */
+        """
+        self.C2 = {}
         for n in tqdm(range(len(self.param.traveling_arcs_set)), desc="设置容量约束", ncols=80):
             expr = self.cplex.linear_expr()
             # 添加所有运输量
-            for i in range(len(self.param.demand)):
-                request = self.input_data.requests[i]
-                # 添加重箱运输量
-                for k in range(request.number_of_laden_path):
-                    j = request.laden_path_indexes[k]
-                    if "x" in self.xs:
-                        expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.xs["x"][i][k])
-                    if "x1" in self.xs:
-                        expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.xs["x1"][i][k])
-                    if "y" in self.xs:
-                        expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.xs["y"][i][k])
-                    if "z1" in self.xs:
-                        expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.xs["z1"][i][k])
-                    if "z2" in self.xs:
-                        expr.add_term(coeff=self.param.arc_and_path[n][j] * 0.25, dvar=self.xs["z2"][i][k])
-                # 添加空箱运输量
-                if DefaultSetting.IS_EMPTY_REPOSITION:
-                    for k in range(request.number_of_empty_path):
-                        j = request.empty_path_indexes[k]
-                        expr.add_term(coeff=self.param.arc_and_path[n][j], dvar=self.zVar[i][k])
+            expr = self.accumulate_trans_on_arc(n, expr)
+
             # 添加船舶容量
-            for h in range(len(self.param.vessel_set)):
-                for r in range(len(self.param.shipping_route_set)):
-                    for w in range(len(self.param.vessel_path_set)):
-                        if (self.param.arc_and_vessel_path[n][w] == 1 and
-                            self.param.ship_route_and_vessel_path[r][w] == 1 and
-                            self.param.vessel_type_and_ship_route[h][r] == 1):
-                            expr.add_term(coeff=-self.param.vessel_capacity[h], dvar=self.vVar[h][r])
+            for h, vessel in enumerate(self.input_data.vessel_types):
+                for r, route in enumerate(self.input_data.shipping_routes):
+                    for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                        if DefaultSetting.FLEET_TYPE == "Homo":
+                            if (self.param.arc_and_vessel_path[n][w] == 1 and
+                                self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and
+                                self.param.vessel_type_and_ship_route[h][r] == 1):
+                                expr.add_term(coeff=-self.param.vessel_capacity[h], dvar=self.vVars[h][r])
+                        elif DefaultSetting.FLEET_TYPE == "Hetero":
+                            if (self.param.arc_and_vessel_path[n][w] == 1):
+                                expr.add_term(coeff=-self.param.vessel_capacity[h], dvar=self.vVars[h][w])
+            
             # 添加约束
-            self.C2.append(self.cplex.add_constraint(
+            self.C2[f"C2_{n}"] = self.cplex.add_constraint(
                 expr <= 0.0,
                 f"C2_{n}"
-            ))
+            )
 
-    def set_capacity_constraint_with_multi_threads(self):
-        """设置容量约束：运输量不能超过船舶容量（多线程优化版）"""
-        import concurrent.futures
-        self.C2 = []
-        def process_arc(n: TravelingArc):
-            expr = self.cplex.linear_expr()
-            # 添加所有运输量
-            for i in range(len(self.param.demand)):
+
+    def accumulate_trans_on_arc(self, n: TravelingArc, expr: LinearExpr):
+        """累加运输量"""
+        # 添加所有运输量
+        for i in range(len(self.param.demand)):
                 request = self.input_data.requests[i]
                 # 添加重箱运输量
                 for k, laden_path in enumerate(request.laden_paths):
@@ -507,15 +483,33 @@ class BasePrimalModel(BaseModel):
                 # 添加空箱运输量
                 if DefaultSetting.IS_EMPTY_REPOSITION:
                     for k, empty_path in enumerate(request.empty_paths):
-                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][empty_path.empty_path_id], dvar=self.zVar[i][k])
+                        expr.add_term(coeff=self.param.arc_and_path[n.arc_id][empty_path.empty_path_id], dvar=self.zVars[i][k])
+            
+        return expr
+
+    def set_capacity_constraint_with_multi_threads(self):
+        """设置容量约束：运输量不能超过船舶容量（多线程优化版）"""
+        import concurrent.futures
+        self.C2 = {}
+        def process_arc(n: TravelingArc):
+            expr = self.cplex.linear_expr()
+            # 添加所有运输量
+            expr = self.accumulate_trans_on_arc(n, expr)
+            
             # 添加船舶容量
-            for h, vessel in enumerate(self.input_data.vessel_types):
-                for r, route in enumerate(self.input_data.shipping_routes):
+            if DefaultSetting.FLEET_TYPE == "Homo":
+                for h, vessel in enumerate(self.input_data.vessel_types):
+                    for r, route in enumerate(self.input_data.shipping_routes):
+                        for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                            if (self.param.arc_and_vessel_path[n.arc_id][vessel_path.vessel_path_id] == 1 and
+                                self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and
+                                self.param.vessel_type_and_ship_route[vessel.vessel_id][route.route_id] == 1):
+                                expr.add_term(coeff=-vessel.capacity, dvar=self.vVars[h][r])
+            elif DefaultSetting.FLEET_TYPE == "Hetero":
+                for h, vessel in enumerate(self.input_data.vessel_types):
                     for w, vessel_path in enumerate(self.input_data.vessel_paths):
-                        if (self.param.arc_and_vessel_path[n.arc_id][vessel_path.vessel_path_id] == 1 and
-                            self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1 and
-                            self.param.vessel_type_and_ship_route[vessel.vessel_id][route.route_id] == 1):
-                            expr.add_term(coeff=-vessel.capacity, dvar=self.vVar[h][r])
+                        if (self.param.arc_and_vessel_path[n.arc_id][vessel_path.vessel_path_id] == 1):
+                                expr.add_term(coeff=-vessel.capacity, dvar=self.vVars[h][w])
             # 添加约束
             return self.cplex.add_constraint(
                 expr <= 0.0,
@@ -523,32 +517,82 @@ class BasePrimalModel(BaseModel):
             )
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = list(executor.map(process_arc, self.input_data.traveling_arcs))
-        self.C2.extend(results)
+        for key, value in results:
+            self.C2[key] = value
 
     def set_capacity_constraint(self):
         """设置容量约束：运输量不能超过船舶容量（默认多线程封装）"""
-        return self.set_capacity_constraint_with_multi_threads()
-        # return self.set_capacity_constraint_with_single_thread()
+        if DefaultSetting.WHETHER_USE_MULTI_THREADS:
+            return self.set_capacity_constraint_with_multi_threads()
+        else:
+            return self.set_capacity_constraint_with_single_thread()
+
+    def set_demand_constraint(self, u_value: List[float] = None):
+        """设置需求满足约束: 运输量必须满足需求（右端项用变量+上下界锁定）"""
+        self.C1 = {}
+        if u_value is None:
+            u_value = [0] * len(self.param.demand)
+        # 注意：右端项采用变量表达，避免docplex移除/重建约束导致的indices differ等内部索引错乱问题。
+        # 这里用上下界锁定变量值，等价于等式约束，但不会引发移除约束的副作用。
+        for i in tqdm(range(len(self.param.demand)), desc="设置需求约束", ncols=80):
+            expr = self.cplex.linear_expr()
+            request = self.input_data.requests[i]
+            # 添加重箱运输量
+            for k in range(request.number_of_laden_path):
+                if "x" in self.xs:
+                    expr.add_term(coeff=1, dvar=self.xs["x"][i][k])
+                if "x1" in self.xs:
+                    expr.add_term(coeff=1, dvar=self.xs["x1"][i][k])
+                if "y" in self.xs:
+                    expr.add_term(coeff=1, dvar=self.xs["y"][i][k])
+            # 添加需求未满足量
+            expr.add_term(coeff=1, dvar=self.gVars[i])
+
+            # 创建右端项变量（用于动态调整需求约束右端项）
+            rhs_val = self.param.demand[i] + self.param.maximum_demand_variation[i] * u_value[i]
+            self.demand_rhs_vars[i] = self.cplex.continuous_var(lb=rhs_val, ub=rhs_val, name=f"rhs_{i}")
+            # 添加约束，右端项用变量表达
+            self.C1[f"C1_{i}"] = self.cplex.add_constraint(expr == self.demand_rhs_vars[i], f"C1_{i}")
+
+    def change_demand_constraint_coefficients(self, u_value):
+        """动态调整需求约束右端项（通过调整变量上下界锁定新值）"""
+        self.u_value = u_value
+        for i in range(len(self.param.demand)):
+            new_rhs = self.param.demand[i] + self.param.maximum_demand_variation[i] * u_value[i]
+            self.demand_rhs_vars[i].lb = new_rhs
+            self.demand_rhs_vars[i].ub = new_rhs
 
     def set_empty_conservation_constraint(self):
         """设置空箱守恒约束"""
         if DefaultSetting.IS_EMPTY_REPOSITION:
-            self.set_empty_conservation_constraint_impl(self.xVar, self.zVar, 1)
+            self.set_empty_conservation_constraint_impl(self.xVars, self.zVars, 1)
         else:
-            self.set_empty_conservation_constraint_impl(self.xVar, self.z1Var, 1)
+            self.set_empty_conservation_constraint_impl(self.xVars, self.z1Vars, 1)
             if DefaultSetting.ALLOW_FOLDABLE_CONTAINER:
-                self.set_empty_conservation_constraint_impl(self.x1Var, self.z2Var, 0.5)
+                self.set_empty_conservation_constraint_impl(self.x1Vars, self.z2Vars, 0.5)
                 
     def set_empty_conservation_constraint_impl_with_single_thread(self, x_var: List[List[Any]], 
                                              z_var: List[List[Any]], 
                                              initial_port_container_coeff: float):
         """设置空箱守恒约束的具体实现（单线程原版）
-        Args:
-            x_var: 重箱运输变量
-            z_var: 空箱运输变量
-            initial_port_container_coeff: 初始港口集装箱系数
+        
+        数学模型:
+        初始空箱量 + Σ_输入流 - Σ_输出流 = 0, ∀p ∈ P, t ∈ T
+        其中:
+            p: 港口
+            t: 时间点
+            输入流/输出流: 各类集装箱的流入/流出
+        对应Java注释:
+        /*
+        empty container conservation constraint
+        inflow - outflow = initial
+        */
+        /**
+        * 设置空箱守恒约束
+        * 初始空箱量 + Σ_输入流 - Σ_输出流 = 0, ∀p ∈ P, t ∈ T
+        */
         """
-        self.C3 = []
+        self.C3 = {}
         for p in range(len(self.param.port_set)):
             port = self.param.port_set[p]
             left = self.cplex.linear_expr()
@@ -596,7 +640,7 @@ class BasePrimalModel(BaseModel):
                                 if arc.origin_port == port and arc.origin_time == t:
                                     left.add_term(-self.param.arc_and_path[nn][j], z_var[i][k])
             initial_port_containers = self.param.initial_empty_container[p] * initial_port_container_coeff
-            self.C3.append(self.cplex.add_constraint(left >= -initial_port_containers, f"C3_{p}"))
+            self.C3[f"C3_{p}"] = self.cplex.add_constraint(left >= -initial_port_containers, f"C3_{p}")
 
     def set_empty_conservation_constraint_impl_with_multi_threads(self, x_var: List[List[Any]], 
                                              z_var: List[List[Any]], 
@@ -607,7 +651,7 @@ class BasePrimalModel(BaseModel):
             z_var: 空箱运输变量
             initial_port_container_coeff: 初始港口集装箱系数
         """
-        self.C3 = []
+        self.C3 = {}
         arc_dest_map = defaultdict(lambda: defaultdict(list))  # arc_dest_map[port][time] = [arc_idx, ...]
         arc_orig_map = defaultdict(lambda: defaultdict(list))  # arc_orig_map[port][time] = [arc_idx, ...]
         for nn, arc in enumerate(self.input_data.traveling_arcs):
@@ -677,7 +721,8 @@ class BasePrimalModel(BaseModel):
             return self.cplex.add_constraint(left >= -initial_port_containers, f"C3_{p}")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = list(executor.map(process_port, range(len(self.param.port_set))))
-        self.C3.extend(results)
+        for p, constraint in enumerate(results):
+            self.C3[f"C3_{p}"] = constraint
 
     def set_empty_conservation_constraint_impl(self, x_var: List[List[Any]], 
                                              z_var: List[List[Any]], 
@@ -734,31 +779,78 @@ class BasePrimalModel(BaseModel):
             "solve_status": self.solve_status
         } 
 
+    def set_v_var_solution(self):
+        """
+        根据船队类型自动提取CPLEX解，赋值给v_var_value和solution
+        对应Java: protected void setVVarsSolution()
+        """
+        if DefaultSetting.FLEET_TYPE == 'Homo':
+            self.set_homo_vessel_solution()
+        elif DefaultSetting.FLEET_TYPE == 'Hetero':
+            self.set_hetero_vessel_solution()
+        else:
+            logger.error("Error in Fleet type!")
 
+    def set_homo_vessel_solution(self):
+        """
+        提取同质船队的vVar解
+        对应Java: private void setHomoVesselSolution()
+        """
+        m = len(self.vVars)
+        n = len(self.vVars[0])
+        vvv = [[0 for _ in range(n)] for _ in range(m)]
+        solution = [0 for _ in range(n)]
+        for r in range(n):
+            for h in range(m):
+                try:
+                    val = self.cplex.solution.get_value(self.vVars[h][r])
+                except Exception:
+                    val = 0
+                if val >= 0.99:  # 容差
+                    vvv[h][r] = 1
+                    solution[r] = h + 1
+        self.set_v_var_value(vvv)
+        self.set_solution(solution)
+
+    def set_hetero_vessel_solution(self):
+        """
+        提取异质船队的vVar解
+        对应Java: private void setHeteroVesselSolution()
+        """
+        m = len(self.vVars)
+        n = len(self.vVars[0])
+        vvv = [[0 for _ in range(n)] for _ in range(m)]
+        solution = [0 for _ in range(n)]
+        for w in range(n):
+            for h in range(m):
+                try:
+                    val = self.cplex.solution.get_value(self.vVars[h][w])
+                except Exception:
+                    val = 0
+                if val >= 0.99:
+                    vvv[h][w] = 1
+                    solution[w] = h + 1
+        self.set_v_var_value(vvv)
+        self.set_solution(solution)
 
     def solution_to_v_value(self, solution: List[int]) -> List[List[int]]:
-        """将解决方案转换为船舶分配决策变量值
-        
-        Args:
-            solution: 解决方案
-            
-        Returns:
-            List[List[int]]: 船舶分配决策变量值
+        """
+        将解决方案转换为船舶分配决策变量值
+        对应Java: public int[][] solutionToVValue(int[] solution)
         """
         v_value = []
         if DefaultSetting.FLEET_TYPE == "Homo":
             v_value = [[0 for _ in range(len(self.param.shipping_route_set))] 
                       for _ in range(len(self.param.vessel_set))]
-            for r in range(len(self.param.shipping_route_set)):
+            for r, route in enumerate(self.input_data.shipping_routes):
                 v_value[solution[r] - 1][r] = 1
         elif DefaultSetting.FLEET_TYPE == "Hetero":
             v_value = [[0 for _ in range(len(self.param.vessel_path_set))] 
                       for _ in range(len(self.param.vessel_set))]
-            for w in range(len(self.param.vessel_path_set)):
+            for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 v_value[solution[w] - 1][w] = 1
         else:
             logger.error("Error in Fleet type!")
-            
         return v_value
         
     def print_solution(self):
@@ -767,20 +859,20 @@ class BasePrimalModel(BaseModel):
         print(f"Objective = {self.obj_val:.2f}")
         print("VesselType Decision vVar : ", end="")
         
-        for r in range(len(self.param.shipping_route_set)):
+        for r, route in enumerate(self.input_data.shipping_routes):
             print(f"{self.param.shipping_route_set[r]}:", end="")
             
             if DefaultSetting.FLEET_TYPE == "Homo":
-                for h in range(len(self.param.vessel_set)):
+                for h, vessel in enumerate(self.input_data.vessel_types):
                     if self.v_var_value[h][r] != 0:
                         print(f"{self.param.vessel_set[h]}\t", end="")
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w in range(len(self.param.vessel_path_set)):
-                    if self.param.ship_route_and_vessel_path[r][w] != 1:
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
+                    if self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] != 1:
                         continue
-                    for h in range(len(self.param.vessel_set)):
+                    for h, vessel in enumerate(self.input_data.vessel_types):
                         if (self.v_var_value[h][w] != 0 and 
-                            self.param.ship_route_and_vessel_path[r][w] == 1):
+                            self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] == 1):
                             print(f"{self.param.vessel_path_set[w]}({self.param.vessel_set[h]})\t", end="")
             else:
                 logger.error("Error in Fleet type!")
@@ -797,15 +889,15 @@ class BasePrimalModel(BaseModel):
             float: 运营成本
         """
         operation_cost = 0
-        for h in range(len(self.param.vessel_set)):
-            for w in range(len(self.param.vessel_path_set)):
+        for h, vessel in enumerate(self.input_data.vessel_types):
+            for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 # r(航线) == r
                 r = self.input_data.vessel_paths[w].route_id - 1
                 
                 if DefaultSetting.FLEET_TYPE == "Homo":
                     # vesselTypeAndShipRoute == 1 : r(h) = r
                     operation_cost += (self.param.vessel_type_and_ship_route[h][r] *
-                                     self.param.ship_route_and_vessel_path[r][w] *
+                                     self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] *
                                      self.param.vessel_operation_cost[h] *
                                      v_value[h][r])
                 elif DefaultSetting.FLEET_TYPE == "Hetero":
@@ -836,13 +928,13 @@ class BasePrimalModel(BaseModel):
             
             # 输出船舶分配结果
             logger.info("\n船舶分配结果:")
-            for h in range(len(self.param.vessel_set)):
+            for h, vessel in enumerate(self.input_data.vessel_types):
                 if DefaultSetting.FLEET_TYPE == "Homo":
-                    for r in range(len(self.param.shipping_route_set)):
+                    for r, route in enumerate(self.input_data.shipping_routes):
                         if self.v_var_value[h][r] > 0.5:
                             logger.info(f"船舶 {self.param.vessel_set[h]} 分配到航线 {self.param.shipping_route_set[r]}")
                 elif DefaultSetting.FLEET_TYPE == "Hetero":
-                    for w in range(len(self.param.vessel_path_set)):
+                    for w, vessel_path in enumerate(self.input_data.vessel_paths):
                         if self.v_var_value[h][w] > 0.5:
                             logger.info(f"船舶 {self.param.vessel_set[h]} 分配到路径 {self.param.vessel_path_set[w]}")
                             
@@ -868,7 +960,7 @@ class BasePrimalModel(BaseModel):
                 # 输出空箱运输决策
                 if DefaultSetting.IsEmptyReposition:
                     for k in range(request.number_of_empty_path):
-                        if self.zVar[i][k] > 0.5:
+                        if self.zVars[i][k] > 0.5:
                             logger.info(f"空箱通过路径 {request.empty_path_indexes[k]}")
                             
             logger.info("结果输出完成")
@@ -876,3 +968,47 @@ class BasePrimalModel(BaseModel):
             logger.error(f"输出结果失败: {str(e)}")
             raise
         logger.info("=========Results Outputted==========") 
+
+    def set_operation_cost(self, value: float):
+        self.operation_cost = value
+        
+
+    def set_v_var_value(self, v_var_value: List[List[int]]):
+        """
+        设置船舶分配决策变量值
+        对应Java: public void setVVarValue(int[][] vVarValue)
+        """
+        self.v_var_value = v_var_value
+
+    def get_v_var_value(self) -> List[List[int]]:
+        """
+        获取船舶分配决策变量值
+        对应Java: public int[][] getVVarValue()
+        """
+        return self.v_var_value
+
+    def set_solution(self, solution: List[int]):
+        """
+        设置当前解
+        对应Java: protected void setSolution(int[] solution)
+        """
+        self.solution = solution
+
+    def calculate_sample_mean_performance(self, v_value: List[List[int]]) -> float:
+        """
+        计算样本均值性能
+        对应Java: protected double calculateSampleMeanPerformance(int[][] vValue)
+        """
+        # 这里只做结构补全，具体实现需结合样本场景与子问题模型
+        logger.info("计算样本均值性能（calculate_sample_mean_performance）—— 需根据实际子类实现")
+        # TODO: 结合样本场景与子问题模型实现
+        return 0.0
+
+    def calculate_mean_performance(self) -> float:
+        """
+        计算均值性能
+        对应Java: protected double calculateMeanPerformance()
+        """
+        logger.info("计算均值性能（calculate_mean_performance）—— 需根据实际子类实现")
+        # TODO: 结合历史解与当前解调用calculate_sample_mean_performance
+        return 0.0 

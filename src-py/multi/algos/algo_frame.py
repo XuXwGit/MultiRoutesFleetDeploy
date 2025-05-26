@@ -1,7 +1,10 @@
 import logging
+import os
 import time
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
+
+from tqdm import tqdm
 from multi.algos.base_algo_frame import BaseAlgoFrame
 from multi.model.primal.master_problem import MasterProblem
 from multi.model.primal.sub_problem import SubProblem
@@ -26,11 +29,11 @@ class AlgoFrame(BaseAlgoFrame):
     4. 提供结果输出功能
     """
     
-    def __init__(self):
+    def __init__(self, input_data: InputData, param: Parameter):
         """
         初始化算法框架
         """
-        super().__init__()
+        super().__init__(input_data, param)
         
         # 算法参数
         self.tau: int = 0
@@ -200,7 +203,7 @@ class AlgoFrame(BaseAlgoFrame):
         初始化模型
         """
         # 初始化主问题模型
-        self.mp = MasterProblem(self.in_data, self.p)
+        self.mp = MasterProblem(    self.in_data, self.p)
         self.mp.build_model()
         
         # 初始化子问题模型
@@ -211,12 +214,35 @@ class AlgoFrame(BaseAlgoFrame):
         """
         更新下界和主问题
         """
-        if self.mp.obj_val > self.lower_bound:
+        if self.mp.obj_val > self.lower_bound and self.mp.get_solve_status_string() == "Optimal":
             self.lower_bound = self.mp.obj_val
 
-        if self.dsp.obj_val + self.mp.operation_cost < self.upper_bound:
-            self.upper_bound = self.dsp.obj_val + self.mp.operation_cost
-            self.mp.add_optimality_cut(self.dsp.get_constant_item(), self.dsp.get_beta_value())
+        if self.dsp.get_solve_status_string() == "Optimal":
+            if self.dsp.obj_val + self.mp.operation_cost < self.upper_bound:
+                self.upper_bound = self.dsp.obj_val + self.mp.operation_cost
+
+                # // add optimality cut
+                constant_item = self.dsp.get_constant_item()
+                beta_value = self.dsp.get_beta_value()
+                logger.debug(f"准备调用 add_optimality_cut, constant_item={constant_item}, beta_value={beta_value}")
+                self.mp.add_optimality_cut(constant_item=constant_item, beta_value=beta_value)
+                logger.debug("add_optimality_cut 调用完成")
+
+                # add the worst scene (extreme point) to scene set
+                if not self.add_scenario_pool(self.dsp.get_scene()):
+                    self.sce.append(self.dsp.get_scene())
+
+        elif self.dsp.get_solve_status_string() == "Infeasible":
+            logger.debug("DSP solution infeasible")
+            return False
+        elif self.dsp.get_solve_status_string() == "Unbounded":
+            logger.debug("DSP solution unbounded")
+            return False
+        elif self.dsp.get_solve_status_string() == "Infeasible":
+            logger.debug("DSP solution infeasible")
+            return False
+        else:
+            return True
 
     def _set_algo_results(self):
         """
@@ -262,7 +288,7 @@ class AlgoFrame(BaseAlgoFrame):
         self.file_writer = open(file_path, 'a')
         DefaultSetting.write_settings(self.file_writer)
         self.file_writer.write("=====================================================================\n")
-        self.in_data.write_status(self.file_writer)
+        self.input_data.write_status(self.file_writer)
 
     def calculate_mean_performance(self):
         """
@@ -270,9 +296,9 @@ class AlgoFrame(BaseAlgoFrame):
         """
         logger.info("Calculating Mean Performance ...")
         if DefaultSetting.USE_HISTORY_SOLUTION:
-            if self.in_data.history_solution_set.get(self.algo_id) is not None:
-                self.calculate_sample_mean_performance(self.p.solution_to_v_value(
-                    self.in_data.history_solution_set.get(self.algo_id)))
+            if self.input_data.history_solution_set.get(self.algo_id) is not None:
+                self.calculate_sample_mean_performance(self.param.solution_to_v_value(
+                    self.input_data.history_solution_set.get(self.algo_id)))
         else:
             self.calculate_sample_mean_performance(self.mp.get_v_var_value())
 
@@ -291,12 +317,20 @@ class AlgoFrame(BaseAlgoFrame):
 
     def add_solution_pool(self, solution) -> bool:
         """
-        添加解到解池
+        添加解到解池，自动将list/二维list转为tuple或tuple of tuple，保证可哈希
         """
-        if solution in self.solution_pool:
+        # 支持一维和二维list
+        if isinstance(solution, list):
+            if solution and isinstance(solution[0], list):
+                solution_tuple = tuple(tuple(row) for row in solution)
+            else:
+                solution_tuple = tuple(solution)
+        else:
+            solution_tuple = solution
+        if solution_tuple in self.solution_pool:
             return False
         else:
-            self.solution_pool.add(solution)
+            self.solution_pool.add(solution_tuple)
             return True
 
     def add_scenario_pool(self, scenario) -> bool:
@@ -395,8 +429,8 @@ class AlgoFrame(BaseAlgoFrame):
             
             sp = SubProblem(self.in_data, self.p, v_value)
             
-            for sce in range(DefaultSetting.NUM_SAMPLE_SCENES):
-                sp.change_demand_constraint_coefficients(self.p.get_sample_scenes()[sce])
+            for sce in tqdm(range(DefaultSetting.NUM_SAMPLE_SCENES), desc="计算平均性能指标", ncols=80):
+                sp.change_demand_constraint_coefficients(self.p.sample_scenes[sce])
                 sp.solve_model()
                 
                 sample_sub_opera_costs[sce] = sp.total_cost
@@ -426,6 +460,12 @@ class AlgoFrame(BaseAlgoFrame):
             self.mean_performance = mp_operation_cost + sum_sub_opera_costs / DefaultSetting.NUM_SAMPLE_SCENES
             self.mean_second_stage_cost = sum_sub_opera_costs / DefaultSetting.NUM_SAMPLE_SCENES
             
+
+        self.laden_cost = sum(sample_laden_costs) / DefaultSetting.NUM_SAMPLE_SCENES
+        self.empty_cost = sum(sample_empty_costs) / DefaultSetting.NUM_SAMPLE_SCENES
+        self.penalty_cost = sum(sample_penalty_costs) / DefaultSetting.NUM_SAMPLE_SCENES
+        self.rental_cost = sum(sample_rental_costs) / DefaultSetting.NUM_SAMPLE_SCENES
+
         return mp_operation_cost + sum_sub_opera_costs / DefaultSetting.NUM_SAMPLE_SCENES
 
     def print_iter_title(self, file_writer, build_model_time):
@@ -444,9 +484,18 @@ class AlgoFrame(BaseAlgoFrame):
             file_writer.write("k\t\tLB\t\tUB\t\tDSP-SolveTime(ms)\t\tMP-SolveTime(ms)\t\tTotal Time(ms)\t\tDSP-Status(Gap)\t\tMP-Status(Gap)\n")
             file_writer.flush()
 
-    def print_iteration_detailed(self, file_writer, lb, ub, dsp_time, mp_time, total_time,
-                               dsp_solve_status_string, dsp_mip_gap,
-                               mp_solve_status_string, mp_mip_gap):
+    def print_iteration_detailed(self, 
+                                 file_writer, 
+                                 lb, 
+                                 ub, 
+                                 dsp_time, 
+                                 mp_time, 
+                                 total_time,
+                                 dsp_solve_status_string: str="", 
+                                 dsp_mip_gap: float=0.0,
+                                 mp_solve_status_string: str="", 
+                                 mp_mip_gap: float=0.0
+                               ):
         """
         打印详细迭代信息
         
@@ -479,22 +528,25 @@ class AlgoFrame(BaseAlgoFrame):
             v_value: 变量值
         """
         logger.info("VesselType Decision vVar : ")
-        for r in range(len(self.p.shipping_route_set)):
-            print(self.p.shipping_route_set[r], end=":")
-            
+        for r, ship_route in enumerate(self.in_data.ship_routes):
+
+            expr = f"{self.p.shipping_route_set[r]}: "
+
             if DefaultSetting.FLEET_TYPE == "Homo":
                 for h in range(len(self.p.vessel_set)):
                     if v_value[h][r] != 0:
-                        print(f"{self.p.vessel_set[h]}\t", end="")
+                        expr += f"{self.p.vessel_set[h]}"
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w in range(len(self.p.vessel_path_set)):
-                    if self.p.ship_route_and_vessel_path[r][w] != 1:
+                for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                    if self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] != 1:
                         continue
-                    for h in range(len(self.p.vessel_set)):
-                        if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[r][w] == 1:
-                            print(f"{self.p.vessel_path_set[w]}({self.p.vessel_set[h]})\t", end="")
+                    for h, vessel_type in enumerate(self.in_data.vessel_types):
+                        if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] == 1:
+                            expr += f"{self.p.vessel_path_set[w]}({self.p.vessel_set[h]})"
             else:
                 logger.info("Error in Fleet type!")
+
+            logger.info(expr)
 
     def write_solution(self, v_value, file_writer):
         """
@@ -505,20 +557,20 @@ class AlgoFrame(BaseAlgoFrame):
             file_writer: 文件写入器
         """
         file_writer.write("VesselType Decision vVar : \n")
-        for r in range(len(self.p.shipping_route_set)):
-            file_writer.write(f"{self.p.shipping_route_set[r]}: ")
+        for r, ship_route in enumerate(self.in_data.ship_routes):
+            file_writer.write(f"{ship_route}: ")
             
             if DefaultSetting.FLEET_TYPE == "Homo":
-                for h in range(len(self.p.vessel_set)):
+                for h, vessel_type in enumerate(self.in_data.vessel_types):
                     if v_value[h][r] != 0:
-                        file_writer.write(f"{self.p.vessel_set[h]}\t")
+                        file_writer.write(f"{vessel_type}\t")
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w in range(len(self.p.vessel_path_set)):
-                    if self.p.ship_route_and_vessel_path[r][w] != 1:
+                for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                    if self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] != 1:
                         continue
-                    for h in range(len(self.p.vessel_set)):
-                        if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[r][w] == 1:
-                            file_writer.write(f"{self.p.vessel_path_set[w]}({self.p.vessel_set[h]})\t")
+                    for h, vessel_type in enumerate(self.in_data.vessel_types):
+                        if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] == 1:
+                            file_writer.write(f"{vessel_path}({vessel_type})\t")
                 file_writer.write("\n")
             else:
                 logger.info("Error in Fleet type!")

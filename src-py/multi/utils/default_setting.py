@@ -26,7 +26,7 @@ class DefaultSetting:
     # 船舶容量范围 - 对应Java: public static String VesselCapacityRange = "I";
     VESSEL_CAPACITY_RANGE = "I" 
     # 船队类型：Homo/Hetero - 对应Java: public static String FleetType = "Hetero";
-    FLEET_TYPE = "Hetero"        
+    FLEET_TYPE = "Homo"        
     
     ##################################
     # 集装箱设置 - 对应Java中的container settings
@@ -112,7 +112,7 @@ class DefaultSetting:
     # 是否生成样本 - 对应Java: public static boolean WhetherGenerateSamples = true;
     WHETHER_GENERATE_SAMPLES = True         
     # 是否计算平均性能 - 对应Java: public static boolean WhetherCalculateMeanPerformance = false;
-    WHETHER_CALCULATE_MEAN_PERFORMANCE = False  
+    WHETHER_CALCULATE_MEAN_PERFORMANCE = True  
     # 是否写入样本测试 - 对应Java: public static boolean WhetherWriteSampleTests = true;
     WHETHER_WRITE_SAMPLE_TESTS = True      
     # 是否加载样本测试 - 对应Java: public static boolean WhetherLoadSampleTests = false;
@@ -130,7 +130,7 @@ class DefaultSetting:
     # 初始空箱数量 - 对应Java: public static int initialEmptyContainers = 28;
     INITIAL_EMPTY_CONTAINERS = 28           
     # 鲁棒性 - 对应Java: public static int robustness = 1;
-    ROBUSTNESS = 1
+    ROBUSTNESS = 100
     # 重箱滞期免费时间 - 对应Java: public static int ladenStayFreeTime = 7;
     LADEN_STAY_FREE_TIME = 7
     # 空箱滞期免费时间 - 对应Java: public static int emptyStayFreeTime = 7;
@@ -210,7 +210,7 @@ class DefaultSetting:
     # 案例路径 - 对应Java: public static String CasePath = "1/";
     CASE_PATH = "1/"                        
     # 模型导出路径 - 对应Java: public static String ExportModelPath = "model/";
-    EXPORT_MODEL_PATH = "model/"            
+    EXPORT_MODEL_PATH = "model/"
     # 算法日志路径 - 对应Java: public static String AlgoLogPath = "log/";
     ALGO_LOG_PATH = "log/"                  
     # 解决方案路径 - 对应Java: public static String SolutionPath = "solution/";

@@ -32,6 +32,27 @@ class BendersDecomposition(AlgoFrame):
        c. 生成Benders割
        d. 检查收敛条件
     3. 输出最终结果
+
+    主问题与子问题均包含如下容量约束:
+    数学模型:
+    Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    其中:
+        a_np: 路径p是否使用弧n
+        C_h: 船舶类型h的容量
+        V_hr: 船舶类型h分配到航线r的二元变量
+        x_ip, y_ip, z_ip: 各类集装箱运输量
+    对应Java注释:
+    /*
+    vessel capacity constraint
+    /sum{X+Y+Z} <= V
+    */
+    /**
+    * 设置船舶容量约束(对应数学模型中式8)
+    * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    * 其中:
+    * a_np: 路径p是否使用弧n
+    * C_h: 船舶类型h的容量
+    */
     """
     
     def __init__(self, input_data: InputData, param: Parameter):
@@ -40,18 +61,10 @@ class BendersDecomposition(AlgoFrame):
         
         Args:
             input_data: 输入数据
-            p: 模型参数
+            param: 模型参数
         """
-        super().__init__()
+        super().__init__(input_data, param)
         self.logger = setup_logger('benders_decomposition')
-        self.input_data = input_data
-        self.p = param
-        self.in_data = input_data
-        self.callback = None  # Benders回调
-
-        self.primal_model = BasePrimalModel(input_data, param)
-        self.dual_model = BaseDualModel(input_data, param)
-
         logger.info(f"BendersDecomposition初始化完成")
     
     def _initialize_models(self):
@@ -59,10 +72,10 @@ class BendersDecomposition(AlgoFrame):
         初始化模型
         """
         # 初始化主问题模型
-        self.mp = MasterProblem(self.in_data, self.p, type="Robust")
+        self.mp = MasterProblem(input_data=self.input_data, param=self.param, type="Robust")
         
         # 初始化子问题模型
-        self.dsp = DualSubProblem(input_data=self.in_data, param=self.p, tau=DefaultSetting.ROBUSTNESS)
+        self.dsp = DualSubProblem(input_data=self.input_data, param=self.param, tau=DefaultSetting.ROBUSTNESS)
         
     
     def frame(self):
@@ -117,7 +130,7 @@ class BendersDecomposition(AlgoFrame):
                     self.lower_bound = self.mp.obj_val
                 
                 # 求解子问题
-                self.dsp.change_objective_v_vars_coefficients(self.mp.get_v_vars())
+                self.dsp.change_objective_v_vars_coefficients(self.mp.v_var_value)
                 sp_start_time = time.time()
                 self.dsp.solve_model()
                 sp_time = time.time() - sp_start_time
@@ -137,12 +150,17 @@ class BendersDecomposition(AlgoFrame):
                 # 计算总时间
                 self.total_time = time.time() - start_time
                 # 打印迭代信息
-                self.print_iteration_detailed(file_writer, 
-                                              self.lower_bound, 
-                                              self.upper_bound,
-                                              mp_time, 
-                                              sp_time, 
-                                              total_time=self.total_time)
+                self.print_iteration_detailed(file_writer=file_writer, 
+                                              lb=self.lower_bound, 
+                                              ub=self.upper_bound,
+                                              dsp_time=sp_time, 
+                                              mp_time=mp_time, 
+                                              total_time=self.total_time,
+                                              dsp_solve_status_string=self.dsp.get_solve_status_string(),
+                                              mp_solve_status_string=self.mp.get_solve_status_string(),
+                                              dsp_mip_gap=self.dsp.obj_gap,
+                                              mp_mip_gap=self.mp.obj_gap
+                                            )
 
             # // end the loop
             if flag == 1:
@@ -178,14 +196,14 @@ class BendersDecomposition(AlgoFrame):
 
         self.iter = self.iteration
         self.v_value = self.mp.v_var_value
-        self.gap = (self.upper_bound - self.lower_bound)/self.lower_bound
+        self.gap = (self.upper_bound - self.lower_bound)/(self.lower_bound + 1e-6)
         self.solution = self.mp.solution
         
-        # 获取各种成本
-        self.laden_cost = self.mp.laden_cost
-        self.empty_cost = self.mp.empty_cost
-        self.penalty_cost = self.mp.penalty_cost
-        self.rental_cost = self.mp.rental_cost
+        # # 获取各种成本
+        # self.laden_cost = self.mp.laden_cost
+        # self.empty_cost = self.mp.empty_cost
+        # self.penalty_cost = self.mp.penalty_cost
+        # self.rental_cost = self.mp.rental_cost
 
         if DefaultSetting.WHETHER_WRITE_FILE_LOG:
             self.write_solution(self.mp.v_var_value, self.file_writer) 
@@ -225,7 +243,6 @@ class BendersDecomposition(AlgoFrame):
             # 返回结果
             return {
                 'status': 'success',
-
                 'objective': self.obj,
                 'time': self.total_time,
                 'laden_cost': self.laden_cost,

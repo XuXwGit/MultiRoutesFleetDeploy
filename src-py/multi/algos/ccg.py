@@ -28,6 +28,27 @@ class CCG(BaseAlgoFrame):
     1. 通过动态生成列和约束来求解大规模问题
     2. 支持场景生成
     3. 支持上下界更新
+
+    主问题与子问题均包含如下容量约束:
+    数学模型:
+    Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    其中:
+        a_np: 路径p是否使用弧n
+        C_h: 船舶类型h的容量
+        V_hr: 船舶类型h分配到航线r的二元变量
+        x_ip, y_ip, z_ip: 各类集装箱运输量
+    对应Java注释:
+    /*
+    vessel capacity constraint
+    /sum{X+Y+Z} <= V
+    */
+    /**
+    * 设置船舶容量约束(对应数学模型中式8)
+    * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    * 其中:
+    * a_np: 路径p是否使用弧n
+    * C_h: 船舶类型h的容量
+    */
     """
     
     def __init__(self, input_data: InputData, param: Parameter):

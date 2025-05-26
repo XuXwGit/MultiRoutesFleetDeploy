@@ -627,7 +627,7 @@ class ReadData:
         requests = {}
         try:
             for _, row in df.iterrows():
-                if int(row["LatestDestinationTime"]) < int(row["EarliestPickupTime"]):
+                if int(row["LatestDestinationTime"]) < self.time_horizon:
                     continue
 
                 request = Request(
@@ -644,10 +644,23 @@ class ReadData:
                         self.input_data.container_path_set.get(int(path_id)) for path_id in row["LadenPaths"].split(",")
                         if int(path_id) in self.input_data.container_path_set
                     ]
-                    request.laden_path_set = {laden_path.path_id: laden_path for laden_path in request.laden_paths if laden_path}
-                    request.laden_path_indexes = [laden_path.path_id - 1 for laden_path in request.laden_paths if laden_path]
-                else:
-                    request.laden_paths = []
+                    for laden_path in request.laden_paths:
+                        if laden_path is None:
+                            logger.debug("发现None laden_path")
+                        elif not hasattr(laden_path, "path_id"):
+                            logger.debug("对象缺少path_id属性：", laden_path)
+                    
+                    request.laden_path_set = {
+                        laden_path.path_id: laden_path
+                        for laden_path in request.laden_paths
+                        if laden_path is not None and hasattr(laden_path, "path_id")
+                    }
+                    request.laden_path_indexes = [
+                        laden_path.path_id - 1
+                        for laden_path in request.laden_paths
+                        if laden_path is not None and hasattr(laden_path, "path_id")
+                    ]
+
                 if request.number_of_empty_path > 0:
                     request.empty_paths = [
                         self.input_data.container_path_set.get(int(path_id)) for path_id in row["EmptyPaths"].split(",")

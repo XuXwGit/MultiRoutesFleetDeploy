@@ -3,6 +3,7 @@ from typing import Dict, List, Union
 import logging
 
 from multi.utils.default_setting import DefaultSetting
+from multi.utils.input_data import InputData
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,9 @@ class Parameter:
     - 容量: TEU(标准集装箱)
     """
     
-    def __init__(self):
+    def __init__(self, input_data: InputData = None):
+        self.input_data = input_data
+
         # 时间参数
         self.time_horizon: int = 0  # 时间范围(天)
         self.tau: int = 0  # 需求响应时间窗口(天)
@@ -156,15 +159,15 @@ class Parameter:
     def get_operation_cost(self, v_value: List[List[int]]) -> float:
         """计算运营成本"""
         operation_cost = 0
-        for h in range(len(self.vessel_set)):
-            for w in range(len(self.vessel_path_set)):
+        for h, vessel_type in enumerate(self.input_data.vessel_types):
+            for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 # r(ω) == r
                 r = self.vessel_path_ship_route_index[w]
                 
                 if DefaultSetting.FLEET_TYPE == "Homo":
                     # vessel_type_and_ship_route == 1 : r(h) = r
-                    operation_cost += (self.vessel_type_and_ship_route[h][r] *
-                                     self.ship_route_and_vessel_path[r][w] *
+                    operation_cost += (self.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id] *
+                                     self.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.id] *
                                      self.vessel_operation_cost[h] *
                                      v_value[h][r])
                 elif DefaultSetting.FLEET_TYPE == "Hetero":

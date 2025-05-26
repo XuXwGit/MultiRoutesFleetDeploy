@@ -4,7 +4,7 @@
 @DateTime: 2024/12/4 21:31
 """
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 from .port import Port
 from .container_path import ContainerPath
 
@@ -66,8 +66,8 @@ class Request:
         self._latest_destination_time = latest_destination_time  # 对应Java: private int latestDestinationTime
         
         # 重箱路径相关
-        self._laden_path_set = []  # 对应Java: private List<ContainerPath> ladenPathSet
-        self._laden_paths = []  # 对应Java: private int[] ladenPaths
+        self._laden_path_set = {}  # 对应Java: private List<ContainerPath> ladenPathSet
+        self._laden_paths = []  # 对应Java: private ContainerPath[] ladenPaths
         self._laden_path_indexes = []  # 对应Java: private int[] ladenPathIndexes
         self._number_of_laden_path = 0  # 对应Java: private int numberOfLadenPath
         
@@ -288,7 +288,7 @@ class Request:
         self._latest_destination_time = value
     
     @property
-    def laden_path_set(self) -> List[ContainerPath]:
+    def laden_path_set(self) -> Dict[int, ContainerPath]:
         """
         获取重箱路径集合
         对应Java: getLadenPathSet()
@@ -296,7 +296,7 @@ class Request:
         return self._laden_path_set
     
     @laden_path_set.setter
-    def laden_path_set(self, value: List[ContainerPath]):
+    def laden_path_set(self, value: Dict[int, ContainerPath]):
         """
         设置重箱路径集合
         对应Java: setLadenPathSet(List<ContainerPath> ladenPathSet)
@@ -304,34 +304,30 @@ class Request:
         self._laden_path_set = value
     
     @property
-    def laden_paths(self) -> List[int]:
+    def laden_paths(self) -> List[ContainerPath]:
         """
-        获取重箱路径ID数组
-        对应Java: getLadenPaths()
+        获取重箱路径列表（List[ContainerPath]）
         """
         return self._laden_paths
     
     @laden_paths.setter
-    def laden_paths(self, value: List[int]):
+    def laden_paths(self, value: List[ContainerPath]):
         """
-        设置重箱路径ID数组
-        对应Java: setLadenPaths(int[] ladenPaths)
+        设置重箱路径列表（List[ContainerPath]）
         """
         self._laden_paths = value
     
     @property
     def laden_path_indexes(self) -> List[int]:
         """
-        获取重箱路径索引数组
-        对应Java: getLadenPathIndexes()
+        获取重箱路径索引列表（List[int]，通常为container_path_id-1）
         """
         return self._laden_path_indexes
     
     @laden_path_indexes.setter
     def laden_path_indexes(self, value: List[int]):
         """
-        设置重箱路径索引数组
-        对应Java: setLadenPathIndexes(int[] ladenPathIndexes)
+        设置重箱路径索引列表（List[int]，通常为container_path_id-1）
         """
         self._laden_path_indexes = value
     
@@ -368,34 +364,30 @@ class Request:
         self._empty_path_set = value
     
     @property
-    def empty_paths(self) -> List[int]:
+    def empty_paths(self) -> List[ContainerPath]:
         """
-        获取空箱路径ID数组
-        对应Java: getEmptyPaths()
+        获取空箱路径列表（List[ContainerPath]）
         """
         return self._empty_paths
     
     @empty_paths.setter
-    def empty_paths(self, value: List[int]):
+    def empty_paths(self, value: List[ContainerPath]):
         """
-        设置空箱路径ID数组
-        对应Java: setEmptyPaths(int[] emptyPaths)
+        设置空箱路径列表（List[ContainerPath]）
         """
         self._empty_paths = value
     
     @property
     def empty_path_indexes(self) -> List[int]:
         """
-        获取空箱路径索引数组
-        对应Java: getEmptyPathIndexes()
+        获取空箱路径索引列表（List[int]，通常为container_path_id-1）
         """
         return self._empty_path_indexes
     
     @empty_path_indexes.setter
     def empty_path_indexes(self, value: List[int]):
         """
-        设置空箱路径索引数组
-        对应Java: setEmptyPathIndexes(int[] emptyPathIndexes)
+        设置空箱路径索引列表（List[int]，通常为container_path_id-1）
         """
         self._empty_path_indexes = value
     

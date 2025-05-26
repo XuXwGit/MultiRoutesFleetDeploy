@@ -21,6 +21,27 @@ class BDwithPareto(AlgoFrame):
     2. 子问题求解
     3. Pareto最优切割生成
     4. 收敛性检查
+
+    主问题与子问题均包含如下容量约束:
+    数学模型:
+    Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    其中:
+        a_np: 路径p是否使用弧n
+        C_h: 船舶类型h的容量
+        V_hr: 船舶类型h分配到航线r的二元变量
+        x_ip, y_ip, z_ip: 各类集装箱运输量
+    对应Java注释:
+    /*
+    vessel capacity constraint
+    /sum{X+Y+Z} <= V
+    */
+    /**
+    * 设置船舶容量约束(对应数学模型中式8)
+    * Σ_i Σ_p (x_ip + y_ip + z_ip) a_np ≤ Σ_h Σ_r V_hr C_h a_nr, ∀n ∈ N
+    * 其中:
+    * a_np: 路径p是否使用弧n
+    * C_h: 船舶类型h的容量
+    */
     """
     
     def __init__(self, in_data: InputData, param: Parameter):

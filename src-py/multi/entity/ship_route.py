@@ -82,6 +82,16 @@ class ShipRoute:
     
     # Getter和Setter方法
     @property
+    def id(self) -> int:
+        """对应Java: getId()"""
+        return self._ship_route_id
+
+    @id.setter
+    def id(self, value: int):
+        """对应Java: setId(int id)"""
+        self._ship_route_id = value
+
+    @property
     def ship_route_id(self) -> int:
         """对应Java: getShipRouteID()"""
         return self._ship_route_id

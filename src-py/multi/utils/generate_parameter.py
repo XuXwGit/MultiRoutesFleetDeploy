@@ -143,7 +143,7 @@ class GenerateParameter:
                 group_range = self.input_data.group_range_map[f"{group_o}{group_d}"]
                 
                 # 生成需求
-                if group_range is None:
+                if group_range is not None:
                     demand_value = group_range.demand_lower_bound + int(
                         (group_range.demand_upper_bound - group_range.demand_lower_bound) * 
                         self.get_rand_double()

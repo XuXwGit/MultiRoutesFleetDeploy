@@ -19,7 +19,7 @@ class EmptyPath:
         path_id: 路径ID
     """
     
-    path_id: int  # 路径ID
+    path_id: int  # 路径ID（建议主流程用container_path_id，path_id仅为兼容）
     request_id: int  # 请求ID
     origin_port_string: str  # 起始港口字符串
     origin_time: int  # 起始时间

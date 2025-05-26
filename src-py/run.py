@@ -77,7 +77,7 @@ def main():
         )
         logger.info("数据读取完成")
         
-        param = Parameter()
+        param = Parameter(input_data=input_data)
         GenerateParameter(input_data=input_data, param=param, time_horizon=args.time_horizon, uncertain_degree=args.demand_fluctuation)
         logger.info("参数生成完成")
         
