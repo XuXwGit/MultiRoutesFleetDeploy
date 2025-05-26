@@ -113,6 +113,14 @@ class Request(Base):
     id = Column(Integer, primary_key=True)
     origin_port = Column(String)
     destination_port = Column(String)
+    laden_paths = Column(String)
+    empty_paths = Column(String)
+    earliest_pickup_time = Column(Float)
+    latest_destination_time = Column(Float)
+    number_of_laden_path = Column(Integer)
+    number_of_empty_path = Column(Integer)
+    laden_paths = Column(String)
+    empty_paths = Column(String)
 
     def get_laden_paths_list(self):
         return [] if self.laden_paths == '0' else [int(x) for x in self.laden_paths.split(',')]

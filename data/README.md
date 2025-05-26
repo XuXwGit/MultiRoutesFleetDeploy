@@ -146,7 +146,7 @@
 |--------------------|---------------|---------|------------------------------|
 | VesselPathID | 路径ID | int | 航行轮回路径唯一编号 |
 | ShippingRouteID | 航线ID | int | 该路径所属的航线编号 |
-| NumOfArcs | 弧段数 | int | 路径包含的弧段数量 |
+| NumberOfArcs | 弧段数 | int | 路径包含的弧段数量 |
 | ArcIDs | 弧段ID序列 | string | 该路径包含的弧段ID（逗号分隔）|
 | OriginTime | 起点时间 | int | 路径起点节点的时间 |
 | DestinationTime | 终点时间 | int | 路径终点节点的时间 |
@@ -189,7 +189,7 @@ VesselPathID	ShippingRouteID	NumOfArcs	ArcIDs	OriginTime	DestinationTime
 | OriginTime      | 起点时刻         | int    | origin_time        |
 | DestinationPort | 终点港口         | str    | destination_port   |
 | RoundTrip       | 航次             | int    | round_trip         |
-| WiEarliest      | 最早发运时刻     | int    | wi_earliest        |
+| EarliestPickupTime      | 最早发运时刻     | int    | wi_earliest        |
 | ArrivalTimeToDestination | 到达终点时刻 | int | arrival_time_to_destination |
 | PathTime        | 路径用时         | int    | path_time          |
 | TransshipPort   | 中转港口         | int    | transship_port     |
@@ -199,7 +199,7 @@ VesselPathID	ShippingRouteID	NumOfArcs	ArcIDs	OriginTime	DestinationTime
 | ArcIDs          | 弧段编号         | str    | arc_ids            |
 
 **示例：**
-| RequestID | OriginPort | OriginTime | DestinationPort | RoundTrip | WiEarliest | ArrivalTimeToDestination | PathTime | TransshipPort | TransshipTime | PathID | PortPath | ArcIDs |
+| RequestID | OriginPort | OriginTime | DestinationPort | RoundTrip | EarliestPickupTime | ArrivalTimeToDestination | PathTime | TransshipPort | TransshipTime | PathID | PortPath | ArcIDs |
 |-----------|------------|------------|-----------------|-----------|------------|-------------------------|----------|---------------|---------------|--------|----------|--------|
 | 1         | A          | 2          | B               | 1         | 1          | 3                       | 1        | 0             | 0             | 1      | A,B      | 1      |
 
@@ -237,7 +237,7 @@ VesselPathID	ShippingRouteID	NumOfArcs	ArcIDs	OriginTime	DestinationTime
 
 **示例：**
 
-| RequestID | OriginPort | DestinationPort | WiEarliest | LatestDestinationTime | LadenPaths | NumberOfLadenPath | EmptyPaths | NumberOfEmptyPath |
+| RequestID | OriginPort | DestinationPort | EarliestPickupTime | LatestDestinationTime | LadenPaths | NumberOfLadenPath | EmptyPaths | NumberOfEmptyPath |
 |-----------|------------|----------------|------------|----------------------|------------|-------------------|------------|-------------------|
 | 1         | A          | B              | 1          | 15                   | 1,2        | 2                 | 0          | 0                 |
 

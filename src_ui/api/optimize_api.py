@@ -67,20 +67,21 @@ def optimize():
             log_callback("开始执行优化计算...")
             
             input_data = InputData()
+
             reader = ReadData(
                 path="data/",
                 input_data=input_data,
-                time_horizon=data.get('time_horizon', DefaultSetting.DEFAULT_TIME_HORIZON),
+                time_horizon=DefaultSetting.DEFAULT_TIME_HORIZON,
                 use_db=True,
                 db_path="ships.db"
             )
             log_callback("数据读取完成")
 
-            param = Parameter()
+            param = Parameter(input_data=input_data)
             GenerateParameter(input_data=input_data, 
                               param=param, 
-                              time_horizon=data.get('time_horizon', DefaultSetting.DEFAULT_TIME_HORIZON), 
-                              uncertain_degree=data.get('demand_fluctuation', DefaultSetting.DEFAULT_UNCERTAIN_DEGREE),
+                              time_horizon=DefaultSetting.DEFAULT_TIME_HORIZON, 
+                              uncertain_degree=DefaultSetting.DEFAULT_UNCERTAIN_DEGREE,
                               )
             log_callback("参数生成完成")
 
@@ -109,8 +110,9 @@ def optimize():
                 
             log_callback("算法执行完成")
 
-            result = {}
             log_callback("优化完成！")
+            log_callback(f"优化结果: {result}")
+
             return jsonify({
                 'status': 'success',
                 'result_time': f"{result.get('time', 0):.1f}s",

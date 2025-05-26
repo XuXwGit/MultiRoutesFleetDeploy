@@ -1,4 +1,4 @@
-RequestID	OriginPort	OriginTime	DestinationPort	RoundTrip	WiEarliest	ArrivalTimeToDestination	PathTime	TransshipPort	TransshipTime	PortPath	PathID	ArcIDs
+RequestID	OriginPort	OriginTime	DestinationPort	RoundTrip	EarliestPickupTime	ArrivalTimeToDestination	PathTime	TransshipPort	TransshipTime	PortPath	PathID	ArcIDs
 1	AGADIR	10	ANTWERP	1	1	22	12	0	0	36	AGADIR,LONDON GATEWAY PORT(ESS),ROTTERDAM,HAMBURG,ANTWERP	3,4,5,6
 1	AGADIR	10	ANTWERP	1	1	25	15	ROTTERDAM	6	37	AGADIR,LONDON GATEWAY PORT(ESS),ROTTERDAM,ANTWERP	3,4,581,396
 2	AGADIR	10	ANTWERP	2	8	22	12	0	0	36	AGADIR,LONDON GATEWAY PORT(ESS),ROTTERDAM,HAMBURG,ANTWERP	3,4,5,6

@@ -153,6 +153,7 @@ class DualSubProblem(BaseDualModel):
                 )
                 
         # 第四部分：不确定需求项
+        logger.info(f"self.param.maximum_demand_variation: {self.param.maximum_demand_variation}")
         for i in range(len(self.param.demand)):
             obj_expr.add_term(
                 coeff=self.param.maximum_demand_variation[i],

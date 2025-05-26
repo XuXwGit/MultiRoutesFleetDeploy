@@ -1,4 +1,4 @@
-RequestID	OriginPort	OriginTime	DestinationPort	RoundTrip	WiEarliest	ArrivalTimeToDestination	PathTime	TransshipPort	TransshipTime	PathID	PortPath	ArcIDs
+RequestID	OriginPort	OriginTime	DestinationPort	RoundTrip	EarliestPickupTime	ArrivalTimeToDestination	PathTime	TransshipPort	TransshipTime	PathID	PortPath	ArcIDs
 1	A	2	B	1	1	3	1	0	0	1	A,B	1
 1	A	9	B	1	1	10	1	0	0	2	A,B	9
 2	A	9	B	2	8	10	1	0	0	2	A,B	9

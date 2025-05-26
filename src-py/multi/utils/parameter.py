@@ -217,6 +217,7 @@ class Parameter:
         
         return operation_cost
     
+
     def solution_to_v_value(self, solution: List[int]) -> List[List[int]]:
         """
         将解决方案转换为船舶分配方案

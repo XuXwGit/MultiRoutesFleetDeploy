@@ -460,7 +460,7 @@ def import_vesselpaths_data():
             vessel_path = VesselPath(
                 id=int(item['VesselPathID']),
                 vessel_route_id=int(item['ShippingRouteID']),
-                number_of_arcs=int(item['NumOfArcs']),
+                number_of_arcs=int(item['NumberOfArcs']),
                 arcs_id=item['ArcIDs'],
                 origin_time=int(item['OriginTime']),
                 destination_time=int(item['DestinationTime'])
@@ -562,7 +562,7 @@ def import_requests_data():
             id=int(item['RequestID']),
             origin_port=item['OriginPort'],
             destination_port=item['DestinationPort'],
-            w_i_earlist=float(item['WiEarliest']),
+            earliest_pickup_time=float(item['EarliestPickupTime']),
             latest_destination_time=float(item['LatestDestinationTime']),
             laden_paths=','.join(map(str, item['LadenPaths'])) if item['LadenPaths'] else '0',
             number_of_laden_path=int(item['NumberOfLadenPath']),

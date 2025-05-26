@@ -50,6 +50,7 @@ class AlgoFrame(BaseAlgoFrame):
         
         # 解相关
         self.solution: List[List[int]] = []
+        self.assign_solution: Dict[int, int] = {}
         self.solution_pool: set = set()
         self.scenario_pool: set = set()
         self.sce: List = []
@@ -467,6 +468,26 @@ class AlgoFrame(BaseAlgoFrame):
         self.rental_cost = sum(sample_rental_costs) / DefaultSetting.NUM_SAMPLE_SCENES
 
         return mp_operation_cost + sum_sub_opera_costs / DefaultSetting.NUM_SAMPLE_SCENES
+
+
+    def v_value_to_solution(self, v_value: List[List[int]]) -> Dict[int, int]:
+            """
+            将船舶分配方案转换为解决方案
+            
+            Args:
+                v_value: 船舶分配方案
+            """
+            solution = {}
+            for h, vessel_type in enumerate(self.in_data.vessel_types):
+                if DefaultSetting.FLEET_TYPE == "Homo":
+                    for r, ship_route in enumerate(self.in_data.ship_routes):
+                        if v_value[h][r] == 1:
+                            solution[ship_route.id] = vessel_type.id
+                elif DefaultSetting.FLEET_TYPE == "Hetro":
+                    for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                        if v_value[h][w] == 1:
+                            solution[vessel_path.id] = vessel_type.id
+            return solution
 
     def print_iter_title(self, file_writer, build_model_time):
         """

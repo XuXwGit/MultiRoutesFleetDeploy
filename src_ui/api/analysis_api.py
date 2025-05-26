@@ -74,24 +74,26 @@ def get_network():
                 '#00BFFF', '#FF69B4', '#8A2BE2', '#20B2AA', '#FFA500'
             ]
             return color_list[idx % len(color_list)]
-        from api.data_api import ROUTES_DATA
+        # 动态查数据库
+        session = Session()
+        routes = session.query(Route).all()
         nodes = []
         node_set = set()
         links = []
         legend = []
         color_map = {}
-        for idx, route in enumerate(ROUTES_DATA):
+        for idx, route in enumerate(routes):
             color = get_color(idx)
-            color_map[route['id']] = color
-            ports_of_call = route['ports_of_call']
+            color_map[route.id] = color
+            ports_of_call = route.ports_of_call
             if isinstance(ports_of_call, str):
                 ports_of_call = [p.strip() for p in ports_of_call.split(',') if p.strip()]
-            legend.append({'name': f'航线{route["id"]}', 'color': color, 'ports': ports_of_call})
+            legend.append({'name': f'航线{route.id}', 'color': color, 'ports': ports_of_call})
             for port in ports_of_call:
                 if port not in node_set:
                     node_set.add(port)
                     nodes.append({'name': port, 'category': 0, 'symbolSize': 50})
-            times = route['times']
+            times = route.times
             if isinstance(times, str):
                 times = [float(t) for t in times.split(',') if t.strip()]
             ports = ports_of_call
@@ -100,10 +102,11 @@ def get_network():
                     'source': ports[i],
                     'target': ports[i + 1],
                     'value': times[i] if i < len(times) else 1,
-                    'routeId': route['id'],
+                    'routeId': route.id,
                     'lineStyle': {'color': color, 'width': 3, 'opacity': 0.8},
-                    'legendName': f'航线{route["id"]}'
+                    'legendName': f'航线{route.id}'
                 })
+        session.close()
         return jsonify({
             'status': 'success',
             'nodes': nodes,
