@@ -889,15 +889,15 @@ class BasePrimalModel(BaseModel):
             float: 运营成本
         """
         operation_cost = 0
-        for h, vessel in enumerate(self.input_data.vessel_types):
+        for h, vessel_type in enumerate(self.input_data.vessel_types):
             for w, vessel_path in enumerate(self.input_data.vessel_paths):
                 # r(航线) == r
                 r = self.input_data.vessel_paths[w].route_id - 1
                 
                 if DefaultSetting.FLEET_TYPE == "Homo":
                     # vesselTypeAndShipRoute == 1 : r(h) = r
-                    operation_cost += (self.param.vessel_type_and_ship_route[h][r] *
-                                     self.param.ship_route_and_vessel_path[route.route_id][vessel_path.vessel_path_id] *
+                    operation_cost += (self.param.vessel_type_and_ship_route[vessel_type.id][vessel_path.route_id] *
+                                     self.param.ship_route_and_vessel_path[vessel_path.route_id][vessel_path.vessel_path_id] *
                                      self.param.vessel_operation_cost[h] *
                                      v_value[h][r])
                 elif DefaultSetting.FLEET_TYPE == "Hetero":

@@ -98,7 +98,7 @@ class DefaultSetting:
     # 是否允许同区域转运 - 对应Java: public static boolean WhetherAllowSameRegionTrans = true;
     WHETHER_ALLOW_SAME_REGION_TRANS = True  
     # 是否切割超成本路径 - 对应Java: public static boolean WhetherCuttingOverCostPaths = true;
-    WHETHER_CUTTING_OVER_COST_PATHS = True  
+    WHETHER_CUTTING_OVER_COST_PATHS = False 
     
     ##################################
     # 随机设置 - 对应Java中的Random Setting

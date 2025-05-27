@@ -534,10 +534,12 @@ class MasterProblem(BasePrimalModel):
                 
                 self.set_v_var_solution()
                 self.set_eta_value(self.eta_var.solution_value)
-                self.set_operation_cost(
-                    self.cplex.solution.get_objective_value() - 
-                    self.eta_var.solution_value
-                )
+                # self.set_operation_cost(
+                #     self.cplex.solution.get_objective_value() - 
+                #     self.eta_var.solution_value
+                # )
+                self.operation_cost = self.get_operation_cost(self.v_var_value)
+                
                 
                 self.obj_val = self.cplex.objective_value
                 self.solve_time = end_time - start_time

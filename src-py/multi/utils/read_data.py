@@ -693,7 +693,7 @@ class ReadData:
                 vessel = VesselType(
                     id=int(row["VesselID"]),
                     capacity=int(row["Capacity"]),
-                    cost=float(row["OperatingCost"]),
+                    cost=float(row["OperatingCost"]) * 1e6,
                     route_id=int(row["RouteID"]),
                     max_num=int(row["MaxNum"])
                 )

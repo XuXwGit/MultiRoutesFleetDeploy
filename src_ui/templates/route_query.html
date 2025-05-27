@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>路由查询 - 船舶调度系统</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+        <style>
+                .route-query-bg {
+                        background: #f8fafd;
+                        min-height: 100vh;
+                }
+
+                .route-query-card {
+                        box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+                        border-radius: 18px;
+                }
+
+                .route-result-card {
+                        border-left: 4px solid #5470C6;
+                        border-radius: 10px;
+                        margin-bottom: 18px;
+                }
+
+                .route-result-card .badge {
+                        font-size: 1em;
+                }
+        </style>
+</head>
+
+<body class="route-query-bg">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                <div class="container-fluid">
+                        <a class="navbar-brand fw-bold" href="/">船舶调度系统</a>
+                        <div class="collapse navbar-collapse">
+                                <ul class="navbar-nav ms-auto">
+                                        <li class="nav-item"><a class="nav-link" href="/overview">总览</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="/data">数据管理</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="/route_query">路由查询</a></li>
+                                        <li class="nav-item"><a class="nav-link" href="/optimization">调度优化</a></li>
+                                </ul>
+                        </div>
+                </div>
+        </nav>
+        <div class="container py-5">
+                <div class="row g-4 align-items-stretch">
+                        <!-- 查询表单 -->
+                        <div class="col-lg-5 col-md-6">
+                                <div class="card route-query-card p-4 mb-4">
+                                        <h3 class="fw-bold mb-4" style="color:#2a3b8f;">路由 | 获取可行运输路径</h3>
+                                        <form id="routeQueryForm">
+                                                <div class="mb-3">
+                                                        <label class="form-label" for="startPort">起始港口</label>
+                                                        <input type="text" class="form-control" id="startPort"
+                                                                title="起始港口" placeholder="如：上海港" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label class="form-label" for="endPort">目的港口</label>
+                                                        <input type="text" class="form-control" id="endPort"
+                                                                title="目的港口" placeholder="如：纽约港" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label class="form-label" for="timeType">时间类型</label>
+                                                        <select class="form-select" id="timeType" title="时间类型">
+                                                                <option value="depart">出发时间</option>
+                                                                <option value="arrive">到达时间</option>
+                                                        </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                        <label class="form-label" for="queryDate">时间</label>
+                                                        <input type="date" class="form-control" id="queryDate"
+                                                                title="时间" placeholder="请选择日期" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary w-100">查询</button>
+                                        </form>
+                                </div>
+                        </div>
+                        <!-- 右侧地图/示意图 -->
+                        <div class="col-lg-7 col-md-6">
+                                <div class="card route-query-card p-3 mb-4 d-flex align-items-center justify-content-center"
+                                        style="height:100%;min-height:340px;">
+                                        <div id="routeMap" style="width:100%;height:320px;"></div>
+                                </div>
+                        </div>
+                </div>
+                <!-- 查询结果 -->
+                <div class="row mt-4">
+                        <div class="col-12">
+                                <h5 class="fw-bold mb-3">可行运输路径</h5>
+                                <div id="routeResults"></div>
+                        </div>
+                </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <script>
+                // 查询表单提交
+                document.getElementById('routeQueryForm').addEventListener('submit', async function (e) {
+                        e.preventDefault();
+                        const startPort = document.getElementById('startPort').value.trim();
+                        const endPort = document.getElementById('endPort').value.trim();
+                        const timeType = document.getElementById('timeType').value;
+                        const date = document.getElementById('queryDate').value;
+                        // 发送请求到后端
+                        const res = await fetch('/api/query_route', {
+                                method: 'POST',
+                                headers: {
+                                        'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                        start_port: startPort,
+                                        end_port: endPort,
+                                        time_type: timeType,
+                                        date
+                                })
+                        });
+                        const data = await res.json();
+                        renderRouteResults(data.results || []);
+                        renderRouteMap(data.mapData || {});
+                });
+                // 渲染结果列表
+                function renderRouteResults(results) {
+                        const container = document.getElementById('routeResults');
+                        if (!results.length) {
+                                container.innerHTML = '<div class="text-muted">未查询到可行运输路径</div>';
+                                return;
+                        }
+                        container.innerHTML = results.map((item, idx) => `
+                <div class="card route-result-card p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold">路径${idx+1}</span>
+                        <span class="badge bg-primary">${item.total_days}天</span>
+                    </div>
+                    <div class="mb-2 text-secondary">${item.path.join(' → ')}</div>
+                    <div class="small text-muted">出发: ${item.depart_time} | 到达: ${item.arrive_time}</div>
+                    <div class="small text-muted">船舶: ${item.vessel || '-'}</div>
+                </div>
+            `).join('');
+                }
+                // 渲染地图/示意图
+                function renderRouteMap(mapData) {
+                        var chart = echarts.init(document.getElementById('routeMap'));
+                        var option = {
+                                title: {
+                                        text: '路径示意',
+                                        left: 'center',
+                                        top: 10
+                                },
+                                tooltip: {},
+                                series: [{
+                                        type: 'graph',
+                                        layout: 'none',
+                                        symbolSize: 40,
+                                        roam: true,
+                                        label: {
+                                                show: true
+                                        },
+                                        data: mapData.nodes || [],
+                                        links: mapData.links || [],
+                                        lineStyle: {
+                                                color: '#5470C6',
+                                                width: 3
+                                        },
+                                        edgeSymbol: ['none', 'arrow'],
+                                        edgeSymbolSize: [0, 8],
+                                }]
+                        };
+                        chart.setOption(option);
+                }
+        </script>
+</body>
+
+</html>

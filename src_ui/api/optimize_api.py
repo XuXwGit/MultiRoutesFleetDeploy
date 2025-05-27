@@ -113,14 +113,31 @@ def optimize():
             log_callback("优化完成！")
             log_callback(f"优化结果: {result}")
 
+            # ========== 新增：查数据库获取名称映射 ==========
+            deploy_plan = result.get('solution', {})  # 航线ID: 船舶ID
+            session = Session()
+            # 航线ID->名称
+            from models import Route, Ship
+            route_info = {str(r.id): r.ports_of_call or f"航线{r.id}" for r in session.query(Route).all()}
+            vessel_info = {str(s.id): s.name or f"船舶{s.id}" for s in session.query(Ship).all()}
+            session.close()
+            # ========== END ==========
+
+
             return jsonify({
                 'status': 'success',
                 'result_time': f"{result.get('time', 0):.1f}s",
                 'total_cost': result.get('objective', 0),
-                'oc': result.get('laden_cost', 0),
-                'lcec': result.get('empty_cost', 0),
+                'solution': result.get('solution', {}),
+                'deploy_plan': deploy_plan,
+                'route_info': route_info,
+                'vessel_info': vessel_info,
+                'oc': result.get('operation_cost', 0),
+                'lc': result.get('laden_cost', 0),
+                'ec': result.get('empty_cost', 0),
                 'rc': result.get('rental_cost', 0),
                 'pc': result.get('penalty_cost', 0),
+                'gap': result.get('gap', 0),
                 'log': '\n'.join(log_messages)
             })
         except Exception as e:

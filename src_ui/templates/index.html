@@ -64,7 +64,7 @@
                 </div>
                 <div class="row g-4">
                         <!-- 左侧：船舶列表 -->
-                        <div class="col-lg-4 col-md-5">
+                        <div class="col-lg-3 col-md-4">
                                 <div class="card shadow-sm rounded-4">
                                         <div class="card-header bg-white border-0 pb-0">
                                                 <h5 class="card-title mb-0">
@@ -77,25 +77,32 @@
                                         </div>
                                 </div>
                         </div>
-                        <!-- 右侧：调度概览（只含地图和图表） -->
-                        <div class="col-lg-8 col-md-7">
-                                <div class="card shadow-sm rounded-4 mb-4">
+                        <!-- 中间：航线网络拓扑图 -->
+                        <div class="col-lg-6 col-md-4 d-flex align-items-start justify-content-center">
+                                <div class="card shadow-sm rounded-4 w-100">
+                                        <div class="card-header bg-white border-0 pb-0">
+                                                <h5 class="card-title mb-0 text-center">
+                                                        <i class="bi bi-diagram-3 fs-4 text-info me-2"></i>航线网络拓扑图</h5>
+                                        </div>
+                                        <div class="card-body d-flex align-items-start justify-content-center"
+                                                style="height:480px;">
+                                                <div id="networkTopology"
+                                                        style="width:100%;height:440px;cursor:pointer;"
+                                                        onclick="window.location.href='/overview'"></div>
+                                        </div>
+                                </div>
+                        </div>
+                        <!-- 右侧：航线列表 -->
+                        <div class="col-lg-3 col-md-4">
+                                <div class="card shadow-sm rounded-4">
                                         <div class="card-header bg-white border-0 pb-0">
                                                 <h5 class="card-title mb-0">
-                                                        <i class="bi bi-graph-up-arrow fs-5 text-success me-2"></i>调度概览
+                                                        <i class="bi bi-signpost-split fs-4 text-warning me-2"></i>航线列表
                                                 </h5>
                                         </div>
-                                        <div class="card-body bg-light rounded-3">
-                                                <div class="row g-3">
-                                                        <div class="col-12 mb-3">
-                                                                <div id="mapContainer" style="height: 320px;"></div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                                <div id="scheduleChart" style="height: 180px;"></div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                                <div id="statusChart" style="height: 180px;"></div>
-                                                        </div>
+                                        <div class="card-body pt-2">
+                                                <div id="routesList" class="row g-3">
+                                                        <!-- 航线卡片通过JS动态加载 -->
                                                 </div>
                                         </div>
                                 </div>
@@ -430,6 +437,28 @@
                                         alert('导入失败: ' + error);
                                 });
                 }
+// 示例：初始化拓扑图（需在 main.js 里完善数据和交互）
+document.addEventListener('DOMContentLoaded', function () {
+if (window.echarts) {
+var chart = echarts.init(document.getElementById('networkTopology'));
+var option = {
+title: { text: '航线网络', left: 'center' },
+tooltip: {},
+series: [{
+type: 'graph',
+layout: 'circular',
+symbolSize: 40,
+roam: true,
+label: { show: true },
+edgeSymbol: ['none', 'arrow'],
+edgeSymbolSize: [4, 10],
+data: [], // 这里的数据需由 main.js 动态填充
+links: [],
+}]
+};
+chart.setOption(option);
+}
+});
         </script>
 </body>
 

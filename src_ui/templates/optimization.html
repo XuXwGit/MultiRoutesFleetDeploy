@@ -372,10 +372,11 @@
                                                 </div>
                         </div>
                         </div>
-                        <!-- 底部结果展示区 -->
+                        <!-- 优化结果展示区 -->
                         <div class="card">
                                 <div class="card-header bg-info text-white">优化结果</div>
                                 <div class="card-body" id="optResult">
+                                        <!-- 优化结果总览 -->
                                         <div class="row text-center">
                                                 <div class="col-md-4 col-6 mb-4">
                                                         <div class="card bg-light result-card">
@@ -383,60 +384,68 @@
                                                                 <h6>总求解时间</h6>
                                                                 <h4 id="result_time">-</h4>
                                                                 </div>
-                                                </div>
-                                                </div>
-                                                <div class="col-md-4 col-6 mb-4">
-                                                        <div class="card bg-light result-card">
-                                                                <div class="card-body">
-                                                                        <h6>总成本</h6>
-                                                                        <h4 id="result_total_cost">-</h4>
+                                                        </div>
+                                                        </div>
+                                                        <div class="col-md-4 col-6 mb-4">
+                                                                <div class="card bg-light result-card">
+                                                                        <div class="card-body">
+                                                                                <h6>目标值</h6>
+                                                                                <h4 id="result_total_cost">-</h4>
+                                                                                </div>
                                                                 </div>
+                                                        </div>
+                                                        <div class="col-md-4 col-6 mb-4">
+                                                                <div class="card bg-light result-card">
+                                                                        <div class="card-body">
+                                                                                <h6>Gap</h6>
+                                                                                <h4 id="result_gap">-</h4>
+                                                                                </div>
                                                                 </div>
-                                                                </div>
-                                                                <div class="col-md-4 col-6 mb-4">
-                                                                        <div class="card bg-light result-card">
-                                                                                <div class="card-body">
-                                                                <h6>船舶固定部署成本(OC)</h6>
-                                                                <h4 id="result_oc">-</h4>
-                                                                </div>
-                                                                </div>
-                                                                </div>
-                                                                <div class="col-md-4 col-6 mb-4">
-                                                                        <div class="card bg-light result-card">
-                                                                                <div class="card-body">
-                                                                <h6>集装箱运输成本(LC+EC)</h6>
-                                                                <h4 id="result_lcec">-</h4>
-                                                                </div>
-                                                                </div>
-                                                                </div>
-                                        <div class="col-md-4 col-6 mb-4">
-                                                <div class="card bg-light result-card">
-                                                        <div class="card-body">
-                                                                <h6>空集装箱租赁成本(RC)</h6>
-                                                                <h4 id="result_rc">-</h4>
-                                                                </div>
-                                                                </div>
+                                                        </div>
                                         </div>
-                                        <div class="col-md-4 col-6 mb-4">
-                                                <div class="card bg-light result-card">
-                                                        <div class="card-body">
-                                                                <h6>违约惩罚成本(PC)</h6>
-                                                                <h4 id="result_pc">-</h4>
+                                        <!-- 船舶部署方案 -->
+                                        <div class="card mt-3">
+                                                <div class="card-header bg-secondary text-white">船舶部署方案</div>
+                                                <div class="card-body">
+                                                        <div id="deployTableContainer"></div>
+                                                        </div>
+                                                        </div>
+                                        <!-- 成本构成 -->
+                                        <div class="card mt-3">
+                                                <div class="card-header bg-warning text-dark">成本构成（样本评估）</div>
+                                                <div class="card-body">
+                                                        <div class="row">
+                                                                <div class="col-md-6">
+                                                                        <table
+                                                                                class="table table-bordered table-sm align-middle text-center">
+                                                                                <thead>
+                                                                                        <tr>
+                                                                                                <th>成本项</th>
+                                                                                                <th>金额</th>
+                                                                                        </tr>
+                                                                                </thead>
+                                                                                <tbody id="costTableBody"></tbody>
+                                                                        </table>
                                                                 </div>
+                                                                <div class="col-md-6">
+                                                                        <div id="costPieChart"
+                                                                                style="width:100%;height:300px;"></div>
                                                                 </div>
-                                                                </div>
-                                                                </div>
-                        </div>
-                        </div>
-                        </div>
+                                                        </div>
+                                                </div>
+                                                </div>
+                                                </div>
+                                                </div>
+                                                </div>
+                                                </div>
 <!-- 日志抽屉按钮和抽屉本体 -->
 <div id="logDrawerBtn" onclick="openLogDrawer()">日志</div>
 <div id="logDrawer">
         <div id="logDrawerHeader">
                 日志
                 <button id="logDrawerClose" onclick="closeLogDrawer()">&times;</button>
-            </div>
-            <div id="optLog"></div>
+        </div>
+        <div id="optLog"></div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -465,10 +474,7 @@ let logEventSource = null;
                 // 清空结果
                 document.getElementById('result_time').innerText = '-';
                 document.getElementById('result_total_cost').innerText = '-';
-                document.getElementById('result_oc').innerText = '-';
-                document.getElementById('result_lcec').innerText = '-';
-                document.getElementById('result_rc').innerText = '-';
-                document.getElementById('result_pc').innerText = '-';
+                document.getElementById('result_gap').innerText = '-';
                 // 添加超时处理
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 300* 60* 1000); // 30秒超时
@@ -512,10 +518,17 @@ let logEventSource = null;
                 // 展示结果
                 document.getElementById('result_time').innerText = data.result_time || '-';
                 document.getElementById('result_total_cost').innerText = data.total_cost || '-';
-                document.getElementById('result_oc').innerText = data.oc || '-';
-                document.getElementById('result_lcec').innerText = data.lcec || '-';
-                document.getElementById('result_rc').innerText = data.rc || '-';
-                document.getElementById('result_pc').innerText = data.pc || '-';
+                let gap = data.gap;
+                document.getElementById('result_gap').innerText = (gap !== undefined && gap !== null && !isNaN(gap)) ?
+                Number(gap).toExponential(2) : '-';
+                renderDeployTable(data.solution, data.route_info, data.vessel_info);
+                renderCostTableAndChart({
+                '船舶部署成本': data.oc,
+                '重箱运输成本': data.lc,
+                '空箱运输成本': data.ec,
+                '空箱租赁成本': data.rc,
+                '违约惩罚成本': data.pc
+                });
                 } else {
                 const errorEntry = document.createElement('div');
                 errorEntry.className = 'log-entry error';
@@ -588,6 +601,57 @@ let logEventSource = null;
 }
 `;
 document.head.appendChild(style);
+function renderDeployTable(deployPlan, routeInfo, vesselInfo) {
+let html = '<table class="table table-bordered table-sm align-middle text-center">';
+        html += `
+        <thead>
+                <tr>
+                        <th>航线</th>
+                        <th>分配船舶</th>
+                </tr>
+        </thead>
+        <tbody>`;
+                for (const [routeId, vesselId] of Object.entries(deployPlan || {})) {
+                html += `<tr>
+                        <td>${routeInfo?.[routeId] ?? routeId}</td>
+                        <td>${vesselInfo?.[vesselId] ?? vesselId}</td>
+                </tr>`;
+                }
+                html += `</tbody>
+</table>`;
+document.getElementById('deployTableContainer').innerHTML = html;
+}
+
+function renderCostTableAndChart(costs) {
+let tableHtml = '';
+const pieData = [];
+for (const [name, value] of Object.entries(costs || {})) {
+tableHtml += `<tr>
+        <td>${name}</td>
+        <td>${value}</td>
+</tr>`;
+pieData.push({name, value: parseFloat(value)});
+}
+document.getElementById('costTableBody').innerHTML = tableHtml;
+
+const chart = echarts.init(document.getElementById('costPieChart'));
+chart.setOption({
+title: {text: '成本占比', left: 'center', top: 10, textStyle: {fontSize: 16}},
+tooltip: {trigger: 'item'},
+legend: {bottom: 0},
+series: [{
+type: 'pie',
+radius: '60%',
+data: pieData,
+label: {formatter: '{b}: {d}%'}
+}]
+});
+}
+
+function formatNumber(num) {
+if (num === undefined || num === null || isNaN(num)) return '-';
+if (Math.abs(num) >= 1e6 || Math.abs(num) < 1e-2) { return Number(num).toExponential(2); } return
+        Number(num).toLocaleString(); }
         </script>
 </body>
 

@@ -199,6 +199,8 @@ class BendersDecomposition(AlgoFrame):
         self.gap = (self.upper_bound - self.lower_bound)/(self.lower_bound + 1e-6)
         self.solution = self.mp.solution
         
+        self.operation_cost = self.mp.operation_cost
+
         self.assign_solution = self.v_value_to_solution(self.v_value)
         # # 获取各种成本
         # self.laden_cost = self.mp.laden_cost
@@ -247,6 +249,7 @@ class BendersDecomposition(AlgoFrame):
                 'solution': self.assign_solution,
                 'objective': self.obj,
                 'time': self.total_time,
+                'operation_cost': self.operation_cost,
                 'laden_cost': self.laden_cost,
                 'empty_cost': self.empty_cost,
                 'rental_cost': self.rental_cost,
