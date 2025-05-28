@@ -629,5 +629,47 @@ def import_demandrange():
     except Exception as e:
         return jsonify({"status": "error", "message": f"导入失败: {str(e)}"}), 500
 
+@data_bp.route('/api/query_paths', methods=['POST'])
+def query_paths():
+    data = request.get_json()
+    origin_port = data.get('origin_port')
+    destination_port = data.get('destination_port')
+    time_type = data.get('time_type')  # 'depart' or 'arrive'
+    time_point = int(data.get('time_point', 0))
+    time_window = int(data.get('time_window', 0))
+
+    session = Session()
+    query = session.query(Path).filter(
+        Path.origin_port == origin_port,
+        Path.destination_port == destination_port
+    )
+
+    if time_type == 'depart':
+        query = query.filter(
+            Path.origin_time >= time_point,
+            Path.origin_time <= time_point + time_window
+        )
+    elif time_type == 'arrive':
+        query = query.filter(
+            Path.destination_time >= time_point - time_window,
+            Path.destination_time <= time_point
+        )
+
+    paths = query.order_by(Path.path_time.asc()).all()
+    result = []
+    for p in paths:
+        result.append({
+            'container_path_id': p.container_path_id,
+            'origin_port': p.origin_port,
+            'origin_time': p.origin_time,
+            'destination_port': p.destination_port,
+            'destination_time': p.destination_time,
+            'path_time': p.path_time,
+            'port_path': p.port_path,
+            # 可根据需要补充更多字段
+        })
+    session.close()
+    return jsonify({'status': 'success', 'paths': result})
+
 # 这里继续迁移所有导入导出API（/api/import/*, /api/export等）
 # ... 

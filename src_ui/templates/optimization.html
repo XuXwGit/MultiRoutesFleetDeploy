@@ -189,201 +189,309 @@
 
 <body>
         <!-- 导航栏 -->
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div class="container-fluid">
-                        <a class="navbar-brand" href="/">船舶调度系统</a>
-                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
-                                data-bs-target="#navbarNav" aria-label="切换导航">
-                                <span class="navbar-toggler-icon"></span>
-                        </button>
-                        <div class="collapse navbar-collapse" id="navbarNav">
-                                <ul class="navbar-nav">
-                                        <li class="nav-item">
-                                                <a class="nav-link" href="/overview">概览</a>
-                                        </li>
-                                        <li class="nav-item">
-                                                <a class="nav-link" href="/data">数据管理</a>
-                                        </li>
-                                        <li class="nav-item">
-                                                <a class="nav-link active" href="/optimization">调度优化</a>
-                                        </li>
-                                        <li class="nav-item">
-                                                <a class="nav-link" href="/analysis">数据分析</a>
-                                        </li>
-                                </ul>
-                        </div>
-                </div>
-        </nav>
+        {% include 'navbar.html' with context %}
 
         <div class="container mt-4">
-                <!-- 顶部参数输入区 -->
-                <div class="card mb-4 param-card">
-                        <div class="card-header bg-primary text-white">参数设置</div>
+                <!-- 参数设置Tabs -->
+                <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                                参数设置
+                        </div>
                         <div class="card-body">
-                                <div class="opt-param-row">
-                                        <div class="opt-param-col">
+                                <ul class="nav nav-tabs" id="paramTabs" role="tablist">
+                                        <li class="nav-item" role="presentation">
+                                                <button class="nav-link active" id="model-tab" data-bs-toggle="tab"
+                                                        data-bs-target="#model" type="button" role="tab">模型参数</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="cost-tab" data-bs-toggle="tab"
+                                                        data-bs-target="#cost" type="button" role="tab">成本参数</button>
+                                        </li>
+                                        <li class="nav-item" role="presentation">
+                                                <button class="nav-link" id="algo-tab" data-bs-toggle="tab"
+                                                        data-bs-target="#algo" type="button" role="tab">算法参数</button>
+                                        </li>
+                                </ul>
+                                <div class="tab-content p-4 border border-top-0" id="paramTabsContent">
+                                        <!-- 模型参数 -->
+                                        <div class="tab-pane fade show active" id="model" role="tabpanel">
                                                 <form id="modelParamsForm">
-                                                        <div class="mb-2">
-                                                                <label class="form-label">时间窗口 (0-180)</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="time_window" min="0" max="180" value="60"
-                                                                        placeholder="请输入时间窗口" title="请输入时间窗口">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">空箱周转时间</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="turn_over_time" min="0" max="180"
-                                                                        value="14" placeholder="请输入空箱周转时间"
-                                                                        title="请输入空箱周转时间">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">鲁棒系数</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="robustness" step="100" value="1"
-                                                                        placeholder="请输入鲁棒系数" title="请输入鲁棒系数">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">需求波动程度</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="demand_fluctuation" step="0.01"
-                                                                        value="0.1" placeholder="请输入需求波动程度"
-                                                                        title="请输入需求波动程度">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">空箱单位租赁成本</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="empty_rent_cost" step="1" value="10"
-                                                                        placeholder="请输入空箱单位租赁成本" title="请输入空箱单位租赁成本">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">违约惩罚系数</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="penalty_coeff" step="1.0" value="100"
-                                                                        placeholder="请输入违约惩罚系数" title="请输入违约惩罚系数">
+                                                        <div class="row">
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="time_window">时间窗口 (0-180)</label>
+                                                                        <input type="range" class="form-range" min="0"
+                                                                                max="180" id="time_window"
+                                                                                name="time_window" value="60"
+                                                                                title="选择时间窗口"
+                                                                                oninput="document.getElementById('time_window_value').innerText=this.value;">
+                                                                        <span id="time_window_value">60</span>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="turn_over_time">空箱周转时间</label>
+                                                                        <input type="number" class="form-control"
+                                                                                id="turn_over_time"
+                                                                                name="turn_over_time" value="14"
+                                                                                title="请输入空箱周转时间"
+                                                                                placeholder="请输入空箱周转时间">
+                                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="robustness">鲁棒系数</label>
+                                                                        <input type="number" class="form-control"
+                                                                                id="robustness" name="robustness"
+                                                                                value="1"
+                                                                                title="请输入鲁棒系数"
+                                                                                placeholder="请输入鲁棒系数">
+                                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="demand_fluctuation">需求波动程度</label>
+                                                                        <input type="number" class="form-control"
+                                                                                id="demand_fluctuation"
+                                                                                name="demand_fluctuation" value="0.1"
+                                                                                step="0.01"
+                                                                                title="请输入需求波动程度"
+                                                                                placeholder="请输入需求波动程度">
+                                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label>船队类型</label>
+                                                                        <div>
+                                                                                <input type="radio" name="fleetType"
+                                                                                        id="fleetType_homo"
+                                                                                        value="homogeneous" checked
+                                                                                        title="同质"> <label
+                                                                                        for="fleetType_homo"
+                                                                                        class="form-check-label">同质</label>
+                                                                                <input type="radio" name="fleetType"
+                                                                                        id="fleetType_hetero"
+                                                                                        value="heterogeneous"
+                                                                                        title="异质"> <label
+                                                                                        for="fleetType_hetero"
+                                                                                        class="form-check-label">异质</label>
+                                                                        </div>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label>空箱类型</label>
+                                                                        <div>
+                                                                                <input type="checkbox"
+                                                                                        id="emptyTypeNormal"
+                                                                                        name="emptyTypeNormal" checked
+                                                                                        title="启用普通空箱"> <label
+                                                                                        for="emptyTypeNormal"
+                                                                                        class="form-check-label">普通空箱</label>
+                                                                                <input type="checkbox"
+                                                                                        id="emptyTypeFold"
+                                                                                        name="emptyTypeFold"
+                                                                                        title="启用折叠空箱"> <label
+                                                                                        for="emptyTypeFold"
+                                                                                        class="form-check-label">折叠空箱</label>
+                                                                        </div>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="emptyStrategy">空箱调运策略</label>
+                                                                        <select class="form-select" id="emptyStrategy"
+                                                                                name="emptyStrategy" title="请选择空箱调运策略">
+                                                                                <option value="redirect">空箱重定向</option>
+                                                                                <option value="reactive">反应式调运</option>
+                                                                                <option value="normal">普通调运</option>
+                                                                        </select>
+                                                                </div>
                                                         </div>
                                                 </form>
                                         </div>
-                                        <div class="opt-param-col">
-                                                <form>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">港口装载操作成本</label>
+                                        <!-- 成本参数 -->
+                                        <div class="tab-pane fade" id="cost" role="tabpanel">
+                                                <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                                <label for="empty_rent_cost">空箱单位租赁成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_load_cost" step="1" value="50"
-                                                                        placeholder="请输入港口装载操作成本" title="请输入港口装载操作成本">
+                                                                        id="empty_rent_cost" name="empty_rent_cost"
+                                                                        value="10"
+                                                                        title="请输入空箱单位租赁成本" placeholder="请输入空箱单位租赁成本">
                                                         </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">港口卸载操作成本</label>
+                                                        <div class="col-md-6 mb-3">
+                                                                <label for="penalty_coeff">违约惩罚系数</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_unload_cost" step="5" value="50"
-                                                                        placeholder="请输入港口卸载操作成本" title="请输入港口卸载操作成本">
+                                                                        id="penalty_coeff" name="penalty_coeff"
+                                                                        value="100" title="请输入违约惩罚系数"
+                                                                        placeholder="请输入违约惩罚系数">
                                                         </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">港口转运操作成本</label>
+                                                        <div class="col-md-6 mb-3">
+                                                                <label for="port_load_cost">港口装载操作成本</label>
                                                                 <input type="number" class="form-control"
-                                                                        name="port_transship_cost" step="5" value="50"
-                                                                        placeholder="请输入港口转运操作成本" title="请输入港口转运操作成本">
+                                                                        id="port_load_cost" name="port_load_cost"
+                                                                        value="50"
+                                                                        title="请输入港口装载操作成本" placeholder="请输入港口装载操作成本">
                                                         </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">重箱港口滞留成本</label>
-                                                                <div class="input-group">
-                                                                        <input type="number" class="form-control"
-                                                                                name="laden_stay_cost" step="0.01"
-                                                                                value="2" placeholder="请输入重箱港口滞留成本"
-                                                                                title="请输入重箱港口滞留成本">
-                                                                        <span class="input-group-text">成本值</span>
-                                                                        <input type="number" class="form-control"
-                                                                                name="laden_stay_free_time" step="1"
-                                                                                value="3" placeholder="请输入重箱滞留豁免时间"
-                                                                                title="请输入重箱滞留豁免时间">
-                                                                        <span class="input-group-text">豁免时间</span>
+                                                        <div class="col-md-6 mb-3">
+                                                                <label for="port_unload_cost">港口卸载操作成本</label>
+                                                                <input type="number" class="form-control"
+                                                                        id="port_unload_cost" name="port_unload_cost"
+                                                                        value="50"
+                                                                        title="请输入港口卸载操作成本" placeholder="请输入港口卸载操作成本">
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                                <label
+                                                                                        for="port_transship_cost">港口转运操作成本</label>
+                                                                                <input type="number"
+                                                                                        class="form-control"
+                                                                                        id="port_transship_cost"
+                                                                                        name="port_transship_cost"
+                                                                                        value="50" title="请输入港口转运操作成本"
+                                                                                        placeholder="请输入港口转运操作成本">
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                                <label
+                                                                                        for="laden_stay_cost">重箱港口滞留成本</label>
+                                                                                <input type="number"
+                                                                                        class="form-control"
+                                                                                        id="laden_stay_cost"
+                                                                                        name="laden_stay_cost" value="2"
+                                                                                        title="请输入重箱港口滞留成本"
+                                                                                        placeholder="请输入重箱港口滞留成本">
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                                <label
+                                                                                        for="laden_stay_free_time">重箱港口豁免时间</label>
+                                                                                <input type="number"
+                                                                                        class="form-control"
+                                                                                        id="laden_stay_free_time"
+                                                                                        name="laden_stay_free_time"
+                                                                                        value="3" title="请输入重箱港口豁免时间"
+                                                                                        placeholder="请输入重箱港口豁免时间">
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                                <label
+                                                                                        for="empty_stay_cost">空箱港口滞留成本</label>
+                                                                                <input type="number"
+                                                                                        class="form-control"
+                                                                                        id="empty_stay_cost"
+                                                                                        name="empty_stay_cost" value="1"
+                                                                                        title="请输入空箱港口滞留成本"
+                                                                                        placeholder="请输入空箱港口滞留成本">
+                                                                        </div>
+                                                                        <div class="col-md-6 mb-3">
+                                                                                <label
+                                                                                        for="empty_stay_free_time">空箱港口豁免时间</label>
+                                                                                <input type="number"
+                                                                                        class="form-control"
+                                                                                        id="empty_stay_free_time"
+                                                                                        name="empty_stay_free_time"
+                                                                                        value="3" title="请输入空箱港口豁免时间"
+                                                                                        placeholder="请输入空箱港口豁免时间">
                                                                 </div>
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">空箱港口滞留成本</label>
-                                                                <div class="input-group">
-                                                                        <input type="number" class="form-control"
-                                                                                name="empty_stay_cost" step="0.01"
-                                                                                value="1" placeholder="请输入空箱港口滞留成本"
-                                                                                title="请输入空箱港口滞留成本">
-                                                                        <span class="input-group-text">成本值</span>
-                                                                        <input type="number" class="form-control"
-                                                                                name="empty_stay_free_time" step="1"
-                                                                                value="3" placeholder="请输入空箱滞留豁免时间"
-                                                                                title="请输入空箱滞留豁免时间">
-                                                                        <span class="input-group-text">豁免时间</span>
-                                                                </div>
-                                                        </div>
-                                                        </form>
-                                                        </div>
-                                                        <div class="opt-param-col">
-                                                                <form id="algoParamsForm">
-                                                                        <div class="mb-2">
-                                                                                <label class="form-label">求解算法</label>
-                                                                                <select class="form-select"
-                                                                                        name="algorithm"
-                                                                                        title="请选择求解算法">
-                                                                                        <option value="bd">Benders
-                                                                                                Decomposition
-                                                                                        </option>
-                                                                                        <option value="ccg">C&CG
-                                                                                        </option>
-                                                                                        <option value="bdpap">BD&PAP
-                                                                                        </option>
-                                                                                        <option value="ccgpap">CCG&PAP
-                                                                                        </option>
-                                                                                        <option value="cplex">Cplex
-                                                                                                Solver</option>
-                                                                                        </select>
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">最大迭代次数 (0-1000)</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="max_iter" min="0" max="1000" value="100"
-                                                                        placeholder="请输入最大迭代次数" title="请输入最大迭代次数">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">最大求解时间 (0-3600s)</label>
-                                                                <input type="number" class="form-control"
-                                                                        name="max_time" min="0" max="3600" value="600"
-                                                                        placeholder="请输入最大求解时间" title="请输入最大求解时间">
-                                                        </div>
-                                                        <div class="mb-2">
-                                                                <label class="form-label">MIP Gap</label>
-                                                                <input type="number" class="form-control" name="mip_gap"
-                                                                        step="0.0001" value="0.01" placeholder="请输入MIP
-                                                                        Gap" title="请输入MIP Gap">
-                                                        </div>
-                                                        </form>
-                                                        </div>
-                                                        </div>
-                                <div class="row mt-3">
-                                        <div class="col-md-4 col-12 mb-2">
-                                                <button class="btn btn-success w-100" id="startOptimizeBtn"
-                                                        onclick="startOptimize()">开始优化</button>
+                                                </div>
                                         </div>
-                                        <div class="col-md-4 col-12 mb-2">
-                                                <div class="progress" style="height: 24px; display:none;"
-                                                        id="optProgressBar">
-                                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
-                                                                role="progressbar" style="width: 0%" id="optProgress">
+                                        <!-- 算法参数 -->
+                                        <div class="tab-pane fade" id="algo" role="tabpanel">
+                                                <form id="algoParamsForm">
+                                                        <div class="row">
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="mipSolver">MIP求解器</label>
+                                                                        <select class="form-select" id="mipSolver"
+                                                                                name="mipSolver" title="请选择MIP求解器">
+                                                                                <option value="cplex">Cplex</option>
+                                                                                <option value="gurobi">Gurobi</option>
+                                                                                <option value="copt">COPT</option>
+                                                                                <option value="scip">SCIP</option>
+                                                                        </select>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label for="algorithm">求解算法</label>
+                                                                        <select class="form-select" id="algorithm"
+                                                                                name="algorithm" title="请选择求解算法">
+                                                                                <option value="bd">Benders Decomposition
+                                                                                </option>
+                                                                                <option value="ccg">Constraints and
+                                                                                        Column
+                                                                                        Generation
+                                                                                </option>
+                                                                                <option value="bdpap">Benders
+                                                                                        Decomposition with
+                                                                                        PAP
+                                                                                </option>
+                                                                                <option value="ccgpap">Constraints and
+                                                                                        Column
+                                                                                        Generation with PAP
+                                                                                </option>
+                                                                                <option value="other">其他算法</option>
+                                                                                </select>
+                                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label>路径剪枝策略</label>
+                                                                        <div>
+                                                                                <input type="checkbox" id="enablePrune"
+                                                                                        name="enablePrune" checked
+                                                                                        title="启用路径剪枝"> <label
+                                                                                        for="enablePrune"
+                                                                                        class="form-check-label">启用</label>
+                                                                                <input type="number"
+                                                                                        class="form-control d-inline-block w-auto"
+                                                                                        id="pruneCoef" name="pruneCoef"
+                                                                                        min="0" max="1" step="0.01"
+                                                                                        value="0.6" style="width:80px;"
+                                                                                        title="剪枝系数" placeholder="剪枝系数">
+                                                                        </div>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label>多线程设置</label>
+                                                                        <div>
+                                                                                <input type="checkbox" id="enableThread"
+                                                                                        name="enableThread" checked
+                                                                                        title="启用多线程"> <label
+                                                                                        for="enableThread"
+                                                                                        class="form-check-label">启用</label>
+                                                                                <input type="number"
+                                                                                        class="form-control d-inline-block w-auto"
+                                                                                        id="threadCount"
+                                                                                        name="threadCount" min="1"
+                                                                                        value="10" style="width:80px;"
+                                                                                        title="线程数量" placeholder="线程数量">
+                                                                        </div>
+                                                                </div>
+                                                                <div class="col-md-6 mb-3">
+                                                                        <label>样本评估设置</label>
+                                                                        <div>
+                                                                                <input type="checkbox" id="enableSample"
+                                                                                        name="enableSample" checked
+                                                                                        title="启用样本评估"> <label
+                                                                                        for="enableSample"
+                                                                                        class="form-check-label">启用</label>
+                                                                                <input type="number"
+                                                                                        class="form-control d-inline-block w-auto"
+                                                                                        id="sampleCount"
+                                                                                        name="sampleCount" min="1"
+                                                                                        value="10" style="width:80px;"
+                                                                                        title="样本数量" placeholder="样本数量">
+                                                                        </div>
+                                                                </div>
                                                         </div>
+                                                </form>
                                                 </div>
                                                 </div>
+                                <!-- 开始优化按钮 -->
+                                <div class="my-4">
+                                        <button class="btn btn-success w-100 mb-3" id="startOptimizeBtn"
+                                                onclick="startOptimize()">开始优化</button>
+                                        <div class="progress w-100" style="height: 24px; display:none;"
+                                                id="optProgressBar">
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                        role="progressbar" style="width: 0%" id="optProgress">
                                                 </div>
+                                        </div>
+                                        </div>
                         </div>
-                        </div>
-                        <!-- 优化结果展示区 -->
-                        <div class="card">
-                                <div class="card-header bg-info text-white">优化结果</div>
-                                <div class="card-body" id="optResult">
-                                        <!-- 优化结果总览 -->
-                                        <div class="row text-center">
-                                                <div class="col-md-4 col-6 mb-4">
-                                                        <div class="card bg-light result-card">
+                </div>
+                <!-- 优化结果展示区 -->
+                <div class="card">
+                        <div class="card-header bg-info text-white">优化结果</div>
+                        <div class="card-body" id="optResult">
+                                <!-- 优化结果总览 -->
+                                <div class="row text-center">
+                                        <div class="col-md-4 col-6 mb-4">
+                                                <div class="card bg-light result-card">
                                                         <div class="card-body">
                                                                 <h6>总求解时间</h6>
                                                                 <h4 id="result_time">-</h4>
-                                                                </div>
+                                                        </div>
                                                         </div>
                                                         </div>
                                                         <div class="col-md-4 col-6 mb-4">
@@ -391,7 +499,7 @@
                                                                         <div class="card-body">
                                                                                 <h6>目标值</h6>
                                                                                 <h4 id="result_total_cost">-</h4>
-                                                                                </div>
+                                                                        </div>
                                                                 </div>
                                                         </div>
                                                         <div class="col-md-4 col-6 mb-4">
@@ -399,53 +507,60 @@
                                                                         <div class="card-body">
                                                                                 <h6>Gap</h6>
                                                                                 <h4 id="result_gap">-</h4>
-                                                                                </div>
+                                                                        </div>
                                                                 </div>
                                                         </div>
+                                                        </div>
+                                                        <!-- 船舶部署方案 -->
+                                                        <div class="card mt-3">
+                                                                <div class="card-header bg-secondary text-white">船舶部署方案
+                                                                </div>
+                                                                <div class="card-body">
+                                                                        <div id="deployTableContainer"></div>
+                                                                </div>
+                                                        </div>
+                                                        <!-- 成本构成 -->
+                                                        <div class="card mt-3">
+                                                                <div class="card-header bg-warning text-dark">成本构成（样本评估）
+                                                                </div>
+                                                                <div class="card-body">
+                                                                        <div class="row">
+                                                                                <div class="col-md-6">
+                                                                                        <table
+                                                                                                class="table table-bordered table-sm align-middle text-center">
+                                                                                                <thead>
+                                                                                                        <tr>
+                                                                                                                <th>成本项
+                                                                                                                </th>
+                                                                                                                <th>金额
+                                                                                                                </th>
+                                                                                                                </tr>
+                                                                                                                </thead>
+                                                                                                <tbody
+                                                                                                        id="costTableBody">
+                                                                                                </tbody>
+                                                                                                </table>
+                                                                                                </div>
+                                                                                                <div class="col-md-6">
+                                                                                                        <div id="costPieChart"
+                                                                                                style="width:100%;height:300px;">
+                                                                                                </div>
+                                                        </div>
+                                                </div>
                                         </div>
-                                        <!-- 船舶部署方案 -->
-                                        <div class="card mt-3">
-                                                <div class="card-header bg-secondary text-white">船舶部署方案</div>
-                                                <div class="card-body">
-                                                        <div id="deployTableContainer"></div>
-                                                        </div>
-                                                        </div>
-                                        <!-- 成本构成 -->
-                                        <div class="card mt-3">
-                                                <div class="card-header bg-warning text-dark">成本构成（样本评估）</div>
-                                                <div class="card-body">
-                                                        <div class="row">
-                                                                <div class="col-md-6">
-                                                                        <table
-                                                                                class="table table-bordered table-sm align-middle text-center">
-                                                                                <thead>
-                                                                                        <tr>
-                                                                                                <th>成本项</th>
-                                                                                                <th>金额</th>
-                                                                                        </tr>
-                                                                                </thead>
-                                                                                <tbody id="costTableBody"></tbody>
-                                                                        </table>
-                                                                </div>
-                                                                <div class="col-md-6">
-                                                                        <div id="costPieChart"
-                                                                                style="width:100%;height:300px;"></div>
-                                                                </div>
-                                                        </div>
-                                                </div>
-                                                </div>
-                                                </div>
-                                                </div>
-                                                </div>
-                                                </div>
-<!-- 日志抽屉按钮和抽屉本体 -->
-<div id="logDrawerBtn" onclick="openLogDrawer()">日志</div>
-<div id="logDrawer">
-        <div id="logDrawerHeader">
-                日志
-                <button id="logDrawerClose" onclick="closeLogDrawer()">&times;</button>
-        </div>
-        <div id="optLog"></div>
+                                        </div>
+                                        </div>
+                                        </div>
+                                        </div>
+
+        <!-- 日志抽屉按钮和抽屉本体 -->
+        <div id="logDrawerBtn" onclick="openLogDrawer()">日志</div>
+        <div id="logDrawer">
+                <div id="logDrawerHeader">
+                        日志
+                        <button id="logDrawerClose" onclick="closeLogDrawer()">&times;</button>
+                </div>
+                <div id="optLog"></div>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -521,7 +636,7 @@ let logEventSource = null;
                 let gap = data.gap;
                 document.getElementById('result_gap').innerText = (gap !== undefined && gap !== null && !isNaN(gap)) ?
                 Number(gap).toExponential(2) : '-';
-                renderDeployTable(data.solution, data.route_info, data.vessel_info);
+                renderDeployTable(data.solution, data.route_info, data.ports_of_call_info, data.vessel_info);
                 renderCostTableAndChart({
                 '船舶部署成本': data.oc,
                 '重箱运输成本': data.lc,
@@ -601,12 +716,13 @@ let logEventSource = null;
 }
 `;
 document.head.appendChild(style);
-function renderDeployTable(deployPlan, routeInfo, vesselInfo) {
+function renderDeployTable(deployPlan, routeInfo, portsOfCallInfo, vesselInfo) {
 let html = '<table class="table table-bordered table-sm align-middle text-center">';
         html += `
         <thead>
                 <tr>
                         <th>航线</th>
+                        <th>航线港口</th>
                         <th>分配船舶</th>
                 </tr>
         </thead>
@@ -614,6 +730,7 @@ let html = '<table class="table table-bordered table-sm align-middle text-center
                 for (const [routeId, vesselId] of Object.entries(deployPlan || {})) {
                 html += `<tr>
                         <td>${routeInfo?.[routeId] ?? routeId}</td>
+                        <td>${portsOfCallInfo?.[routeId] ?? routeId}</td>
                         <td>${vesselInfo?.[vesselId] ?? vesselId}</td>
                 </tr>`;
                 }
@@ -652,6 +769,20 @@ function formatNumber(num) {
 if (num === undefined || num === null || isNaN(num)) return '-';
 if (Math.abs(num) >= 1e6 || Math.abs(num) < 1e-2) { return Number(num).toExponential(2); } return
         Number(num).toLocaleString(); }
+// 参数设置项显示/隐藏逻辑
+function toggleDiv(checkboxId, divId) {
+document.getElementById(checkboxId).addEventListener('change', function() {
+document.getElementById(divId).style.display = this.checked ? '' : 'none';
+});
+}
+toggleDiv('enableThread', 'threadCountDiv');
+toggleDiv('enableSample', 'sampleCountDiv');
+toggleDiv('enablePrune', 'pruneCoefDiv');
+// 表单提交时收集新增参数（请在原有提交逻辑中补充如下字段）
+// fleetType, emptyTypes, emptyStrategy, mipSolver, enableThread, threadCount, enableSample, sampleCount, enablePrune,
+pruneCoef
+
+document.getElementById('startOptimization').addEventListener('click', startOptimize);
         </script>
 </body>
 

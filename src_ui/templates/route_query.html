@@ -32,41 +32,32 @@
 </head>
 
 <body class="route-query-bg">
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div class="container-fluid">
-                        <a class="navbar-brand fw-bold" href="/">船舶调度系统</a>
-                        <div class="collapse navbar-collapse">
-                                <ul class="navbar-nav ms-auto">
-                                        <li class="nav-item"><a class="nav-link" href="/overview">总览</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="/data">数据管理</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="/route_query">路由查询</a></li>
-                                        <li class="nav-item"><a class="nav-link" href="/optimization">调度优化</a></li>
-                                </ul>
-                        </div>
-                </div>
-        </nav>
+        {% include 'navbar.html' with context %}
         <div class="container py-5">
                 <div class="row g-4 align-items-stretch">
                         <!-- 查询表单 -->
                         <div class="col-lg-5 col-md-6">
                                 <div class="card route-query-card p-4 mb-4">
-                                        <h3 class="fw-bold mb-4" style="color:#2a3b8f;">路由 | 获取可行运输路径</h3>
+                                        <h3 class="fw-bold mb-4" style="color:#2a3b8f;">输入运输OD | 获取运输路径</h3>
                                         <form id="routeQueryForm">
                                                 <div class="mb-3">
                                                         <label class="form-label" for="startPort">起始港口</label>
-                                                        <input type="text" class="form-control" id="startPort"
-                                                                title="起始港口" placeholder="如：上海港" required>
+                                                        <select class="form-select" id="startPort" title="起始港口"
+                                                                required>
+                                                                <option value="">请选择起始港口</option>
+                                                        </select>
                                                 </div>
                                                 <div class="mb-3">
                                                         <label class="form-label" for="endPort">目的港口</label>
-                                                        <input type="text" class="form-control" id="endPort"
-                                                                title="目的港口" placeholder="如：纽约港" required>
+                                                        <select class="form-select" id="endPort" title="目的港口" required>
+                                                                <option value="">请选择目的港口</option>
+                                                        </select>
                                                 </div>
                                                 <div class="mb-3">
                                                         <label class="form-label" for="timeType">时间类型</label>
                                                         <select class="form-select" id="timeType" title="时间类型">
-                                                                <option value="depart">出发时间</option>
-                                                                <option value="arrive">到达时间</option>
+                                                                <option value="depart">最早出发时间</option>
+                                                                <option value="arrive">最晚到达时间</option>
                                                         </select>
                                                 </div>
                                                 <div class="mb-3">
@@ -74,15 +65,32 @@
                                                         <input type="date" class="form-control" id="queryDate"
                                                                 title="时间" placeholder="请选择日期" required>
                                                 </div>
+                                                <label for="time_point">截止时间 (0-180)： </label><span
+                                                        id="time_point_value">60</span>
+                                                <input type="range" class="form-range" min="0" max="180" id="time_point"
+                                                        name="time_point" value="60" title="选择时间窗口"
+                                                        oninput="document.getElementById('time_window_value').innerText=this.value;">
+                                                <div class="col-md-12 mb-3">
+                                                        <label for="time_window">时间窗口</label>
+                                                        <input type="number" class="form-control" id="time_window"
+                                                                name="time_window" value="14" title="请输入时间窗口"
+                                                                placeholder="请输入时间窗口">
+                                                </div>
                                                 <button type="submit" class="btn btn-primary w-100">查询</button>
                                         </form>
                                 </div>
                         </div>
-                        <!-- 右侧地图/示意图 -->
+                        <!-- 右侧网络拓扑图 -->
                         <div class="col-lg-7 col-md-6">
-                                <div class="card route-query-card p-3 mb-4 d-flex align-items-center justify-content-center"
-                                        style="height:100%;min-height:340px;">
-                                        <div id="routeMap" style="width:100%;height:320px;"></div>
+                                <div class="card shadow-sm rounded-4 w-100">
+                                        <div class="card-header bg-white border-0 pb-0">
+                                                <h5 class="card-title mb-0 text-center">
+                                                        <i class="bi bi-diagram-3 fs-4 text-info me-2"></i>网络拓扑图</h5>
+                                        </div>
+                                        <div class="card-body d-flex align-items-start justify-content-center"
+                                                style="height:700px;">
+                                                <div id="network-topology" style="width:100%;height:700px;"></div>
+                                        </div>
                                 </div>
                         </div>
                 </div>
@@ -99,45 +107,52 @@
                 // 查询表单提交
                 document.getElementById('routeQueryForm').addEventListener('submit', async function (e) {
                         e.preventDefault();
-                        const startPort = document.getElementById('startPort').value.trim();
-                        const endPort = document.getElementById('endPort').value.trim();
-                        const timeType = document.getElementById('timeType').value;
-                        const date = document.getElementById('queryDate').value;
+                        const origin_port = document.getElementById('startPort').value.trim();
+                        const destination_port = document.getElementById('endPort').value.trim();
+                        const time_type = document.getElementById('timeType').value;
+                        const time_point = parseInt(document.getElementById('time_point').value);
+                        const time_window = parseInt(document.getElementById('time_window').value);
                         // 发送请求到后端
-                        const res = await fetch('/api/query_route', {
+                        const res = await fetch('/api/query_paths', {
                                 method: 'POST',
                                 headers: {
                                         'Content-Type': 'application/json'
                                 },
                                 body: JSON.stringify({
-                                        start_port: startPort,
-                                        end_port: endPort,
-                                        time_type: timeType,
-                                        date
+                                        origin_port,
+                                        destination_port,
+                                        time_type,
+                                        time_point,
+                                        time_window
                                 })
                         });
                         const data = await res.json();
-                        renderRouteResults(data.results || []);
-                        renderRouteMap(data.mapData || {});
+                        renderRouteResults(data.paths || []);
                 });
-                // 渲染结果列表
+                // 渲染路径结果
                 function renderRouteResults(results) {
                         const container = document.getElementById('routeResults');
                         if (!results.length) {
                                 container.innerHTML = '<div class="text-muted">未查询到可行运输路径</div>';
                                 return;
                         }
-                        container.innerHTML = results.map((item, idx) => `
-                <div class="card route-result-card p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-bold">路径${idx+1}</span>
-                        <span class="badge bg-primary">${item.total_days}天</span>
-                    </div>
-                    <div class="mb-2 text-secondary">${item.path.join(' → ')}</div>
-                    <div class="small text-muted">出发: ${item.depart_time} | 到达: ${item.arrive_time}</div>
-                    <div class="small text-muted">船舶: ${item.vessel || '-'}</div>
-                </div>
-            `).join('');
+                        container.innerHTML = results.map((item, idx) => {
+                        const portPathHtml = item.port_path
+                        .split(',')
+                        .map(port => `<span>${port}</span>`)
+                        .join(' → ');
+                        return `
+                        <div class="card route-result-card p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold">运输路径${idx+1}</span>
+                                        <span class="badge bg-primary">${item.path_time}天</span>
+                                        </div>
+                                        <div class="mb-2 text-secondary">${portPathHtml}</div>
+                                        <div class="small text-muted">出发: ${item.origin_port} (${item.origin_time}) |
+                                                到达: ${item.destination_port} (${item.destination_time})</div>
+                                        </div>
+                                `;
+                                }).join('');
                 }
                 // 渲染地图/示意图
                 function renderRouteMap(mapData) {
@@ -169,6 +184,69 @@
                         };
                         chart.setOption(option);
                 }
+                // 动态加载港口下拉选项
+                async function loadPorts() {
+                const res = await fetch('/api/ports');
+                const ports = await res.json();
+                const startSelect = document.getElementById('startPort');
+                const endSelect = document.getElementById('endPort');
+                ports.forEach(port => {
+                const opt1 = document.createElement('option');
+                opt1.value = port.name;
+                opt1.textContent = port.name;
+                startSelect.appendChild(opt1);
+                const opt2 = document.createElement('option');
+                opt2.value = port.name;
+                opt2.textContent = port.name;
+                endSelect.appendChild(opt2);
+                });
+                }
+                document.addEventListener('DOMContentLoaded', loadPorts);
+                // 渲染网络拓扑图
+                async function renderNetworkTopology() {
+                const res = await fetch('/api/network');
+                const data = await res.json();
+                if (data.status === 'success') {
+                const chart = echarts.init(document.getElementById('network-topology'));
+                chart.setOption({
+                title: {
+                text: ' ',
+                left: 'center',
+                top: 10
+                },
+                tooltip: {
+                trigger: 'item'
+                },
+                series: [{
+                type: 'graph',
+                layout: 'force',
+                data: data.nodes,
+                links: data.links,
+                categories: [{
+                name: '港口'
+                }],
+                roam: true,
+                label: {
+                show: true,
+                position: 'right',
+                formatter: '{b}'
+                },
+                force: {
+                repulsion: 200,
+                edgeLength: [150, 200]
+                },
+                lineStyle: {
+                width: 3,
+                opacity: 0.8,
+                curveness: 0.2
+                },
+                edgeSymbol: ['none', 'arrow'],
+                edgeSymbolSize: [0, 8]
+                }]
+                });
+                }
+                }
+                document.addEventListener('DOMContentLoaded', renderNetworkTopology);
         </script>
 </body>
 

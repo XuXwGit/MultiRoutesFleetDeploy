@@ -50,6 +50,7 @@ def optimize():
                 }
                 DefaultSetting.update_setting_from_dict(model_params)
                 log_callback(f"模型参数读取完成")
+                log_callback(f"模型参数: {model_params}")
         except Exception as e:
             log_callback(f"模型参数更新失败: {e}")
         try:
@@ -61,6 +62,7 @@ def optimize():
             }
             DefaultSetting.update_setting_from_dict(algo_params)
             log_callback(f"算法参数读取完成")
+            log_callback(f"算法参数: {algo_params}")
         except Exception as e:
             log_callback(f"算法参数更新失败: {e}")
         try:
@@ -86,27 +88,28 @@ def optimize():
             log_callback("参数生成完成")
 
             result = {}
-            if data.get('algorithm') == "bd":
+            algo_str = algo_params.get('algorithm')    
+            if algo_str == "bd":
                 try:
                     log_callback("使用Benders分解算法")
                     bd = BendersDecomposition(input_data=input_data, param=param)
                     result = bd.solve()
                 except Exception as e:
                     log_callback(f"Benders分解算法执行失败: {e}")
-            elif data.get('algorithm') == "ccg":
+            elif algo_str == "ccg":
                 log_callback("使用列生成算法")
                 cp = CCG(input_data=input_data, param=param)
                 result = cp.solve()
-            elif data.get('algorithm') == "bdpap":
+            elif algo_str == "bdpap":
                 log_callback("使用带PAP策略的Benders分解算法")
                 bdpap = BendersDecompositionWithPAP(input_data=input_data, param=param)
                 result = bdpap.solve()
-            elif data.get('algorithm') == "ccgpap":
+            elif algo_str == "ccgpap":
                 log_callback("使用带PAP策略的列生成算法")
-                ccgpap = CCGwithPAP(input_data=input_data, param=param)
+                ccgpap = CCGwithPAP(input_data=input_data, param=param) 
                 result = ccgpap.solve()
             else:
-                log_callback(f"算法类型错误：{data.get('algorithm')}")
+                log_callback(f"算法类型错误：{algo_str}")
                 
             log_callback("算法执行完成")
 
@@ -118,7 +121,10 @@ def optimize():
             session = Session()
             # 航线ID->名称
             from models import Route, Ship
-            route_info = {str(r.id): r.ports_of_call or f"航线{r.id}" for r in session.query(Route).all()}
+            route_info = {str(r.id): r.id or f"航线{r.id}" for r in session.query(Route).all()}
+            # 航线ID->港口
+            ports_of_call_info = {str(r.id): r.ports_of_call or f"航线{r.id}" for r in session.query(Route).all()}
+            # 船舶ID->名称
             vessel_info = {str(s.id): s.name or f"船舶{s.id}" for s in session.query(Ship).all()}
             session.close()
             # ========== END ==========
@@ -131,6 +137,7 @@ def optimize():
                 'solution': result.get('solution', {}),
                 'deploy_plan': deploy_plan,
                 'route_info': route_info,
+                'ports_of_call_info': ports_of_call_info,
                 'vessel_info': vessel_info,
                 'oc': result.get('operation_cost', 0),
                 'lc': result.get('laden_cost', 0),

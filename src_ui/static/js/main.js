@@ -130,10 +130,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
-// 初始化图表实例
-let scheduleChart = echarts.init(document.getElementById('scheduleChart'));
-let statusChart = echarts.init(document.getElementById('statusChart'));
-let mapChart = echarts.init(document.getElementById('mapContainer'));
+// 初始化图表实例（加判断，防止首页报错）
+let scheduleChart = null,
+        statusChart = null,
+        mapChart = null;
+if (document.getElementById('scheduleChart')) {
+        scheduleChart = echarts.init(document.getElementById('scheduleChart'));
+}
+if (document.getElementById('statusChart')) {
+        statusChart = echarts.init(document.getElementById('statusChart'));
+}
+if (document.getElementById('mapContainer')) {
+        mapChart = echarts.init(document.getElementById('mapContainer'));
+}
 
 // 加载船舶数据
 async function loadShips() {
@@ -214,8 +223,8 @@ function updateCharts(data) {
                 }]
         };
 
-        scheduleChart.setOption(scheduleOption);
-        statusChart.setOption(statusOption);
+        if (scheduleChart) scheduleChart.setOption(scheduleOption);
+        if (statusChart) statusChart.setOption(statusOption);
 }
 
 // 地图初始化
@@ -258,7 +267,7 @@ function initMap(data) {
                 }]
         };
 
-        mapChart.setOption(mapOption);
+        if (mapChart) mapChart.setOption(mapOption);
 }
 
 // 船舶详情功能
@@ -323,261 +332,388 @@ function showShipDetail(ship) {
         modal.show();
 }
 
-// 页面加载完成后执行
-document.addEventListener('DOMContentLoaded', () => {
+// 加载航线列表
+async function loadRoutes() {
+        try {
+                const response = await fetch('/api/routes');
+                const routes = await response.json();
+                const routesList = document.getElementById('routesList');
+                routesList.innerHTML = '';
+                routes.forEach(route => {
+                        const routeCard = document.createElement('div');
+                        routeCard.className = 'col-12';
+                        routeCard.innerHTML = `
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="bi bi-signpost-split fs-3 text-warning me-3"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-bold">航线${route.id}</div>
+                            <div class="small text-muted">经停港口数: ${route.number_of_ports}<br>港口: ${route.ports}<br>挂靠次数: ${route.number_of_calls}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+                        routesList.appendChild(routeCard);
+                });
+        } catch (error) {
+                console.error('加载航线数据失败:', error);
+        }
+}
+
+// 新增统一网络拓扑图绘制函数
+async function drawNetworkTopology() {
+        const networkTopologyDiv = document.getElementById('network-topology');
+        if (!networkTopologyDiv) return;
+        try {
+                const response = await fetch('/api/network');
+                const networkData = await response.json();
+                if (networkData.status !== 'success') return;
+
+                const chart = echarts.init(networkTopologyDiv);
+                const option = {
+                        title: {
+                                text: '航线网络拓扑',
+                                subtext: '基于当前航线数据',
+                                top: 'top',
+                                left: 'center'
+                        },
+                        tooltip: {
+                                trigger: 'item',
+                                formatter: function (params) {
+                                        if (params.dataType === 'edge') {
+                                                return `航线: ${params.data.legendName}<br />航段: ${params.data.source} → ${params.data.target}`;
+                                        }
+                                        return `港口: ${params.data.name}`;
+                                }
+                        },
+                        legend: {
+                                data: networkData.legend.map(item => item.name),
+                                orient: 'vertical',
+                                left: 'left',
+                                top: 'middle'
+                        },
+                        animationDuration: 1500,
+                        animationEasingUpdate: 'quinticInOut',
+                        series: [{
+                                name: '航线网络',
+                                type: 'graph',
+                                layout: 'force',
+                                data: networkData.nodes,
+                                links: networkData.links,
+                                categories: [{
+                                        name: '港口'
+                                }],
+                                roam: true,
+                                label: {
+                                        show: true,
+                                        position: 'right',
+                                        formatter: '{b}',
+                                        fontSize: 12,
+                                        backgroundColor: 'rgba(255,255,255,0.7)',
+                                        padding: [4, 8],
+                                        borderRadius: 4
+                                },
+                                force: {
+                                        repulsion: 200,
+                                        edgeLength: [100, 200],
+                                        gravity: 0.1
+                                },
+                                edgeSymbol: ['none', 'arrow'],
+                                edgeSymbolSize: [0, 8],
+                                lineStyle: {
+                                        width: 3,
+                                        opacity: 0.8,
+                                        curveness: 0.2
+                                },
+                                emphasis: {
+                                        focus: 'adjacency',
+                                        lineStyle: {
+                                                width: 5
+                                        }
+                                }
+                        }]
+                };
+                chart.setOption(option);
+        } catch (error) {
+                console.error('加载航线网络拓扑图失败:', error);
+        }
+}
+
+// 页面加载时自动调用
+document.addEventListener('DOMContentLoaded', function () {
         loadShips();
+        loadRoutes();
+        drawNetworkTopology();
 
         // 监听窗口大小变化，调整图表大小
         window.addEventListener('resize', () => {
-                scheduleChart.resize();
-                statusChart.resize();
-                mapChart.resize();
+                if (scheduleChart) scheduleChart.resize();
+                if (statusChart) statusChart.resize();
+                if (mapChart) mapChart.resize();
         });
 
         // 导入按钮事件
-        document.getElementById('importBtn').addEventListener('click', () => {
-                const dataType = document.getElementById('dataType').value;
-                const fileInput = document.getElementById('dataFile');
+        const importBtn = document.getElementById('importBtn');
+        if (importBtn) {
+                importBtn.addEventListener('click', () => {
+                                        const dataType = document.getElementById('dataType').value;
+                                        const fileInput = document.getElementById('dataFile');
 
-                if (fileInput.files.length === 0) {
-                        alert('请选择文件');
-                        return;
-                }
-
-                const file = fileInput.files[0];
-                const reader = new FileReader();
-
-                reader.onload = function (e) {
-                        let data;
-                        try {
-                                // 假设文件是JSON格式
-                                data = JSON.parse(e.target.result);
-
-                                // 发送到服务器
-                                fetch(`/api/import/${dataType}`, {
-                                                method: 'POST',
-                                                headers: {
-                                                        'Content-Type': 'application/json'
-                                                },
-                                                body: JSON.stringify(data)
-                                        })
-                                        .then(response => response.json())
-                                        .then(result => {
-                                                alert(`导入成功: ${result.message}`);
-                                                loadShips(); // 重新加载数据
-                                        })
-                                        .catch(error => {
-                                                alert('导入失败: ' + error);
-                                        });
-                        } catch (error) {
-                                alert('文件格式错误: ' + error);
+                        if (fileInput.files.length === 0) {
+                                alert('请选择文件');
+                                return;
                         }
-                };
 
-                reader.readAsText(file);
-        });
+                        const file = fileInput.files[0];
+                        const reader = new FileReader();
+
+                        reader.onload = function (e) {
+                                        let data;
+                                        try {
+                                                // 假设文件是JSON格式
+                                                data = JSON.parse(e.target.result);
+
+                                        // 发送到服务器
+                                        fetch(`/api/import/${dataType}`, {
+                                                        method: 'POST',
+                                                        headers: {
+                                                                'Content-Type': 'application/json'
+                                                        },
+                                                        body: JSON.stringify(data)
+                                                })
+                                                .then(response => response.json())
+                                                .then(result => {
+                                                        alert(`导入成功: ${result.message}`);
+                                                        loadShips(); // 重新加载数据
+                                                })
+                                                .catch(error => {
+                                                        alert('导入失败: ' + error);
+                                                });
+                                        } catch (error) {
+                                                alert('文件格式错误: ' + error);
+                                        }
+                                        };
+
+                        reader.readAsText(file);
+                        });
+        }
 
         // 导出按钮事件
-        document.getElementById('exportBtn').addEventListener('click', () => {
-                const exportType = document.getElementById('exportType').value;
-                const exportFormat = document.getElementById('exportFormat').value;
+        const exportBtn = document.getElementById('exportBtn');
+        if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                                        const exportType = document.getElementById('exportType').value;
+                                        const exportFormat = document.getElementById('exportFormat').value;
 
-                fetch(`/api/export/${exportType}?format=${exportFormat}`)
-                        .then(response => response.blob())
-                        .then(blob => {
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.style.display = 'none';
-                                a.href = url;
-                                a.download = `${exportType}_data.${exportFormat}`;
-                                document.body.appendChild(a);
-                                a.click();
-                                window.URL.revokeObjectURL(url);
-                        })
-                        .catch(error => {
-                                alert('导出失败: ' + error);
+                        fetch(`/api/export/${exportType}?format=${exportFormat}`)
+                                .then(response => response.blob())
+                                .then(blob => {
+                                        const url = window.URL.createObjectURL(blob);
+                                        const a = document.createElement('a');
+                                        a.style.display = 'none';
+                                        a.href = url;
+                                        a.download = `${exportType}_data.${exportFormat}`;
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        window.URL.revokeObjectURL(url);
+                                })
+                                .catch(error => {
+                                        alert('导出失败: ' + error);
+                                });
                         });
-        });
+        }
 
         // 初始化航线规划地图
         const routeMap = echarts.init(document.getElementById('routeMapContainer'));
 
         // 规划航线按钮点击事件
-        document.getElementById('planRouteBtn').addEventListener('click', () => {
-                const startPort = document.getElementById('startPort').value;
-                const endPort = document.getElementById('endPort').value;
-                const optimizeGoal = document.getElementById('optimizeGoal').value;
+        const planRouteBtn = document.getElementById('planRouteBtn');
+        if (planRouteBtn) {
+                planRouteBtn.addEventListener('click', () => {
+                                        const startPort = document.getElementById('startPort').value;
+                                        const endPort = document.getElementById('endPort').value;
+                                        const optimizeGoal = document.getElementById('optimizeGoal').value;
 
-                // 模拟请求后端规划航线
-                fetch('/api/plan-route', {
-                                method: 'POST',
-                                headers: {
-                                        'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                        startPort,
-                                        endPort,
-                                        optimizeGoal
+                        // 模拟请求后端规划航线
+                        fetch('/api/plan-route', {
+                                        method: 'POST',
+                                        headers: {
+                                                'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                                startPort,
+                                                endPort,
+                                                optimizeGoal
+                                        })
                                 })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                                // 显示航线结果
-                                const routeOption = {
-                                        title: {
-                                                text: '规划航线'
-                                        },
-                                        tooltip: {
-                                                trigger: 'item',
-                                        },
-                                        geo: {
-                                                map: 'china',
-                                                roam: true,
-                                                label: {
-                                                        show: true
+                                .then(response => response.json())
+                                .then(data => {
+                                        // 显示航线结果
+                                        const routeOption = {
+                                                title: {
+                                                        text: '规划航线'
                                                 },
-                                                itemStyle: {
-                                                        areaColor: '#eee',
-                                                        borderColor: '#0571c2'
-                                                }
-                                        },
-                                        series: [{
-                                                type: 'lines',
-                                                coordinateSystem: 'geo',
-                                                data: [{
-                                                        coords: [
-                                                                [121.48, 31.22], // 上海
-                                                                [113.23, 23.16] // 广州
-                                                        ],
-                                                        lineStyle: {
-                                                                width: 3,
-                                                                color: '#ff0000'
+                                                tooltip: {
+                                                        trigger: 'item',
+                                                },
+                                                geo: {
+                                                        map: 'china',
+                                                        roam: true,
+                                                        label: {
+                                                                show: true
+                                                        },
+                                                        itemStyle: {
+                                                                areaColor: '#eee',
+                                                                borderColor: '#0571c2'
                                                         }
-                                                }],
-                                                symbol: ['none', 'arrow'],
-                                                symbolSize: 8
-                                        }]
-                                };
-                                routeMap.setOption(routeOption);
-                        })
-                        .catch(error => {
-                                console.error('规划航线失败:', error);
-                                alert('规划航线失败，请稍后重试');
+                                                },
+                                                series: [{
+                                                        type: 'lines',
+                                                        coordinateSystem: 'geo',
+                                                        data: [{
+                                                                coords: [
+                                                                        [121.48, 31.22], // 上海
+                                                                        [113.23, 23.16] // 广州
+                                                                ],
+                                                                lineStyle: {
+                                                                        width: 3,
+                                                                        color: '#ff0000'
+                                                                }
+                                                        }],
+                                                        symbol: ['none', 'arrow'],
+                                                        symbolSize: 8
+                                                }]
+                                        };
+                                        routeMap.setOption(routeOption);
+                                })
+                                .catch(error => {
+                                        console.error('规划航线失败:', error);
+                                        alert('规划航线失败，请稍后重试');
+                                });
                         });
-        });
+        }
 
         // 初始化优化结果图表
         const optimizeChart = echarts.init(document.getElementById('optimizeResultChart'));
 
         // 优化按钮点击事件
-        document.getElementById('optimizeBtn').addEventListener('click', () => {
-                const algorithm = document.getElementById('algorithm').value;
-                const timeGoal = document.getElementById('goal_time').checked;
-                const costGoal = document.getElementById('goal_cost').checked;
-                const emissionsGoal = document.getElementById('goal_emissions').checked;
-                const scope = document.getElementById('scope').value;
+        const optimizeBtn = document.getElementById('optimizeBtn');
+        if (optimizeBtn) {
+                optimizeBtn.addEventListener('click', () => {
+                                        const algorithm = document.getElementById('algorithm').value;
+                                        const timeGoal = document.getElementById('goal_time').checked;
+                                        const costGoal = document.getElementById('goal_cost').checked;
+                                        const emissionsGoal = document.getElementById('goal_emissions').checked;
+                                        const scope = document.getElementById('scope').value;
 
-                // 显示加载中
-                document.getElementById('optimizeBtn').disabled = true;
-                document.getElementById('optimizeBtn').textContent = '优化中...';
+                        // 显示加载中
+                        optimizeBtn.disabled = true;
+                        optimizeBtn.textContent = '优化中...';
 
-                // 模拟优化过程
-                setTimeout(() => {
-                        // 更新优化进度图表
-                        const optimizeOption = {
-                                title: {
-                                        text: '优化结果对比'
-                                },
-                                tooltip: {
-                                        trigger: 'axis'
-                                },
-                                legend: {
-                                        data: ['原计划', '优化后']
-                                },
-                                radar: {
-                                        indicator: [{
-                                                        name: '时间',
-                                                        max: 100
-                                                },
-                                                {
-                                                        name: '成本',
-                                                        max: 100
-                                                },
-                                                {
-                                                        name: '资源利用率',
-                                                        max: 100
-                                                },
-                                                {
-                                                        name: '碳排放',
-                                                        max: 100
-                                                },
-                                                {
-                                                        name: '港口拥堵',
-                                                        max: 100
-                                                }
-                                        ]
-                                },
-                                series: [{
-                                        type: 'radar',
-                                        data: [{
-                                                        value: [70, 65, 55, 80, 60],
-                                                        name: '原计划'
-                                                },
-                                                {
-                                                        value: [90, 80, 75, 60, 85],
-                                                        name: '优化后'
-                                                }
-                                        ]
-                                }]
-                        };
-                        optimizeChart.setOption(optimizeOption);
+                        // 模拟优化过程
+                        setTimeout(() => {
+                                                // 更新优化进度图表
+                                                const optimizeOption = {
+                                                        title: {
+                                                                text: '优化结果对比'
+                                                        },
+                                                        tooltip: {
+                                                                trigger: 'axis'
+                                                        },
+                                                        legend: {
+                                                                data: ['原计划', '优化后']
+                                                        },
+                                                        radar: {
+                                                                indicator: [{
+                                                                                name: '时间',
+                                                                                max: 100
+                                                                        },
+                                                                        {
+                                                                                name: '成本',
+                                                                                max: 100
+                                                                        },
+                                                                        {
+                                                                                name: '资源利用率',
+                                                                                max: 100
+                                                                        },
+                                                                        {
+                                                                                name: '碳排放',
+                                                                                max: 100
+                                                                        },
+                                                                        {
+                                                                                name: '港口拥堵',
+                                                                                max: 100
+                                                                        }
+                                                                ]
+                                                        },
+                                                        series: [{
+                                                                type: 'radar',
+                                                                data: [{
+                                                                                value: [70, 65, 55, 80, 60],
+                                                                                name: '原计划'
+                                                                        },
+                                                                        {
+                                                                                value: [90, 80, 75, 60, 85],
+                                                                                name: '优化后'
+                                                                        }
+                                                                ]
+                                                        }]
+                                                };
+                                                optimizeChart.setOption(optimizeOption);
 
-                        // 填充调度表格
-                        const scheduleTable = document.getElementById('scheduleTable').getElementsByTagName('tbody')[0];
-                        scheduleTable.innerHTML = '';
+                                // 填充调度表格
+                                const scheduleTable = document.getElementById('scheduleTable').getElementsByTagName('tbody')[0];
+                                scheduleTable.innerHTML = '';
 
-                        const scheduleData = [{
-                                        ship: '远洋之星',
-                                        from: '上海港',
-                                        to: '新加坡港',
-                                        departTime: '2024-05-18 10:00',
-                                        arriveTime: '2024-05-25 08:00'
-                                },
-                                {
-                                        ship: '海洋号',
-                                        from: '广州港',
-                                        to: '迪拜港',
-                                        departTime: '2024-05-20 14:00',
-                                        arriveTime: '2024-05-30 17:30'
-                                },
-                                {
-                                        ship: '星辰号',
-                                        from: '青岛港',
-                                        to: '釜山港',
-                                        departTime: '2024-05-19 08:30',
-                                        arriveTime: '2024-05-21 12:00'
-                                }
-                        ];
+                                const scheduleData = [{
+                                                ship: '远洋之星',
+                                                from: '上海港',
+                                                to: '新加坡港',
+                                                departTime: '2024-05-18 10:00',
+                                                arriveTime: '2024-05-25 08:00'
+                                        },
+                                        {
+                                                ship: '海洋号',
+                                                from: '广州港',
+                                                to: '迪拜港',
+                                                departTime: '2024-05-20 14:00',
+                                                arriveTime: '2024-05-30 17:30'
+                                        },
+                                        {
+                                                ship: '星辰号',
+                                                from: '青岛港',
+                                                to: '釜山港',
+                                                departTime: '2024-05-19 08:30',
+                                                arriveTime: '2024-05-21 12:00'
+                                        }
+                                ];
 
-                        scheduleData.forEach(item => {
-                                const row = scheduleTable.insertRow();
-                                row.innerHTML = `
+                                scheduleData.forEach(item => {
+                                                        const row = scheduleTable.insertRow();
+                                                        row.innerHTML = `
                     <td>${item.ship}</td>
                     <td>${item.from}</td>
                     <td>${item.to}</td>
                     <td>${item.departTime}</td>
                     <td>${item.arriveTime}</td>
                 `;
-                        });
+                                });
 
-                        // 恢复按钮状态
-                        document.getElementById('optimizeBtn').disabled = false;
-                        document.getElementById('optimizeBtn').textContent = '开始优化';
+                                // 恢复按钮状态
+                                optimizeBtn.disabled = false;
+                                optimizeBtn.textContent = '开始优化';
 
-                        // 显示成功消息
-                        alert('调度优化完成');
-                }, 2000);
-        });
+                                // 显示成功消息
+                                alert('调度优化完成');
+                                }, 2000);
+                                });
+        }
+
+        // 运行算法
+        const runBtn = document.getElementById('run-button');
+        if (runBtn) {
+                runBtn.addEventListener('click', runAlgorithm);
+        }
 });
 // 运行算法
 function runAlgorithm() {
@@ -659,6 +795,3 @@ function updateResults(output) {
         const resultsDiv = document.getElementById('results');
         resultsDiv.innerHTML = `<pre>${output}</pre>`;
 }
-
-// 绑定运行按钮事件
-document.getElementById('run-button').addEventListener('click', runAlgorithm);

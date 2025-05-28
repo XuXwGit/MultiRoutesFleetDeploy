@@ -32,6 +32,10 @@ def create_app():
     def analysis():
         return render_template('analysis.html')
 
+    @app.route('/route_query')
+    def route_query():
+        return render_template('route_query.html')
+
     return app
 
 if __name__ == '__main__':
