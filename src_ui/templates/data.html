@@ -7,6 +7,59 @@
         <title>数据管理 - 船舶调度系统</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <style>
+                .card {
+                        border-radius: 1rem;
+                        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+                }
+
+                .nav-tabs .nav-link.active {
+                        background: #fff;
+                        border-color: #dee2e6 #dee2e6 #fff;
+                        font-weight: 600;
+                }
+
+                .nav-tabs {
+                        border-bottom: 2px solid #dee2e6;
+                }
+
+                .form-label {
+                        font-weight: 500;
+                }
+
+                .input-group-text {
+                        min-width: 90px;
+                        justify-content: flex-end;
+                }
+
+                .btn-primary {
+                        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.08);
+                        transition: box-shadow 0.2s;
+                }
+
+                .btn-primary:hover {
+                        box-shadow: 0 4px 16px rgba(0, 123, 255, 0.16);
+                }
+
+                .tab-pane {
+                        padding-top: 1.5rem;
+                }
+
+                .data-empty {
+                        color: #aaa;
+                        text-align: center;
+                        padding: 2rem 0;
+                        font-size: 1.1rem;
+                }
+
+                .table thead th {
+                        background: #f8f9fa;
+                }
+
+                .card-list .card {
+                        min-height: 180px;
+                }
+        </style>
 </head>
 
 <body>
@@ -14,169 +67,353 @@
         {% include 'navbar.html' with context %}
 
         <div class="container-fluid mt-4">
-                <!-- 数据管理选项卡 -->
-                <ul class="nav nav-tabs" id="dataTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="import-tab" data-bs-toggle="tab"
-                                        data-bs-target="#import" type="button" role="tab" aria-controls="import"
-                                        aria-selected="true">数据导入</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export"
-                                        type="button" role="tab" aria-controls="export"
-                                        aria-selected="false">数据导出</button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="view-tab" data-bs-toggle="tab" data-bs-target="#view"
-                                        type="button" role="tab" aria-controls="view"
-                                        aria-selected="false">数据展示</button>
-                        </li>
-                </ul>
-
-                <div class="tab-content mt-3" id="dataTabContent">
-                        <!-- 数据导入 -->
-                        <div class="tab-pane fade show active" id="import" role="tabpanel" aria-labelledby="import-tab">
-                                <div class="card">
-                                        <div class="card-body">
-                                                <div class="mb-3">
-                                                        <label for="importType" class="form-label">数据类型</label>
-                                                        <select class="form-select" id="importType" aria-label="选择数据类型"
-                                                                title="选择数据类型">
-                                                                <optgroup label="基础网络数据">
-                                                                        <option value="ships">船舶数据</option>
-                                                                        <option value="routes">航线数据</option>
-                                                                        <option value="ports">港口数据</option>
-                                                                </optgroup>
-                                                                <optgroup label="时空网络数据">
-                                                                        <option value="nodes">时空节点数据</option>
-                                                                        <option value="transship">转运弧数据</option>
-                                                                        <option value="traveling">航段弧数据</option>
-                                                                </optgroup>
-                                                                <optgroup label="路径相关数据">
-                                                                        <option value="vesselpaths">航行轮回路径数据</option>
-                                                                        <option value="paths">候选运输路径数据</option>
-                                                                        <option value="laden_paths">重箱路径数据</option>
-                                                                        <option value="empty_paths">空箱路径数据</option>
-                                                                        </optgroup>
-                                                                        <optgroup label="需求模拟数据">
-                                                                                <option value="demand_range">需求范围数据
-                                                                                </option>
-                                                                        <option value="requests">需求序列数据</option>
-                                                                </optgroup>
-                                                        </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                        <label for="importFormat" class="form-label">文件格式</label>
-                                                        <select class="form-select" id="importFormat"
-                                                                aria-label="选择文件格式" title="选择文件格式">
-                                                                <option value="csv">CSV</option>
-                                                                <option value="txt">TXT</option>
-                                                                <option value="json">JSON</option>
-                                                        </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                        <label for="importFile" class="form-label">选择文件</label>
-                                                        <input class="form-control" type="file" id="importFile"
-                                                                accept=".csv,.txt,.json" aria-label="选择文件">
-                                                </div>
-                                                <button type="button" class="btn btn-primary"
-                                                        onclick="importData()">导入数据</button>
+                <div class="row justify-content-center">
+                        <div class="col-12 col-lg-10 col-xl-9">
+                                <!-- 数据管理选项卡 -->
+                                <div class="card mb-4">
+                                        <div class="card-header bg-white pb-0 border-bottom-0">
+                                                <ul class="nav nav-tabs card-header-tabs" id="dataTabs" role="tablist">
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link active" id="import-tab"
+                                                                        data-bs-toggle="tab" data-bs-target="#import"
+                                                                        type="button" role="tab" aria-controls="import"
+                                                                        aria-selected="true">数据导入</button>
+                                                                </li>
+                                                                <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="export-tab"
+                                                                        data-bs-toggle="tab" data-bs-target="#export"
+                                                                        type="button" role="tab" aria-controls="export"
+                                                                        aria-selected="false">数据导出</button>
+                                                                </li>
+                                                                <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="view-tab"
+                                                                        data-bs-toggle="tab" data-bs-target="#view"
+                                                                        type="button" role="tab" aria-controls="view"
+                                                                        aria-selected="false">数据展示</button>
+                                                                </li>
+                                                                </ul>
                                         </div>
-                                </div>
-                        </div>
-
-                        <!-- 数据导出 -->
-                        <div class="tab-pane fade" id="export" role="tabpanel" aria-labelledby="export-tab">
-                                <div class="card">
                                         <div class="card-body">
-                                                <div class="mb-3">
-                                                        <label for="exportType" class="form-label">数据类型</label>
-                                                        <select class="form-select" id="exportType" aria-label="选择数据类型"
-                                                                title="选择数据类型">
-                                                                <optgroup label="基础网络数据">
-                                                                        <option value="ships">船舶数据</option>
-                                                                        <option value="routes">航线数据</option>
-                                                                        <option value="ports">港口数据</option>
-                                                                </optgroup>
-                                                                <optgroup label="时空网络数据">
-                                                                        <option value="nodes">时空节点数据</option>
-                                                                        <option value="transship">转运弧数据</option>
-                                                                        <option value="traveling">航段弧数据</option>
-                                                                </optgroup>
-                                                                <optgroup label="路径相关数据">
-                                                                        <option value="vesselpaths">航行轮回路径数据</option>
-                                                                        <option value="paths">候选运输路径数据</option>
-                                                                        <option value="laden_paths">重箱路径数据</option>
-                                                                        <option value="empty_paths">空箱路径数据</option>
-                                                                        </optgroup>
-                                                                        <optgroup label="需求模拟数据">
-                                                                                <option value="demand_range">需求范围数据
-                                                                                </option>
-                                                                        <option value="requests">需求序列数据</option>
-                                                                </optgroup>
-                                                        </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                        <label for="exportFormat" class="form-label">导出格式</label>
-                                                        <select class="form-select" id="exportFormat"
-                                                                aria-label="选择导出格式" title="选择导出格式">
-                                                                <option value="csv">CSV</option>
-                                                                <option value="txt">TXT</option>
-                                                                <option value="json">JSON</option>
-                                                        </select>
-                                                </div>
-                                                <button type="button" class="btn btn-primary"
-                                                        onclick="exportData()">导出数据</button>
-                                        </div>
-                                </div>
-                        </div>
-
-                        <!-- 数据展示 -->
-                        <div class="tab-pane fade show active" id="view" role="tabpanel" aria-labelledby="view-tab">
-                                <div class="card">
-                                        <div class="card-body">
-                                                <div class="mb-3">
-                                                        <label for="viewType" class="form-label">数据类型</label>
-                                                        <select class="form-select" id="viewType" aria-label="选择数据类型"
-                                                                title="选择数据类型" onchange="refreshDataView()">
-                                                                        <optgroup label="基础网络数据">
-                                                                                <option value="ships">船舶数据</option>
-                                                                                <option value="routes">航线数据</option>
-                                                                                <option value="ports">港口数据</option>
-                                                                        </optgroup>
-                                                                        <optgroup label="时空网络数据">
-                                                                                <option value="nodes">时空节点数据</option>
-                                                                                <option value="transship">转运弧数据</option>
-                                                                                <option value="traveling">航段弧数据</option>
-                                                                        </optgroup>
-                                                                        <optgroup label="路径相关数据">
-                                                                                <option value="vesselpaths">航行轮回路径数据
-                                                                                </option>
-                                                                                <option value="paths">候选运输路径数据</option>
-                                                                                <option value="laden_paths">重箱路径数据
-                                                                                </option>
-                                                                                <option value="empty_paths">空箱路径数据
-                                                                                </option>
-                                                                                </optgroup>
-                                                                                <optgroup label="需求模拟数据">
-                                                                                        <option value="demand_range">
-                                                                                                需求范围数据
+                                                <div class="tab-content mt-2" id="dataTabContent">
+                                                        <!-- 数据导入 -->
+                                                        <div class="tab-pane fade show active" id="import"
+                                                                role="tabpanel" aria-labelledby="import-tab">
+                                                                <form onsubmit="event.preventDefault();importData();"
+                                                                        autocomplete="off">
+                                                                        <div class="row g-3 align-items-center mb-3">
+                                                                                <div class="col-md-4">
+                                                                                        <label for="importType"
+                                                                                                class="form-label mb-0">数据类型</label>
+                                                                                </div>
+                                                                                <div class="col-md-8">
+                                                                                        <select class="form-select"
+                                                                                                id="importType"
+                                                                                                aria-label="选择数据类型"
+                                                                                                title="选择数据类型">
+                                                                                                <optgroup
+                                                                                                        label="基础网络数据">
+                                                                                                        <option
+                                                                                                                value="ships">
+                                                                                                                船舶数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="routes">
+                                                                                                                航线数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="ports">
+                                                                                                                港口数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="时空网络数据">
+                                                                                                        <option
+                                                                                                                value="nodes">
+                                                                                                                时空节点数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="transship">
+                                                                                                                转运弧数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="traveling">
+                                                                                                                航段弧数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="路径相关数据">
+                                                                                                        <option
+                                                                                                                value="vesselpaths">
+                                                                                                                航行轮回路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="paths">
+                                                                                                                候选运输路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="laden_paths">
+                                                                                                                重箱路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="empty_paths">
+                                                                                                                空箱路径数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="需求模拟数据">
+                                                                                                        <option
+                                                                                                                value="demand_range">
+                                                                                                                需求范围数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="requests">
+                                                                                                                需求序列数据
+                                                                                                        </option>
+                                                                                                        </optgroup>
+                                                                                                        </select>
+                                                                                                        </div>
+                                                                        </div>
+                                                                        <div class="row g-3 align-items-center mb-3">
+                                                                                <div class="col-md-4">
+                                                                                        <label for="importFormat"
+                                                                                                class="form-label mb-0">文件格式</label>
+                                                                                </div>
+                                                                                <div class="col-md-8">
+                                                                                        <select class="form-select"
+                                                                                                id="importFormat"
+                                                                                                aria-label="选择文件格式"
+                                                                                                title="选择文件格式">
+                                                                                                <option value="csv">CSV
+                                                                                                </option>
+                                                                                                <option value="txt">TXT
+                                                                                                </option>
+                                                                                                <option value="json">
+                                                                                                        JSON</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                        </div>
+                                                                        <div class="row g-3 align-items-center mb-3">
+                                                                                <div class="col-md-4">
+                                                                                        <label for="importFile"
+                                                                                                class="form-label mb-0">选择文件</label>
+                                                                                </div>
+                                                                                <div class="col-md-8">
+                                                                                        <div class="input-group">
+                                                                                                <input class="form-control"
+                                                                                                        type="file"
+                                                                                                        id="importFile"
+                                                                                                        accept=".csv,.txt,.json"
+                                                                                                        aria-label="选择文件">
+                                                                                        </div>
+                                                                                        </div>
+                                                                        </div>
+                                                                        <div class="row g-3 align-items-center mb-2">
+                                                                                <div class="col-md-4"></div>
+                                                                                <div class="col-md-8">
+                                                                                        <button type="submit"
+                                                                                                class="btn btn-primary w-100">导入数据</button>
+                                                                                </div>
+                                                                        </div>
+                                                                        </form>
+                                                                        </div>
+                                                                        <!-- 数据导出 -->
+                                                                        <div class="tab-pane fade" id="export"
+                                                                                role="tabpanel"
+                                                                                aria-labelledby="export-tab">
+                                                                                <form onsubmit="event.preventDefault();exportData();"
+                                                                                        autocomplete="off">
+                                                                                        <div
+                                                                                                class="row g-3 align-items-center mb-3">
+                                                                                                <div class="col-md-4">
+                                                                                                        <label for="exportType"
+                                                                                                                class="form-label mb-0">数据类型</label>
+                                                                                                </div>
+                                                                                                <div class="col-md-8">
+                                                                                                        <select class="form-select"
+                                                                                                                id="exportType"
+                                                                                                                aria-label="选择数据类型"
+                                                                                                                title="选择数据类型">
+                                                                                                <optgroup
+                                                                                                        label="基础网络数据">
+                                                                                                        <option
+                                                                                                                value="ships">
+                                                                                                                船舶数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="routes">
+                                                                                                                航线数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="ports">
+                                                                                                                港口数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="时空网络数据">
+                                                                                                        <option
+                                                                                                                value="nodes">
+                                                                                                                时空节点数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="transship">
+                                                                                                                转运弧数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="traveling">
+                                                                                                                航段弧数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="路径相关数据">
+                                                                                                        <option
+                                                                                                                value="vesselpaths">
+                                                                                                                航行轮回路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="paths">
+                                                                                                                候选运输路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="laden_paths">
+                                                                                                                重箱路径数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="empty_paths">
+                                                                                                                空箱路径数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="需求模拟数据">
+                                                                                                        <option
+                                                                                                                value="demand_range">
+                                                                                                                需求范围数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="requests">
+                                                                                                                需求序列数据
+                                                                                                        </option>
+                                                                                                        </optgroup>
+                                                                                                        </select>
+                                                                                                        </div>
+                                                                        </div>
+                                                                        <div class="row g-3 align-items-center mb-3">
+                                                                                <div class="col-md-4">
+                                                                                        <label for="exportFormat"
+                                                                                                class="form-label mb-0">导出格式</label>
+                                                                                </div>
+                                                                                <div class="col-md-8">
+                                                                                        <select class="form-select"
+                                                                                                id="exportFormat"
+                                                                                                aria-label="选择导出格式"
+                                                                                                title="选择导出格式">
+                                                                                                <option value="csv">CSV
+                                                                                                </option>
+                                                                                                <option value="txt">TXT
+                                                                                                </option>
+                                                                                                <option value="json">
+                                                                                                        JSON</option>
+                                                                                        </select>
+                                                                                </div>
+                                                                        </div>
+                                                                        <div class="row g-3 align-items-center mb-2">
+                                                                                <div class="col-md-4"></div>
+                                                                                <div class="col-md-8">
+                                                                                        <button type="submit"
+                                                                                                class="btn btn-primary w-100">导出数据</button>
+                                                                                </div>
+                                                                        </div>
+                                                                </form>
+                                                                </div>
+                                                                <!-- 数据展示 -->
+                                                        <div class="tab-pane fade" id="view" role="tabpanel"
+                                                                aria-labelledby="view-tab">
+                                                                <div class="row g-3 align-items-center mb-3">
+                                                                        <div class="col-md-4">
+                                                                                <label for="viewType"
+                                                                                        class="form-label mb-0">数据类型</label>
+                                                                        </div>
+                                                                        <div class="col-md-8">
+                                                                                <select class="form-select"
+                                                                                        id="viewType"
+                                                                                        aria-label="选择数据类型"
+                                                                                        title="选择数据类型"
+                                                                                        onchange="refreshDataView()">
+                                                                                        <optgroup label="基础网络数据">
+                                                                                                <option value="ships">
+                                                                                                        船舶数据</option>
+                                                                                                <option value="routes">
+                                                                                                        航线数据</option>
+                                                                                                <option value="ports">
+                                                                                                        港口数据</option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="时空网络数据">
+                                                                                                        <option
+                                                                                                                value="nodes">
+                                                                                                                时空节点数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="transship">
+                                                                                                                转运弧数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="traveling">
+                                                                                                                航段弧数据
+                                                                                                        </option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="路径相关数据">
+                                                                                                        <option
+                                                                                                                value="vesselpaths">
+                                                                                                                航行轮回路径数据
+                                                                                                        </option>
+                                                                                                <option value="paths">
+                                                                                                        候选运输路径数据
+                                                                                                </option>
+                                                                                                <option
+                                                                                                        value="laden_paths">
+                                                                                                        重箱路径数据</option>
+                                                                                                <option
+                                                                                                        value="empty_paths">
+                                                                                                        空箱路径数据</option>
+                                                                                                </optgroup>
+                                                                                                <optgroup
+                                                                                                        label="需求模拟数据">
+                                                                                                        <option
+                                                                                                                value="demand_range">
+                                                                                                                需求范围数据
+                                                                                                        </option>
+                                                                                                        <option
+                                                                                                                value="requests">
+                                                                                                                需求序列数据
+                                                                                                        </option>
+                                                                                                        </optgroup>
+                                                                                                        </select>
+                                                                                                        </div>
+                                                                </div>
+                                                                <div class="row g-3 align-items-center mb-3">
+                                                                        <div class="col-md-4">
+                                                                                <label for="viewFormat"
+                                                                                        class="form-label mb-0">展示方式</label>
+                                                                        </div>
+                                                                        <div class="col-md-8">
+                                                                                <select class="form-select"
+                                                                                        id="viewFormat"
+                                                                                        aria-label="选择展示方式"
+                                                                                        title="选择展示方式"
+                                                                                        onchange="refreshDataView()">
+                                                                                        <option value="table">表格
                                                                                         </option>
-                                                                                <option value="requests">需求序列数据</option>
-                                                                                </optgroup>
-                                                        </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                        <label for="viewFormat" class="form-label">展示方式</label>
-                                                        <select class="form-select" id="viewFormat" aria-label="选择展示方式"
-                                                                title="选择展示方式" onchange="refreshDataView()">
-                                                                <option value="table">表格</option>
-                                                                <option value="cards">卡片</option>
-                                                                <option value="list">列表</option>
-                                                        </select>
-                                                </div>
-                                                <div id="dataContainer">
-                                                        <!-- 数据将在这里动态加载 -->
+                                                                                        <option value="cards">卡片
+                                                                                        </option>
+                                                                                        <option value="list">列表</option>
+                                                                                </select>
+                                                                        </div>
+                                                                </div>
+                                                                <div id="dataContainer" class="mt-4">
+                                                                        <!-- 数据将在这里动态加载 -->
+                                                                </div>
+                                                                </div>
                                                 </div>
                                         </div>
                                 </div>
