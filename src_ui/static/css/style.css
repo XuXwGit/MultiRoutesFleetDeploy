@@ -1,3 +1,90 @@
+/* ===== 全局主题变量与字体规范 ===== */
+:root {
+        --primary-color: #006B39;
+        --bg-color: #F0F4F8;
+        --accent-orange: #FF6B35;
+        --success-green: #00C853;
+        --navbar-gradient: #006B39;
+        --font-main: 'Noto Sans SC', 'Source Sans Pro', 'Roboto', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        --font-title: 'Noto Sans SC', 'Roboto', 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        --font-label: 'Source Sans Pro', 'Noto Sans SC', Arial, sans-serif;
+        --title-size: 20px;
+        --subtitle-size: px;
+        --label-size: 14px;
+        --title-color: #222;
+        --subtitle-color: #666;
+        --label-color: #333;
+}
+
+[data-theme="dark"] {
+        --primary-color: #4DA8DA;
+        --bg-color: #2B2D42;
+        --title-color: #fff;
+        --subtitle-color: #bbb;
+        --label-color: #eee;
+}
+
+body {
+        background: var(--bg-color);
+        font-family: var(--font-main);
+        transition: background 0.3s;
+}
+
+h1,
+.display-3,
+.main-title {
+        font-family: var(--font-title);
+        font-size: 48px;
+        color: var(--title-color);
+        font-weight: 700;
+}
+
+h2,
+h3,
+.subtitle {
+        font-family: var(--font-title);
+        font-size: var(--subtitle-size);
+        color: var(--subtitle-color);
+        font-weight: 400;
+}
+
+.data-label,
+.label,
+th,
+.table th {
+        font-family: var(--font-label);
+        font-size: var(--label-size);
+        color: var(--label-color);
+        font-weight: 600;
+}
+
+/* ===== 导航栏美化 ===== */
+.navbar,
+nav.navbar {
+        background: var(--primary-color) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+        transition: all 0.3s;
+        font-family: var(--font-title);
+        font-weight: 600;
+}
+
+.navbar:hover,
+nav.navbar:hover {
+        box-shadow: 0 4px 12px rgba(0, 107, 57, 0.20);
+}
+
+.navbar .navbar-brand,
+.navbar .nav-link {
+        color: #fff !important;
+        letter-spacing: 0.5px;
+        font-size: 1.1rem;
+}
+
+.navbar .nav-link.active,
+.navbar .nav-link:focus {
+        color: var(--accent-orange) !important;
+}
+
 /* 全局样式 */
 body {
         background-color: #f4f6fa;

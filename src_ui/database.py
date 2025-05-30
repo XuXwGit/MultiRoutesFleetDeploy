@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from models import Base
+from .models import Base, PortGeo
 import logging
 
 def update_database_schema():

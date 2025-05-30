@@ -136,4 +136,12 @@ class DemandRange(Base):
     demand_lower_bound = Column(Integer)
     demand_upper_bound = Column(Integer)
     freight_lower_bound = Column(Integer)
-    freight_upper_bound = Column(Integer) 
+    freight_upper_bound = Column(Integer)
+
+class PortGeo(Base):
+    __tablename__ = 'port_geo'
+    id = Column(Integer, primary_key=True)
+    city_en = Column(String)
+    region = Column(String)
+    latitude = Column(Float)
+    longitude = Column(Float) 

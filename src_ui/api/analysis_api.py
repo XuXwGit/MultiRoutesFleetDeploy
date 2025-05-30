@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from database import Session
-from models import Ship, Route, Port
+from ..database import Session
+from ..models import Ship, Route, Port
 import logging
 
 analysis_bp = Blueprint('analysis', __name__)

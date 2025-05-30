@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import logging
-from algorithm_interface import AlgorithmInterface
+from ..algorithm_interface import AlgorithmInterface
 from multi.algos.benders_decomposition import BendersDecomposition
 from multi.algos.benders_decomposition_with_pap import BendersDecompositionWithPAP
 from multi.algos.ccg import CCG
@@ -14,8 +14,8 @@ import subprocess
 import os
 import json
 import time
-from database import Session
-from models import Ship, Port
+from ..database import Session
+from ..models import Ship, Port
 
 optimize_bp = Blueprint('optimize', __name__)
 algorithm_interface = AlgorithmInterface()
@@ -120,7 +120,7 @@ def optimize():
             deploy_plan = result.get('solution', {})  # 航线ID: 船舶ID
             session = Session()
             # 航线ID->名称
-            from models import Route, Ship
+            from ..models import Route, Ship
             route_info = {str(r.id): r.id or f"航线{r.id}" for r in session.query(Route).all()}
             # 航线ID->港口
             ports_of_call_info = {str(r.id): r.ports_of_call or f"航线{r.id}" for r in session.query(Route).all()}

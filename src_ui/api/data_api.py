@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from database import Session
-from models import Ship, Route, Port, Node, TransshipArc, TravelingArc, Path, VesselPath, Request, DemandRange
+from ..database import Session
+from ..models import Ship, Route, Port, Node, TransshipArc, TravelingArc, Path, VesselPath, Request, DemandRange, PortGeo
 import json
 import logging
 
@@ -36,6 +36,17 @@ def get_ports():
         r.pop('_sa_instance_state', None)
     session.close()
     return jsonify(result)
+
+@data_bp.route('/api/port_geo')
+def get_port_geo():
+    session = Session()
+    ports = session.query(PortGeo).all()
+    result = [p.__dict__ for p in ports]
+    for r in result:
+        r.pop('_sa_instance_state', None)
+    session.close()
+    return jsonify(result)
+
 
 @data_bp.route('/api/nodes')
 def get_nodes():
@@ -339,6 +350,48 @@ def import_ports():
         return jsonify({"status": "success", "message": f"成功导入 {len(data)} 条港口数据"})
     except Exception as e:
         return jsonify({"status": "error", "message": f"导入失败: {str(e)}"}), 500
+
+@data_bp.route('/api/import/port_geo', methods=['POST'])
+def import_port_geo():
+    if 'file' not in request.files:
+        return jsonify({"status": "error", "message": "没有上传文件"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"status": "error", "message": "未选择文件"}), 400
+    file_format = request.form.get('format', 'csv')
+    try:
+        if file_format == 'csv':
+            content = file.read().decode('utf-8')
+            lines = content.strip().split('\n')
+            headers = lines[0].strip().split(',')
+            data = []
+            for line in lines[1:]:
+                values = line.strip().split(',')
+                if len(values) == len(headers):
+                    data.append(dict(zip(headers, values)))
+        elif file_format == 'json':
+            data = json.loads(file.read().decode('utf-8'))
+            if not isinstance(data, list):
+                data = [data]
+        else:
+            return jsonify({"status": "error", "message": "不支持的文件格式"}), 400
+        session = Session()
+        session.query(PortGeo).delete()
+        for item in data:
+            port_geo = PortGeo(
+                id=int(item['ID']),
+                city_en=item['City_en'],
+                region=item['Region'],
+                latitude=float(item['Latitude']),
+                longitude=float(item['Longitude'])
+            )
+            session.add(port_geo)
+        session.commit()
+        session.close()
+        return jsonify({"status": "success", "message": f"成功导入 {len(data)} 条港口地理数据"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"导入失败: {str(e)}"}), 500
+
 
 @data_bp.route('/api/import/nodes', methods=['POST'])
 def import_nodes_data():
@@ -670,6 +723,8 @@ def query_paths():
         })
     session.close()
     return jsonify({'status': 'success', 'paths': result})
+
+
 
 # 这里继续迁移所有导入导出API（/api/import/*, /api/export等）
 # ... 

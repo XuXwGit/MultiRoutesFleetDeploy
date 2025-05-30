@@ -154,20 +154,23 @@ async function loadShips() {
                 ships.forEach(ship => {
                         const shipCard = document.createElement('div');
                         shipCard.className = 'col-12';
-                        shipCard.innerHTML = `
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
-                        <i class="bi bi-truck-front-fill fs-3 text-primary me-3"></i>
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold">${ship.name}</span>
-                                <span class="badge bg-${ship.status === '在航' ? 'success' : 'secondary'}">${ship.status}</span>
-                            </div>
-                            <div class="small text-muted">类型: ${ship.type} &nbsp;|&nbsp; 当前港口: ${ship.current_port}</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+                        shipCard.innerHTML = '<div class="card">' +
+                                '<div class="card-body d-flex align-items-center">' +
+                                '<i class="bi bi-truck-front-fill fs-3 text-primary me-3"></i>' +
+                                '<div class="flex-grow-1">' +
+                                '<div class="d-flex justify-content-between align-items-center mb-1">' +
+                                '<span class="bi bi-tsunami fw-bold">' + (ship.name || '未知船只名称') + '</span>' +
+                                '<span class="badge bg-' + (ship.status === '在航' ? 'success' : 'secondary') + '">' + (ship.status || '未知状态') + '</span>' +
+                                '</div>' +
+                                '<div class="small text-muted">' +
+                                '<span>类型: ' + (ship.type || '未知类型') + '</span>' +
+                                '</div>' +
+                                '<div class="small text-muted">' +
+                                '<span>容量: ' + (ship.capacity || '未知容量') + ' TEUs' + '</span>' +
+                                '</div>' +
+                                '</div>' +
+                                '</div>' +
+                                '</div>';
                         shipsList.appendChild(shipCard);
                 });
         } catch (error) {

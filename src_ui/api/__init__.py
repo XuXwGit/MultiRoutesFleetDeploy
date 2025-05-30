@@ -1,9 +1,12 @@
-def register_apis(app):
-    from .data_api import data_bp
-    from .analysis_api import analysis_bp
-    from .optimize_api import optimize_bp
-    from .log_api import log_bp
-    app.register_blueprint(data_bp)
-    app.register_blueprint(analysis_bp)
-    app.register_blueprint(optimize_bp)
-    app.register_blueprint(log_bp) 
+import pkgutil
+import importlib
+from flask import Flask, Blueprint
+
+def register_apis(app: Flask):
+    package = __package__ or 'api'
+    for _, module_name, _ in pkgutil.iter_modules(__path__):
+        module = importlib.import_module(f"{package}.{module_name}", __package__)
+        for attr in dir(module):
+            obj = getattr(module, attr)
+            if isinstance(obj, Blueprint):
+                app.register_blueprint(obj) 

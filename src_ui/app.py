@@ -3,8 +3,8 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src-py'))
 from flask import Flask, render_template
 from flask_cors import CORS
-from database import update_database_schema
-from api import register_apis
+from .database import update_database_schema
+from .api import register_apis
 
 def create_app():
     app = Flask(__name__)
@@ -27,6 +27,10 @@ def create_app():
     @app.route('/optimization')
     def optimization():
         return render_template('optimization.html')
+
+    @app.route('/network_design')
+    def network_design():
+        return render_template('network_design.html', current_page='network_design')
 
     @app.route('/analysis')
     def analysis():

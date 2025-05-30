@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>网络设计 - 智慧航运物流优化系统</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+        <!-- Leaflet 地图库 -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <!-- ECharts 图表库 -->
+        <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+        <!-- Plotly 图表库 -->
+        <script src="https://cdn.plot.ly/plotly-2.20.0.min.js"></script>
+        <!-- Leaflet 贝塞尔曲线插件 -->
+        <script src="https://unpkg.com/leaflet.curve/leaflet.curve.min.js"></script>
+        <style>
+                .card {
+                        border-radius: 1rem;
+                        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+                        margin-bottom: 1.5rem;
+                }
+
+                .nav-tabs .nav-link.active {
+                        background: #fff;
+                        border-color: #dee2e6 #dee2e6 #fff;
+                        font-weight: 600;
+                }
+
+                .nav-tabs {
+                        border-bottom: 2px solid #dee2e6;
+                }
+
+                .tab-pane {
+                        padding: 1.5rem 0;
+                }
+
+                #port-map,
+                #network-map,
+                #history-map {
+                        height: 600px;
+                        width: 100%;
+                        border-radius: 0.5rem;
+                }
+
+                .metric-card {
+                        background-color: #fff;
+                        border-radius: 0.5rem;
+                        padding: 1rem;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                        height: 100%;
+                }
+
+                .metric-card .value {
+                        font-size: 1.8rem;
+                        font-weight: 600;
+                        color: #2c3e50;
+                }
+
+                .metric-card .label {
+                        color: #7f8c8d;
+                        font-size: 0.9rem;
+                }
+
+                .progress-container {
+                        background-color: #fff;
+                        border-radius: 0.5rem;
+                        padding: 1.5rem;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                }
+
+                .optimization-progress {
+                        height: 400px;
+                }
+
+                .history-item {
+                        cursor: pointer;
+                        padding: 1rem;
+                        border-radius: 0.5rem;
+                        border: 1px solid #eee;
+                        margin-bottom: 0.5rem;
+                        transition: all 0.2s;
+                }
+
+                .history-item:hover {
+                        background-color: #f8f9fa;
+                        border-color: #dee2e6;
+                }
+
+                .history-item.active {
+                        background-color: #e9f7fe;
+                        border-color: #90cdf4;
+                }
+        </style>
+</head>
+
+<body>
+        <!-- 导航栏 -->
+        {% include 'navbar.html' with context %}
+
+        <div class="container-fluid mt-4">
+                <div class="row justify-content-center">
+                        <div class="col-12">
+                                <!-- 网络设计选项卡 -->
+                                <div class="card">
+                                        <div class="card-header bg-white pb-0 border-bottom-0">
+                                                <h4 class="mb-0">网络设计</h4>
+                                                <ul class="nav nav-tabs card-header-tabs mt-2" id="networkTabs"
+                                                        role="tablist">
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link active"
+                                                                        id="port-distribution-tab" data-bs-toggle="tab"
+                                                                        data-bs-target="#port-distribution"
+                                                                        type="button" role="tab"
+                                                                        aria-controls="port-distribution"
+                                                                        aria-selected="true">
+                                                                        <i class="bi bi-geo-alt me-1"></i>港口分布
+                                                                </button>
+                                                        </li>
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="network-optimize-tab"
+                                                                        data-bs-toggle="tab"
+                                                                        data-bs-target="#network-optimize" type="button"
+                                                                        role="tab" aria-controls="network-optimize"
+                                                                        aria-selected="false">
+                                                                        <i class="bi bi-cpu me-1"></i>网络优化
+                                                                </button>
+                                                        </li>
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="optimization-progress-tab"
+                                                                        data-bs-toggle="tab"
+                                                                        data-bs-target="#optimization-progress"
+                                                                        type="button" role="tab"
+                                                                        aria-controls="optimization-progress"
+                                                                        aria-selected="false">
+                                                                        <i class="bi bi-graph-up me-1"></i>优化进度
+                                                                </button>
+                                                        </li>
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="network-result-tab"
+                                                                        data-bs-toggle="tab"
+                                                                        data-bs-target="#network-result" type="button"
+                                                                        role="tab" aria-controls="network-result"
+                                                                        aria-selected="false">
+                                                                        <i class="bi bi-diagram-3 me-1"></i>网络结果
+                                                                </button>
+                                                        </li>
+                                                        <li class="nav-item" role="presentation">
+                                                                <button class="nav-link" id="history-results-tab"
+                                                                        data-bs-toggle="tab"
+                                                                        data-bs-target="#history-results" type="button"
+                                                                        role="tab" aria-controls="history-results"
+                                                                        aria-selected="false">
+                                                                        <i class="bi bi-clock-history me-1"></i>历史结果
+                                                                </button>
+                                                        </li>
+                                                </ul>
+                                        </div>
+                                        <div class="card-body">
+                                                <div class="tab-content" id="networkTabsContent">
+                                                        <!-- 港口分布 Tab -->
+                                                        <div class="tab-pane fade show active" id="port-distribution"
+                                                                role="tabpanel" aria-labelledby="port-distribution-tab">
+                                                                <div class="row">
+                                                                        <div class="col-12">
+                                                                                <div class="alert alert-info"
+                                                                                        role="alert">
+                                                                                        <i
+                                                                                                class="bi bi-info-circle me-2"></i>
+                                                                                        显示已加载的港口数据在地图上的分布情况。
+                                                                                </div>
+                                                                        </div>
+                                                                </div>
+                                                                <div class="row">
+                                                                        <div class="col-12">
+                                                                                <div id="port-map"></div>
+                                                                        </div>
+                                                                </div>
+                                                                <div class="row mt-4">
+                                                                        <div class="col-md-3">
+                                                                                <div class="metric-card">
+                                                                                        <div class="label">港口总数</div>
+                                                                                        <div class="value"
+                                                                                                id="total-ports">0</div>
+                                                                                </div>
+                                                                        </div>
+                                                                        <div class="col-md-3">
+                                                                                <div class="metric-card">
+                                                                                        <div class="label">枢纽港口数</div>
+                                                                                        <div class="value"
+                                                                                                id="hub-ports">0</div>
+                                                                                </div>
+                                                                        </div>
+                                                                        <div class="col-md-3">
+                                                                                <div class="metric-card">
+                                                                                        <div class="label">区域数量</div>
+                                                                                        <div class="value"
+                                                                                                id="region-count">0
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
+                                                                        <div class="col-md-3">
+                                                                                <div class="metric-card">
+                                                                                        <div class="label">总吞吐量(TEU)
+                                                                                        </div>
+                                                                                        <div class="value"
+                                                                                                id="total-throughput">0
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+
+                                                        <!-- 网络优化 Tab -->
+                                                        <div class="tab-pane fade" id="network-optimize" role="tabpanel"
+                                                                aria-labelledby="network-optimize-tab">
+                                                                <div class="container mt-2">
+                                                                        <div class="card mb-4">
+                                                                                <div
+                                                                                        class="card-header bg-primary text-white">
+                                                                                        参数设置</div>
+                                                                                <div class="card-body">
+                                                                                        <ul class="nav nav-tabs"
+                                                                                                id="paramTabs"
+                                                                                                role="tablist">
+                                                                                                <li class="nav-item"
+                                                                                                        role="presentation">
+                                                                                                        <button class="nav-link active"
+                                                                                                                id="model-tab"
+                                                                                                                data-bs-toggle="tab"
+                                                                                                                data-bs-target="#model"
+                                                                                                                type="button"
+                                                                                                                role="tab">模型参数</button>
+                                                                                                </li>
+                                                                                                <li class="nav-item"
+                                                                                                        role="presentation">
+                                                                                                        <button class="nav-link"
+                                                                                                                id="cost-tab"
+                                                                                                                data-bs-toggle="tab"
+                                                                                                                data-bs-target="#cost"
+                                                                                                                type="button"
+                                                                                                                role="tab">成本参数</button>
+                                                                                                </li>
+                                                                                                <li class="nav-item"
+                                                                                                        role="presentation">
+                                                                                                        <button class="nav-link"
+                                                                                                                id="algo-tab"
+                                                                                                                data-bs-toggle="tab"
+                                                                                                                data-bs-target="#algo"
+                                                                                                                type="button"
+                                                                                                                role="tab">算法参数</button>
+                                                                                                </li>
+                                                                                                <li class="nav-item"
+                                                                                                        role="presentation">
+                                                                                                        <button class="nav-link"
+                                                                                                                id="objective-tab"
+                                                                                                                data-bs-toggle="tab"
+                                                                                                                data-bs-target="#objective"
+                                                                                                                type="button"
+                                                                                                                role="tab">目标函数</button>
+                                                                                                </li>
+                                                                                        </ul>
+                                                                                        <div class="tab-content p-4 border border-top-0"
+                                                                                                id="paramTabsContent">
+                                                                                                <!-- 模型参数 -->
+                                                                                                <div class="tab-pane fade show active"
+                                                                                                        id="model"
+                                                                                                        role="tabpanel">
+                                                                                                        <form
+                                                                                                                id="modelParamsForm">
+                                                                                                                <div
+                                                                                                                        class="row">
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>每条路线最大港口数</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="max_ports_per_route"
+                                                                                                                                        min="2"
+                                                                                                                                        max="20"
+                                                                                                                                        value="8"
+                                                                                                                                        title="每条路线最大港口数"
+                                                                                                                                        placeholder="请输入最大港口数">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>每条路线最小港口数</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="min_ports_per_route"
+                                                                                                                                        min="2"
+                                                                                                                                        max="20"
+                                                                                                                                        value="2"
+                                                                                                                                        title="每条路线最小港口数"
+                                                                                                                                        placeholder="请输入最小港口数">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>最大规划航线数量</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="max_routes"
+                                                                                                                                        min="1"
+                                                                                                                                        max="50"
+                                                                                                                                        value="10"
+                                                                                                                                        title="最大规划航线数量"
+                                                                                                                                        placeholder="请输入最大航线数">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>最小规划航线数量</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="min_routes"
+                                                                                                                                        min="1"
+                                                                                                                                        max="50"
+                                                                                                                                        value="3"
+                                                                                                                                        title="最小规划航线数量"
+                                                                                                                                        placeholder="请输入最小航线数">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>每条路线最大距离(海里)</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="max_distance"
+                                                                                                                                        min="1000"
+                                                                                                                                        max="50000"
+                                                                                                                                        value="20000"
+                                                                                                                                        title="每条路线最大距离"
+                                                                                                                                        placeholder="请输入最大距离">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>最小载重率</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="min_load_factor"
+                                                                                                                                        min="0"
+                                                                                                                                        max="1"
+                                                                                                                                        step="0.01"
+                                                                                                                                        value="0.6"
+                                                                                                                                        title="最小载重率"
+                                                                                                                                        placeholder="请输入最小载重率">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>最大载重率</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="max_load_factor"
+                                                                                                                                        min="0"
+                                                                                                                                        max="1"
+                                                                                                                                        step="0.01"
+                                                                                                                                        value="0.9"
+                                                                                                                                        title="最大载重率"
+                                                                                                                                        placeholder="请输入最大载重率">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>最大转运次数</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="max_transfer"
+                                                                                                                                        min="0"
+                                                                                                                                        max="5"
+                                                                                                                                        value="2"
+                                                                                                                                        title="最大转运次数"
+                                                                                                                                        placeholder="请输入最大转运次数">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>默认航速(节)</label>
+                                                                                                                                <input type="number"
+                                                                                                                                        class="form-control"
+                                                                                                                                        name="default_speed"
+                                                                                                                                        min="10"
+                                                                                                                                        max="60"
+                                                                                                                                        value="20"
+                                                                                                                                        title="默认航速"
+                                                                                                                                        placeholder="请输入默认航速">
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-6 mb-3">
+                                                                                                                                <label>服务频率</label>
+                                                                                                                                <select class="form-select"
+                                                                                                                                        name="service_frequency"
+                                                                                                                                        title="服务频率"
+                                                                                                                                        placeholder="请选择服务频率">
+                                                                                                                                        <option
+                                                                                                                                                value="weekly">
+                                                                                                                                                每周一次
+                                                                                                                                        </option>
+                                                                                                                                        <option
+                                                                                                                                                value="biweekly">
+                                                                                                                                                每两周一次
+                                                                                                                                        </option>
+                                                                                                                                        <option
+                                                                                                                                                value="monthly">
+                                                                                                                                                每月一次
+                                                                                                                                        </option>
+                                                                                                                                </select>
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-12 mb-3">
+                                                                                                                                <label>必经港口（多选）</label>
+                                                                                                                                <select class="form-select"
+                                                                                                                                        id="requiredPortsSelect"
+                                                                                                                                        name="required_ports"
+                                                                                                                                        multiple
+                                                                                                                                        title="必经港口多选">
+                                                                                                                                </select>
+                                                                                                                        </div>
+                                                                                                                </div>
+                                                                                                        </form>
+                                                                                                </div>
+
+                                                                                                <!-- 成本参数 -->
+                                                                                                <div class="tab-pane fade"
+                                                                                                        id="cost"
+                                                                                                        role="tabpanel">
+                                                                                                        <div
+                                                                                                                class="row">
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>固定成本</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="fixed_cost"
+                                                                                                                                value="1000"
+                                                                                                                                title="固定成本"
+                                                                                                                                placeholder="请输入固定成本">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>距离成本</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="distance_cost"
+                                                                                                                                value="1.0"
+                                                                                                                                title="距离成本"
+                                                                                                                                placeholder="请输入距离成本">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>时间成本</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="time_cost"
+                                                                                                                                value="10.0"
+                                                                                                                                title="时间成本"
+                                                                                                                                placeholder="请输入时间成本">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>港口成本</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="port_cost"
+                                                                                                                                value="500"
+                                                                                                                                title="港口成本"
+                                                                                                                                placeholder="请输入港口成本">
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                                <!-- 算法参数 -->
+                                                                                                <div class="tab-pane fade"
+                                                                                                        id="algo"
+                                                                                                        role="tabpanel">
+                                                                                                        <div
+                                                                                                                class="row">
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>优化算法</label>
+                                                                                                                        <select class="form-select"
+                                                                                                                                name="algorithm"
+                                                                                                                                id="algorithmSelect"
+                                                                                                                                title="优化算法"
+                                                                                                                                placeholder="请选择优化算法">
+                                                                                                                                <option
+                                                                                                                                        value="ALNS">
+                                                                                                                                        ALNS
+                                                                                                                                </option>
+                                                                                                                                <option
+                                                                                                                                        value="GA">
+                                                                                                                                        遗传算法
+                                                                                                                                </option>
+                                                                                                                                <option
+                                                                                                                                        value="SA">
+                                                                                                                                        模拟退火
+                                                                                                                                </option>
+                                                                                                                        </select>
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>最大迭代次数</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="generations"
+                                                                                                                                value="100"
+                                                                                                                                title="迭代次数"
+                                                                                                                                placeholder="请输入迭代次数">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>最大运行时间(秒)</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="time_limit"
+                                                                                                                                value="300"
+                                                                                                                                title="最大运行时间"
+                                                                                                                                placeholder="请输入最大运行时间">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>权重调整参数</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="weight_adjust"
+                                                                                                                                value="0.1"
+                                                                                                                                title="权重调整参数"
+                                                                                                                                placeholder="请输入权重调整参数">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>全局最优解奖励(ω1)</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="omega_1"
+                                                                                                                                value="10.0"
+                                                                                                                                title="全局最优解奖励(ω1)"
+                                                                                                                                placeholder="请输入全局最优解奖励(ω1)">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>当前最优解奖励(ω2)</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="omega_2"
+                                                                                                                                value="5.0"
+                                                                                                                                title="当前最优解奖励(ω2)"
+                                                                                                                                placeholder="请输入当前最优解奖励(ω2)">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>接受解奖励(ω3)</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="omega_3"
+                                                                                                                                value="2.0"
+                                                                                                                                title="接受解奖励(ω3)"
+                                                                                                                                placeholder="请输入接受解奖励(ω3)">
+                                                                                                                </div>
+                                                                                                                <div
+                                                                                                                        class="col-md-6 mb-3">
+                                                                                                                        <label>拒绝解惩罚(ω4)</label>
+                                                                                                                        <input type="number"
+                                                                                                                                class="form-control"
+                                                                                                                                name="omega_4"
+                                                                                                                                value="1.0"
+                                                                                                                                title="拒绝解惩罚(ω4)"
+                                                                                                                                placeholder="请输入拒绝解惩罚(ω4)">
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                                <!-- 目标函数权重设置 -->
+                                                                                                <div class="tab-pane fade"
+                                                                                                        id="objective"
+                                                                                                        role="tabpanel">
+                                                                                                        <div
+                                                                                                                class="mb-3">
+                                                                                                                <label>优化目标</label>
+                                                                                                                <select class="form-select"
+                                                                                                                        id="objectiveTypeSelect"
+                                                                                                                        name="objective_type"
+                                                                                                                        title="目标函数类型">
+                                                                                                                        <option
+                                                                                                                                value="single">
+                                                                                                                                单目标
+                                                                                                                        </option>
+                                                                                                                        <option
+                                                                                                                                value="multi">
+                                                                                                                                多目标
+                                                                                                                        </option>
+                                                                                                                </select>
+                                                                                                        </div>
+                                                                                                        <div
+                                                                                                                id="singleObjectiveDiv">
+                                                                                                                <label>单目标优化指标</label>
+                                                                                                                <select class="form-select"
+                                                                                                                        id="singleObjectiveSelect"
+                                                                                                                        name="single_objective"
+                                                                                                                        title="单目标类型">
+                                                                                                                        <option
+                                                                                                                                value="cost">
+                                                                                                                                成本
+                                                                                                                        </option>
+                                                                                                                        <option
+                                                                                                                                value="demand">
+                                                                                                                                需求
+                                                                                                                        </option>
+                                                                                                                        <option
+                                                                                                                                value="utility">
+                                                                                                                                效用
+                                                                                                                        </option>
+                                                                                                                </select>
+                                                                                                        </div>
+                                                                                                        <div id="multiObjectiveDiv"
+                                                                                                                style="display:none;">
+                                                                                                                <div
+                                                                                                                        class="row">
+                                                                                                                        <div
+                                                                                                                                class="col-md-4 mb-3">
+                                                                                                                                <label>成本权重</label>
+                                                                                                                                <input type="range"
+                                                                                                                                        class="form-range"
+                                                                                                                                        min="0"
+                                                                                                                                        max="1"
+                                                                                                                                        step="0.05"
+                                                                                                                                        value="0.6"
+                                                                                                                                        id="costWeightRange"
+                                                                                                                                        title="成本权重"
+                                                                                                                                        placeholder="请输入成本权重">
+                                                                                                                                <span
+                                                                                                                                        id="costWeightValue">0.6</span>
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-4 mb-3">
+                                                                                                                                <label>需求权重</label>
+                                                                                                                                <input type="range"
+                                                                                                                                        class="form-range"
+                                                                                                                                        min="0"
+                                                                                                                                        max="1"
+                                                                                                                                        step="0.05"
+                                                                                                                                        value="0.3"
+                                                                                                                                        id="demandWeightRange"
+                                                                                                                                        title="需求权重"
+                                                                                                                                        placeholder="请输入需求权重">
+                                                                                                                                <span
+                                                                                                                                        id="demandWeightValue">0.3</span>
+                                                                                                                        </div>
+                                                                                                                        <div
+                                                                                                                                class="col-md-4 mb-3">
+                                                                                                                                <label>效用权重</label>
+                                                                                                                                <input type="range"
+                                                                                                                                        class="form-range"
+                                                                                                                                        min="0"
+                                                                                                                                        max="1"
+                                                                                                                                        step="0.05"
+                                                                                                                                        value="0.1"
+                                                                                                                                        id="utilityWeightRange"
+                                                                                                                                        title="效用权重"
+                                                                                                                                        placeholder="请输入效用权重">
+                                                                                                                                <span
+                                                                                                                                        id="utilityWeightValue">0.1</span>
+                                                                                                                        </div>
+                                                                                                                </div>
+                                                                                                                <div class="alert alert-warning"
+                                                                                                                        id="weightSumAlert"
+                                                                                                                        style="display:none;">
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                        </div>
+                                                                                        <!-- 开始优化按钮和进度条 -->
+                                                                                        <div class="my-4">
+                                                                                                <button class="btn btn-success w-100 mb-3"
+                                                                                                        id="startOptimizeBtn"
+                                                                                                        onclick="startOptimize()">开始优化</button>
+                                                                                                <div class="progress w-100"
+                                                                                                        style="height: 24px; display:none;"
+                                                                                                        id="optProgressBar">
+                                                                                                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                                                                                role="progressbar"
+                                                                                                                style="width: 0%"
+                                                                                                                id="optProgress">
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
+                                                                        <!-- 优化结果展示区 -->
+                                                                        <div class="card">
+                                                                                <div
+                                                                                        class="card-header bg-info text-white">
+                                                                                        优化结果</div>
+                                                                                <div class="card-body" id="optResult">
+                                                                                        <div class="row text-center">
+                                                                                                <div
+                                                                                                        class="col-md-4 col-6 mb-4">
+                                                                                                        <div
+                                                                                                                class="card bg-light result-card">
+                                                                                                                <div
+                                                                                                                        class="card-body">
+                                                                                                                        <h6>设计成本
+                                                                                                                        </h6>
+                                                                                                                        <h4
+                                                                                                                                id="result_cost">
+                                                                                                                                -
+                                                                                                                        </h4>
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                                <div
+                                                                                                        class="col-md-4 col-6 mb-4">
+                                                                                                        <div
+                                                                                                                class="card bg-light result-card">
+                                                                                                                <div
+                                                                                                                        class="card-body">
+                                                                                                                        <h6>捕获需求
+                                                                                                                        </h6>
+                                                                                                                        <h4
+                                                                                                                                id="result_demand">
+                                                                                                                                -
+                                                                                                                        </h4>
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                                <div
+                                                                                                        class="col-md-4 col-6 mb-4">
+                                                                                                        <div
+                                                                                                                class="card bg-light result-card">
+                                                                                                                <div
+                                                                                                                        class="card-body">
+                                                                                                                        <h6>最大效用
+                                                                                                                        </h6>
+                                                                                                                        <h4
+                                                                                                                                id="result_utility">
+                                                                                                                                -
+                                                                                                                        </h4>
+                                                                                                                </div>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                                <!-- 航线网络方案表格 -->
+                                                                                                <div class="card mt-3">
+                                                                                                        <div
+                                                                                                                class="card-header bg-secondary text-white">
+                                                                                                                航线网络方案
+                                                                                                        </div>
+                                                                                                        <div
+                                                                                                                class="card-body">
+                                                                                                                <table
+                                                                                                                        class="table table-bordered table-sm align-middle text-center">
+                                                                                                                        <thead>
+                                                                                                                                <tr>
+                                                                                                                                        <th>航线编号
+                                                                                                                                        </th>
+                                                                                                                                        <th>停靠顺序
+                                                                                                                                        </th>
+                                                                                                                                        <th>航程里程
+                                                                                                                                        </th>
+                                                                                                                                        <th>往返时间
+                                                                                                                                        </th>
+                                                                                                                                </tr>
+                                                                                                                        </thead>
+                                                                                                                        <tbody
+                                                                                                                                id="networkPlanTableBody">
+                                                                                                                        </tbody>
+                                                                                                                </table>
+                                                                                                        </div>
+                                                                                                </div>
+                                                                                        </div>
+                                                                                </div>
+                                                                                <!-- 日志抽屉按钮和抽屉本体 -->
+                                                                                <div id="logDrawerBtn"
+                                                                                        onclick="openLogDrawer()">日志
+                                                                                </div>
+                                                                                <div id="logDrawer"
+                                                                                        class="drawer-bottom"
+                                                                                        style="display:none;position:fixed;bottom:0;left:0;width:100%;background:#222;color:#fff;z-index:9999;max-height:40vh;overflow:auto;box-shadow:0 -2px 8px rgba(0,0,0,0.2);">
+                                                                                        <div
+                                                                                                style="padding:8px 16px;border-bottom:1px solid #444;display:flex;justify-content:space-between;align-items:center;">
+                                                                                                <span>日志</span>
+                                                                                                <button onclick="closeLogDrawer()"
+                                                                                                        style="background:none;border:none;color:#fff;font-size:1.5rem;">&times;</button>
+                                                                                        </div>
+                                                                                        <div id="optLog"
+                                                                                                style="padding:12px 16px;font-size:1rem;line-height:1.6;">
+                                                                                        </div>
+                                                                                </div>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+
+                                                        <!-- 优化进度 Tab -->
+                                                        <div class="tab-pane fade" id="optimization-progress"
+                                                                role="tabpanel"
+                                                                aria-labelledby="optimization-progress-tab">
+                                                                <div class="mb-3">
+                                                                        <div class="progress" style="height: 24px;">
+                                                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                                                        role="progressbar"
+                                                                                        style="width: 0%"
+                                                                                        id="progressBarInChart"></div>
+                                                                        </div>
+                                                                </div>
+                                                                <div id="optimization-chart" style="height:400px;">
+                                                                </div>
+                                                        </div>
+
+                                                        <!-- 历史结果 Tab -->
+                                                        <div class="tab-pane fade" id="history-results" role="tabpanel"
+                                                                aria-labelledby="history-results-tab">
+                                                                <div class="row">
+                                                                        <div class="col-md-3">
+                                                                                <div id="history-list"></div>
+                                                                        </div>
+                                                                        <div class="col-md-9">
+                                                                                <div id="history-map"
+                                                                                        style="height:400px;"></div>
+                                                                                <div id="history-details" class="mt-3">
+                                                                                </div>
+                                                                        </div>
+                                                                </div>
+                                                        </div>
+                                                </div>
+                                        </div>
+                                </div>
+                        </div>
+                </div>
+
+                <!-- Bootstrap JS放在所有自定义JS之前 -->
+                <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                                // 地图变量提升到外部作用域
+                                let portMap = null;
+                                let networkMap = null;
+                                let historyMap = null;
+
+                                // Tab激活时初始化地图，只初始化一次
+                                function initPortMap() {
+                                        if (!portMap && document.getElementById('port-map')) {
+                                                portMap = L.map('port-map').setView([30, 120], 3);
+                                                L.tileLayer('https://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=fae5b1e1b6e2b1e1b6e2b1e1b6e2b1e1', {
+                                                        subdomains: ['0', '1', '2', '3',
+                                                                '4', '5', '6',
+                                                                '7'
+                                                        ],
+                                                        attribution: '© 天地图'
+                                                }).addTo(portMap);
+                                                // 加载港口地理数据
+                                                fetch('/api/port_geo')
+                                                        .then(response => response.json())
+                                                        .then(data => {
+                                                                if (data && data.length > 0) {
+                                                                        loadPortsToMap(data,
+                                                                                portMap);
+                                                                        updatePortMetrics(data);
+                                                                } else {
+                                                                        console.log(
+                                                                                'No port data available'
+                                                                        );
+                                                                }
+                                                        })
+                                                        .catch(error => console.error(
+                                                                'Error loading port data:',
+                                                                error));
+                                        }
+                                }
+
+                                function initNetworkMap() {
+                                        if (!networkMap && document.getElementById('network-map')) {
+                                                networkMap = L.map('network-map').setView([30, 120], 3);
+                                                L.tileLayer('https://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=fae5b1e1b6e2b1e1b6e2b1e1b6e2b1e1', {
+                                                        subdomains: ['0', '1', '2', '3',
+                                                                '4', '5', '6',
+                                                                '7'
+                                                        ],
+                                                        attribution: '© 天地图'
+                                                }).addTo(networkMap);
+                                                // 加载网络结果数据
+                                                fetch('/api/design/network')
+                                                        .then(response => response.json())
+                                                        .then(data => {
+                                                                if (data && data.ports && data
+                                                                        .routes) {
+                                                                        loadNetworkToMap(data,
+                                                                                networkMap
+                                                                        );
+                                                                        updateNetworkMetrics(
+                                                                                data);
+                                                                } else {
+                                                                        console.log(
+                                                                                'No network data available'
+                                                                        );
+                                                                }
+                                                        })
+                                                        .catch(error => console.error(
+                                                                'Error loading network data:',
+                                                                error));
+                                        }
+                                }
+
+                                function initHistoryMap() {
+                                        if (!historyMap && document.getElementById('history-map')) {
+                                                historyMap = L.map('history-map').setView([30, 120], 3);
+                                                L.tileLayer('https://t{s}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=fae5b1e1b6e2b1e1b6e2b1e1b6e2b1e1', {
+                                                        subdomains: ['0', '1', '2', '3',
+                                                                '4', '5', '6',
+                                                                '7'
+                                                        ],
+                                                        attribution: '© 天地图'
+                                                }).addTo(historyMap);
+                                                // 加载历史结果列表
+                                                fetch('/api/design/history')
+                                                        .then(response => response.json())
+                                                        .then(data => {
+                                                                if (data && data.length > 0) {
+                                                                        loadHistoryList(data);
+                                                                } else {
+                                                                        document.getElementById(
+                                                                                        'history-list'
+                                                                                )
+                                                                                .innerHTML =
+                                                                                '<div class="text-muted text-center py-5">暂无历史记录</div>';
+                                                                }
+                                                        })
+                                                        .catch(error => console.error(
+                                                                'Error loading history data:',
+                                                                error));
+                                        }
+                                }
+                                // Tab切换时初始化对应地图
+                                const tabMapInit = {
+                                        'port-distribution-tab': initPortMap,
+                                        'network-result-tab': initNetworkMap,
+                                        'history-results-tab': initHistoryMap
+                                };
+                                document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(
+                                        tab => {
+                                                tab.addEventListener('shown.bs.tab', function (
+                                                        event) {
+                                                        const fn = tabMapInit[
+                                                                event
+                                                                .target
+                                                                .id];
+                                                        if (fn) fn();
+                                                        // 触发resize
+                                                        if (event.target.id ===
+                                                                'port-distribution-tab' &&
+                                                                portMap) portMap
+                                                                .invalidateSize();
+                                                        if (event.target.id ===
+                                                                'network-result-tab' &&
+                                                                networkMap)
+                                                                networkMap
+                                                                .invalidateSize();
+                                                        if (event.target.id ===
+                                                                'history-results-tab' &&
+                                                                historyMap)
+                                                                historyMap
+                                                                .invalidateSize();
+                                                });
+                                        });
+                                // 页面加载时初始化第一个Tab地图
+                                initPortMap();
+
+                                // 初始化优化进度图表
+                                const chartDom = document.getElementById('optimization-chart');
+                                if (chartDom) {
+                                        const progressChart = echarts.init(chartDom);
+                                        const progressOption = {
+                                                title: {
+                                                        text: '优化过程 - 目标函数值变化',
+                                                        left: 'center'
+                                                },
+                                                tooltip: {
+                                                        trigger: 'axis'
+                                                },
+                                                xAxis: {
+                                                        type: 'category',
+                                                        name: '迭代次数',
+                                                        data: []
+                                                },
+                                                yAxis: {
+                                                        type: 'value',
+                                                        name: '目标函数值'
+                                                },
+                                                series: [{
+                                                        name: '当前解',
+                                                        type: 'line',
+                                                        data: [],
+                                                        smooth: true,
+                                                        itemStyle: {
+                                                                color: '#3498db'
+                                                        }
+                                                }, {
+                                                        name: '最优解',
+                                                        type: 'line',
+                                                        data: [],
+                                                        smooth: true,
+                                                        itemStyle: {
+                                                                color: '#2ecc71'
+                                                        }
+                                                }]
+                                        };
+                                        progressChart.setOption(progressOption);
+                                        // 窗口大小改变时重新调整图表尺寸
+                                        window.addEventListener('resize', function () {
+                                                progressChart.resize();
+                                        });
+                                }
+
+                                // 辅助函数: 加载港口数据到地图
+                                function loadPortsToMap(ports, map) {
+                                        ports.forEach(port => {
+                                                const lat = port.latitude || port.lat ||
+                                                        0;
+                                                const lon = port.longitude || port
+                                                        .lon || 0;
+                                                const name = port.name || port
+                                                        .port_name ||
+                                                        '未知港口';
+                                                const isHub = port.is_hub || false;
+                                                const marker = L.circleMarker([lat,
+                                                        lon
+                                                ], {
+                                                        radius: isHub ?
+                                                                8 : 5,
+                                                        color: isHub ?
+                                                                '#e74c3c' :
+                                                                '#3498db',
+                                                        fillColor: isHub ?
+                                                                '#e74c3c' :
+                                                                '#3498db',
+                                                        fillOpacity: 0.8,
+                                                        weight: 1
+                                                }).addTo(map);
+                                                marker.bindPopup(
+                                                        `<b>${name}</b><br>坐标: ${lat.toFixed(4)}, ${lon.toFixed(4)}<br>吞吐量: ${port.throughput || 0} TEU`
+                                                );
+                                        });
+                                }
+
+                                // 辅助函数: 更新港口指标
+                                function updatePortMetrics(ports) {
+                                        document.getElementById('total-ports').textContent = ports
+                                                .length;
+                                        document.getElementById('hub-ports').textContent = ports.filter(
+                                                p => p
+                                                .is_hub).length;
+
+                                        const regions = new Set(ports.map(p => p.region));
+                                        document.getElementById('region-count').textContent = regions
+                                                .size;
+
+                                        const totalThroughput = ports.reduce((sum, p) => sum + (p
+                                                .throughput ||
+                                                0), 0);
+                                        document.getElementById('total-throughput').textContent =
+                                                new Intl
+                                                .NumberFormat().format(totalThroughput);
+                                }
+
+                                // 辅助函数: 加载网络到地图
+                                function loadNetworkToMap(data, map) {
+                                        const {
+                                                ports,
+                                                routes
+                                        } = data;
+
+                                        // 添加港口标记
+                                        const portMarkers = {};
+                                        ports.forEach(port => {
+                                                const lat = port.latitude || port.lat ||
+                                                        0;
+                                                const lon = port.longitude || port
+                                                        .lon || 0;
+                                                const name = port.name || port
+                                                        .port_name ||
+                                                        '未知港口';
+                                                const marker = L.circleMarker([lat,
+                                                        lon
+                                                ], {
+                                                        radius: 5,
+                                                        color: '#3498db',
+                                                        fillColor: '#3498db',
+                                                        fillOpacity: 0.8,
+                                                        weight: 1
+                                                }).addTo(map);
+                                                marker.bindPopup(`<b>${name}</b>`);
+                                                portMarkers[port.id] = [lat, lon];
+                                        });
+
+                                        // 添加航线连接
+                                        const colors = ['#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+                                                '#1abc9c',
+                                                '#34495e', '#e67e22', '#3498db'
+                                        ];
+                                        routes.forEach((route, idx) => {
+                                                const color = colors[idx % colors
+                                                        .length];
+                                                const routePoints = route.port_sequence
+                                                        .map(
+                                                                portId => portMarkers[
+                                                                        portId]);
+                                                if (routePoints.length > 2 && typeof L
+                                                        .curve === 'function') {
+                                                        // 构造贝塞尔曲线指令
+                                                        let curvePoints = ['M',
+                                                                routePoints[0]
+                                                        ];
+                                                        for (let i = 1; i < routePoints
+                                                                .length - 1; i += 2) {
+                                                                if (routePoints[i +
+                                                                                1]) {
+                                                                        curvePoints
+                                                                                .push('Q',
+                                                                                        routePoints[
+                                                                                                i
+                                                                                        ],
+                                                                                        routePoints[
+                                                                                                i +
+                                                                                                1
+                                                                                        ]
+                                                                                );
+                                                                }
+                                                        }
+                                                        L.curve(curvePoints, {
+                                                                        color: color,
+                                                                        weight: 2,
+                                                                        opacity: 0.8
+                                                                }).addTo(map)
+                                                                .bindPopup(
+                                                                        `<b>航线 ${route.id || idx+1}</b><br>停靠港口数: ${routePoints.length}`
+                                                                );
+                                                } else if (routePoints.length > 1) {
+                                                        L.polyline(routePoints, {
+                                                                        color: color,
+                                                                        weight: 2,
+                                                                        opacity: 0.8
+                                                                }).addTo(map)
+                                                                .bindPopup(
+                                                                        `<b>航线 ${route.id || idx+1}</b><br>停靠港口数: ${routePoints.length}`
+                                                                );
+                                                }
+                                        });
+                                }
+
+                                // 辅助函数: 更新网络指标
+                                function updateNetworkMetrics(data) {
+                                        const {
+                                                routes,
+                                                statistics
+                                        } = data;
+                                        document.getElementById('route-count').textContent = routes
+                                                .length;
+
+                                        const coveredPortIds = new Set();
+                                        routes.forEach(route => {
+                                                route.port_sequence.forEach(portId => {
+                                                        coveredPortIds
+                                                                .add(
+                                                                        portId
+                                                                );
+                                                });
+                                        });
+                                        document.getElementById('covered-ports').textContent =
+                                                coveredPortIds
+                                                .size;
+
+                                        if (statistics) {
+                                                document.getElementById('total-cost').textContent =
+                                                        new Intl
+                                                        .NumberFormat().format(statistics.total_cost ||
+                                                                0);
+                                                document.getElementById('solve-time').textContent =
+                                                        `${(statistics.solve_time || 0).toFixed(1)}s`;
+                                        }
+                                }
+
+                                // 辅助函数: 加载历史列表
+                                function loadHistoryList(historyData) {
+                                        const listContainer = document.getElementById('history-list');
+                                        listContainer.innerHTML = '';
+
+                                        historyData.forEach((item, idx) => {
+                                                const historyItem = document
+                                                        .createElement(
+                                                                'div');
+                                                historyItem.className = 'history-item';
+                                                historyItem.innerHTML = `
+                        <h6>${item.datetime || `方案 ${idx+1}`}</h6>
+                        <div>方法: ${item.method || '未知'}</div>
+                        <div>成本: ${new Intl.NumberFormat().format(item.total_cost || 0)}</div>
+                        <div>航线数: ${item.routes?.length || 0}</div>
+                    `;
+                                                historyItem.addEventListener('click',
+                                                        () => {
+                                                                document.querySelectorAll(
+                                                                                '.history-item'
+                                                                        )
+                                                                        .forEach(
+                                                                                el =>
+                                                                                el
+                                                                                .classList
+                                                                                .remove(
+                                                                                        'active'
+                                                                                )
+                                                                        );
+                                                                historyItem
+                                                                        .classList
+                                                                        .add(
+                                                                                'active'
+                                                                        );
+                                                                showHistoryDetails
+                                                                        (item,
+                                                                                historyMap
+                                                                        );
+                                                        });
+                                                listContainer.appendChild(historyItem);
+                                        });
+
+                                        // 默认显示第一个历史记录
+                                        if (historyData.length > 0) {
+                                                listContainer.firstChild.classList.add('active');
+                                                showHistoryDetails(historyData[0], historyMap);
+                                        }
+                                }
+
+                                // 辅助函数: 显示历史详情
+                                function showHistoryDetails(historyItem, map) {
+                                        // 清除地图上的所有图层
+                                        map.eachLayer(layer => {
+                                                if (layer instanceof L.TileLayer ===
+                                                        false) {
+                                                        map.removeLayer(layer);
+                                                }
+                                        });
+
+                                        // 加载网络到地图
+                                        loadNetworkToMap(historyItem, map);
+
+                                        // 更新详情信息
+                                        const detailsContainer = document.getElementById(
+                                                'history-details');
+                                        detailsContainer.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>基本信息</h5>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>优化时间</th>
+                                    <td>${historyItem.datetime || '未知'}</td>
+                                </tr>
+                                <tr>
+                                    <th>优化方法</th>
+                                    <td>${historyItem.method || '未知'}</td>
+                                </tr>
+                                <tr>
+                                    <th>总成本</th>
+                                    <td>${new Intl.NumberFormat().format(historyItem.total_cost || 0)}</td>
+                                </tr>
+                                <tr>
+                                    <th>航线数量</th>
+                                    <td>${historyItem.routes?.length || 0}</td>
+                                </tr>
+                                <tr>
+                                    <th>求解时间</th>
+                                    <td>${historyItem.statistics?.solve_time?.toFixed(1) || 0}s</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>航线详情</h5>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>航线ID</th>
+                                            <th>停靠港口数</th>
+                                            <th>运营成本</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${(historyItem.routes || []).map((route, idx) => `
+                                            <tr>
+                                                <td>${route.id || idx+1}</td>
+                                                <td>${route.port_sequence?.length || 0}</td>
+                                                <td>${new Intl.NumberFormat().format(route.cost || 0)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                                }
+                        });
+
+                        // 日志抽屉函数
+                        function openLogDrawer() {
+                                document.getElementById('logDrawer').style.display = '';
+                        }
+
+                        function closeLogDrawer() {
+                                document.getElementById('logDrawer').style.display = 'none';
+                                if (window.logEventSource) {
+                                        window.logEventSource.close();
+                                        window.logEventSource = null;
+                                }
+                        }
+
+                        // 权重滑块联动校验、单/多目标切换
+                        function updateWeightSum() {
+                                const cost = parseFloat(document.getElementById('costWeightRange').value);
+                                const demand = parseFloat(document.getElementById('demandWeightRange').value);
+                                const utility = parseFloat(document.getElementById('utilityWeightRange').value);
+                                document.getElementById('costWeightValue').innerText = cost;
+                                document.getElementById('demandWeightValue').innerText = demand;
+                                document.getElementById('utilityWeightValue').innerText = utility;
+                                const sum = cost + demand + utility;
+                                const alertDiv = document.getElementById('weightSumAlert');
+                                if (Math.abs(sum - 1.0) > 0.01) {
+                                        alertDiv.style.display = '';
+                                        alertDiv.innerText = `警告：权重总和为 ${sum.toFixed(2)}，应为1.0`;
+                                } else {
+                                        alertDiv.style.display = 'none';
+                                }
+                        }
+                        document.getElementById('costWeightRange').oninput = updateWeightSum;
+                        document.getElementById('demandWeightRange').oninput = updateWeightSum;
+                        document.getElementById('utilityWeightRange').oninput = updateWeightSum;
+
+                        document.getElementById('objectiveTypeSelect').onchange = function () {
+                                if (this.value === 'single') {
+                                        document.getElementById('singleObjectiveDiv').style.display = '';
+                                        document.getElementById('multiObjectiveDiv').style.display = 'none';
+                                } else {
+                                        document.getElementById('singleObjectiveDiv').style.display = 'none';
+                                        document.getElementById('multiObjectiveDiv').style.display = '';
+                                        updateWeightSum();
+                                }
+                        };
+
+                        // 必经港口多选项自动加载
+                        fetch('/api/port_geo').then(res => res.json()).then(data => {
+                                const select = document.getElementById('requiredPortsSelect');
+                                select.innerHTML = '';
+                                data.forEach(port => {
+                                        const opt = document.createElement('option');
+                                        opt.value = port.city_en || port.name || port
+                                                .id;
+                                        opt.text = port.city_en || port.name || port.id;
+                                        select.appendChild(opt);
+                                });
+                        });
+
+                        // 算法参数动态显示
+                        const algoParamMap = {
+                                'Genetic Algorithm': ['population_size', 'generations', 'mutation_rate',
+                                        'crossover_rate'
+                                ],
+                                'ALNS': ['decay_parameter', 'omega_1', 'omega_2', 'omega_3', 'omega_4'],
+                                'Simulated Annealing': ['initial_temperature', 'cooling_rate',
+                                        'iterations_per_temp',
+                                        'min_temperature'
+                                ],
+                                'Linear Programming': ['solver', 'time_limit', 'gap_tolerance', 'relaxation',
+                                        'presolve', 'warm_start', 'verbose'
+                                ]
+                        };
+                        // 修复：补回algoParamDivs定义
+                        const algoParamDivs = document.querySelectorAll('#algo-params > div[data-algo]');
+
+                        function showAlgoParams() {
+                                const algo = document.getElementById('algorithmSelect').value;
+                                algoParamDivs.forEach(div => {
+                                        div.style.display = (div.getAttribute('data-algo') === algo) ?
+                                                '' :
+                                                'none';
+                                });
+                        }
+                        document.getElementById('algorithmSelect').addEventListener('change', showAlgoParams);
+                        document.querySelector('button[data-bs-target="#algo"]').addEventListener('shown.bs.tab',
+                                showAlgoParams);
+                        showAlgoParams();
+                        // 多目标权重校验，权重和不为1时禁用按钮
+                        function checkWeightSum() {
+                                const cost = parseFloat(document.getElementById('costWeightRange').value);
+                                const demand = parseFloat(document.getElementById('demandWeightRange').value);
+                                const utility = parseFloat(document.getElementById('utilityWeightRange').value);
+                                const sum = cost + demand + utility;
+                                const btn = document.getElementById('startOptimizeBtn');
+                                const alertDiv = document.getElementById('weightSumAlert');
+                                if (document.getElementById('objectiveTypeSelect').value === 'multi') {
+                                        if (Math.abs(sum - 1.0) > 0.01) {
+                                                btn.disabled = true;
+                                                alertDiv.classList.remove('alert-warning');
+                                                alertDiv.classList.add('alert-danger');
+                                                alertDiv.innerText = `权重总和为${sum.toFixed(2)}，必须为1.0！`;
+                                                alertDiv.style.display = '';
+                                        } else {
+                                                btn.disabled = false;
+                                                alertDiv.classList.remove('alert-danger');
+                                                alertDiv.classList.add('alert-warning');
+                                                alertDiv.style.display = 'none';
+                                        }
+                                } else {
+                                        btn.disabled = false;
+                                        alertDiv.style.display = 'none';
+                                }
+                        }
+                        document.getElementById('costWeightRange').oninput = checkWeightSum;
+                        document.getElementById('demandWeightRange').oninput = checkWeightSum;
+                        document.getElementById('utilityWeightRange').oninput = checkWeightSum;
+                        document.getElementById('objectiveTypeSelect').onchange = checkWeightSum;
+                        checkWeightSum();
+                        // 收集参数时只收集当前算法参数
+                        function getCurrentAlgoParams() {
+                                const algo = document.getElementById('algorithmSelect').value;
+                                const div = document.querySelector(`#algo-params > div[data-algo='${algo}']`);
+                                const params = {};
+                                if (!div) return params;
+                                div.querySelectorAll('input,select').forEach(input => {
+                                        if (input.type === 'select-multiple') {
+                                                params[input.name] = Array.from(input.selectedOptions)
+                                                        .map(
+                                                                opt => opt.value);
+                                        } else {
+                                                params[input.name] = input.value;
+                                        }
+                                });
+                                return params;
+                        }
+                        // 开始优化按钮逻辑
+                        function startOptimize() {
+                                // 收集所有参数
+                                const modelForm = document.getElementById('modelParamsForm');
+                                const modelData = Object.fromEntries(new FormData(modelForm).entries());
+                                const costData = {};
+                                document.querySelectorAll('#cost input').forEach(input => {
+                                        costData[input.name] = input.value;
+                                });
+                                const algoData = getCurrentAlgoParams();
+                                // 目标函数
+                                let objective = {};
+                                if (document.getElementById('objectiveTypeSelect').value === 'single') {
+                                        objective = {
+                                                type: 'single',
+                                                single_objective: document.getElementById(
+                                                        'singleObjectiveSelect').value
+                                        };
+                                } else {
+                                        objective = {
+                                                type: 'multi',
+                                                cost_weight: document.getElementById('costWeightRange').value,
+                                                demand_weight: document.getElementById('demandWeightRange')
+                                                        .value,
+                                                utility_weight: document.getElementById('utilityWeightRange')
+                                                        .value
+                                        };
+                                }
+                                // 必经港口
+                                const requiredPorts = Array.from(document.getElementById('requiredPortsSelect')
+                                                .selectedOptions)
+                                        .map(opt => opt.value);
+                                // 组装参数
+                                const params = {
+                                        ...modelData,
+                                        ...costData,
+                                        ...algoData,
+                                        ...objective,
+                                        required_ports: requiredPorts
+                                };
+                                // 显示进度条
+                                document.getElementById('optProgressBar').style.display = '';
+                                document.getElementById('optProgress').style.width = '10%';
+                                // 清空并显示日志区域
+                                const logArea = document.getElementById('optLog');
+                                logArea.innerHTML = '<div class="log-entry">正在提交优化请求...</div>';
+                                openLogDrawer();
+                                // 清空结果
+                                document.getElementById('result_cost').innerText = '-';
+                                document.getElementById('result_demand').innerText = '-';
+                                document.getElementById('result_utility').innerText = '-';
+                                // 请求后端
+                                fetch('/api/optimize', {
+                                                method: 'POST',
+                                                headers: {
+                                                        'Content-Type': 'application/json'
+                                                },
+                                                body: JSON.stringify(params)
+                                        })
+                                        .then(res => res.json())
+                                        .then(data => {
+                                                if (data.status === 'success') {
+                                                        document.getElementById('optProgress').style.width =
+                                                                '100%';
+                                                        // 展示结果
+                                                        document.getElementById('result_cost').innerText = data
+                                                                .cost || '-';
+                                                        document.getElementById('result_demand').innerText =
+                                                                data
+                                                                .demand || '-';
+                                                        document.getElementById('result_utility').innerText =
+                                                                data
+                                                                .utility || '-';
+                                                        renderOptResult(data);
+                                                } else {
+                                                        const errorEntry = document.createElement('div');
+                                                        errorEntry.className = 'log-entry error';
+                                                        errorEntry.textContent = '优化失败: ' + (data.message ||
+                                                                '未知错误');
+                                                        logArea.appendChild(errorEntry);
+                                                }
+                                        })
+                                        .catch(err => {
+                                                const errorEntry = document.createElement('div');
+                                                errorEntry.className = 'log-entry error';
+                                                errorEntry.textContent = '请求异常: ' + err.message;
+                                                logArea.appendChild(errorEntry);
+                                        })
+                                        .finally(() => {
+                                                document.getElementById('optProgress').style.width = '100%';
+                                        });
+                        }
+
+                        // 结果渲染与航线可视化
+                        function renderOptResult(data) {
+                                let html = '<table class="table table-bordered table-sm align-middle text-center">';
+                                html +=
+                                        `<thead><tr><th>航线编号</th><th>停靠顺序</th><th>航程里程</th><th>往返时间</th></tr></thead><tbody>`;
+                                (data.routes || []).forEach(route => {
+                                        html +=
+                                                `<tr><td>${route.id || ''}</td><td>${route.port_sequence?.join('→') || ''}</td><td>${route.distance || ''}</td><td>${route.round_trip_time || ''}</td></tr>`;
+                                });
+                                html += `</tbody></table>`;
+                                document.getElementById('networkPlanTableBody').innerHTML = html;
+                        }
+                </script>
+</body>
+
+</html>
