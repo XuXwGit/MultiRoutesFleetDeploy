@@ -49,16 +49,16 @@ class BendersDecompositionReactive(AlgoFrame):
     */
     """
     
-    def __init__(self, in_data: InputData, p: Parameter):
+    def __init__(self, input_data: InputData, p: Parameter):
         """
         初始化反应式Benders分解算法
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
         super().__init__()
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.callback = None  # 反应式Benders回调
     
@@ -67,15 +67,15 @@ class BendersDecompositionReactive(AlgoFrame):
         初始化模型
         """
         # 初始化主问题模型
-        self.determine_model = DetermineModel(self.in_data, self.p)
+        self.determine_model = DetermineModel(self.input_data, self.p)
         self.determine_model.build_model()
         
         # 初始化反应式子问题模型
-        self.dual_sub_problem_reactive = DualSubProblemReactive(self.in_data, self.p)
+        self.dual_sub_problem_reactive = DualSubProblemReactive(self.input_data, self.p)
         self.dual_sub_problem_reactive.build_model()
         
         # 初始化反应式Benders回调
-        self.callback = BendersLazyConsCallbackReactive(self.in_data, self.p)
+        self.callback = BendersLazyConsCallbackReactive(self.input_data, self.p)
         self.callback.set_models(self.determine_model, self.dual_sub_problem_reactive)
     
     def frame(self):

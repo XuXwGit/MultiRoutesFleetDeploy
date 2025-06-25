@@ -37,19 +37,19 @@ class DualSubProblemReactive(DualSubProblem):
     3. 线性化约束
     """
     
-    def __init__(self, in_data: InputData, param: Parameter, tau: int):
+    def __init__(self, input_data: InputData, param: Parameter, tau: int):
         """
         初始化反应式对偶子问题模型
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             param: 模型参数
             tau: 预算约束参数
         """
-        super().__init__(in_data, param, tau)
+        super().__init__(input_data, param, tau)
         
         # 设置模型名称
-        self.model_name = f"DSPR-R{len(in_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
+        self.model_name = f"DSPR-R{len(input_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
         
         # 反应式参数
         self.reactive_params = {

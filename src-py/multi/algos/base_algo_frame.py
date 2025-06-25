@@ -125,7 +125,7 @@ class BaseAlgoFrame:
     
 
     @property
-    def in_data(self) -> InputData:
+    def input_data(self) -> InputData:
         """
         获取输入数据
         """

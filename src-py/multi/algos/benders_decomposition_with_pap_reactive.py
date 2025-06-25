@@ -33,15 +33,15 @@ class BendersDecompositionWithPAP_Reactive:
     7. 输出结果
     """
     
-    def __init__(self, in_data: InputData, p: Parameter):
+    def __init__(self, input_data: InputData, p: Parameter):
         """
         初始化带有价格调整问题的反应式Benders分解算法
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.determine_model = None  # 主问题模型
         self.dual_sub_problem_reactive = None  # 反应式对偶子问题模型
@@ -62,15 +62,15 @@ class BendersDecompositionWithPAP_Reactive:
         初始化模型
         """
         # 初始化主问题模型
-        self.determine_model = DetermineModel(self.in_data, self.p)
+        self.determine_model = DetermineModel(self.input_data, self.p)
         self.determine_model.build_model()
         
         # 初始化反应式对偶子问题模型
-        self.dual_sub_problem_reactive = DualSubProblemReactive(self.in_data, self.p, self.p.tau)
+        self.dual_sub_problem_reactive = DualSubProblemReactive(self.input_data, self.p, self.p.tau)
         self.dual_sub_problem_reactive.build_model()
         
         # 初始化反应式惰性约束回调
-        self.callback = BendersLazyConsCallbackReactive(self.in_data, self.p)
+        self.callback = BendersLazyConsCallbackReactive(self.input_data, self.p)
         self.callback.set_models(self.determine_model, self.dual_sub_problem_reactive)
     
     def frame(self):
@@ -165,28 +165,28 @@ class BendersDecompositionWithPAP_Reactive:
             第三组船舶分配方案
         """
         # 初始化第三组船舶分配方案
-        v_value3 = [[0 for _ in range(self.in_data.route_num)] for _ in range(self.in_data.vessel_num)]
+        v_value3 = [[0 for _ in range(self.input_data.route_num)] for _ in range(self.input_data.vessel_num)]
         
         # 计算每个航线的收益
         route_profits = []
-        for j in range(self.in_data.route_num):
-            route = self.in_data.ship_routes[j]
+        for j in range(self.input_data.route_num):
+            route = self.input_data.ship_routes[j]
             profit = 0
             
             # 添加航段收益(第一组)
             for arc in route.arcs:
-                arc_idx = self.in_data.arcs.index(arc)
+                arc_idx = self.input_data.arcs.index(arc)
                 profit += beta1_value[arc_idx]
             
             # 添加航段收益(第二组)
             for arc in route.arcs:
-                arc_idx = self.in_data.arcs.index(arc)
+                arc_idx = self.input_data.arcs.index(arc)
                 profit += beta2_value[arc_idx]
             
             # 添加港口收益
             for port in route.ports:
-                port_idx = self.in_data.ports.index(port)
-                for t in range(1, self.in_data.time_horizon + 1):
+                port_idx = self.input_data.ports.index(port)
+                for t in range(1, self.input_data.time_horizon + 1):
                     profit += gamma_value[port_idx][t]
             
             route_profits.append((j, profit))
@@ -195,8 +195,8 @@ class BendersDecompositionWithPAP_Reactive:
         route_profits.sort(key=lambda x: x[1], reverse=True)
         
         # 分配船舶
-        for i in range(self.in_data.vessel_num):
-            vessel = self.in_data.vessel_types[i]
+        for i in range(self.input_data.vessel_num):
+            vessel = self.input_data.vessel_types[i]
             assigned = False
             
             # 尝试分配收益最高的航线
@@ -219,8 +219,8 @@ class BendersDecompositionWithPAP_Reactive:
         Returns:
             是否可行
         """
-        vessel = self.in_data.vessel_types[vessel_idx]
-        route = self.in_data.ship_routes[route_idx]
+        vessel = self.input_data.vessel_types[vessel_idx]
+        route = self.input_data.ship_routes[route_idx]
         
         # 检查船舶容量
         for arc in route.arcs:
@@ -229,7 +229,7 @@ class BendersDecompositionWithPAP_Reactive:
         
         # 检查时间窗口
         for port in route.ports:
-            if port.turnover_time > self.in_data.time_horizon:
+            if port.turnover_time > self.input_data.time_horizon:
                 return False
         
         return True

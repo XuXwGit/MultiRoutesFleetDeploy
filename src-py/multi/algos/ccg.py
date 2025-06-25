@@ -56,11 +56,11 @@ class CCG(BaseAlgoFrame):
         初始化列与约束生成算法
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
         super().__init__()
-        self.in_data = input_data
+        self.input_data = input_data
         self.p = param
         
         # 主问题和子问题模型
@@ -184,10 +184,10 @@ class CCG(BaseAlgoFrame):
         初始化主问题和子问题模型
         """
         # 初始化主问题
-        self.master_model = DetermineModel(self.in_data, self.p)
+        self.master_model = DetermineModel(self.input_data, self.p)
         
         # 初始化子问题
-        self.sub_model = DualSubProblem(self.in_data, self.p)
+        self.sub_model = DualSubProblem(self.input_data, self.p)
         
         # 初始化场景
         self._initialize_scenarios()

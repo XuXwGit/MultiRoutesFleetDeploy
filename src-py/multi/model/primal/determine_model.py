@@ -32,16 +32,16 @@ class DetermineModel(BasePrimalModel):
     x_a, x1_a, y_a, z_a: 各类集装箱的运输量
     """
     
-    def __init__(self, in_data: InputData, param: Parameter, model_type: str = "UseMeanValue"):
+    def __init__(self, input_data: InputData, param: Parameter, model_type: str = "UseMeanValue"):
         """
         初始化确定性模型
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
             model_type: 模型类型，默认为"UseMeanValue"
         """
-        self.input_data = in_data
+        self.input_data = input_data
         self.param = param
 
         # 设置模型属性

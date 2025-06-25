@@ -19,19 +19,19 @@ class SOwithSAA(AlgoFrame):
     4. Record and output the results
     """
     
-    def __init__(self, in_data, p):
+    def __init__(self, input_data, p):
         """Initialize the SOwithSAA algorithm.
         
         Args:
-            in_data: Input data for the problem
+            input_data: Input data for the problem
             p: Parameters for the algorithm
         """
         super().__init__()
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.tau = p.tau
         self.algo = "SO&SAA"
-        self.algo_id = (f"{self.algo}-R{len(in_data.ship_route_set)}"
+        self.algo_id = (f"{self.algo}-R{len(input_data.ship_route_set)}"
                        f"-T{p.time_horizon}"
                        f"-{DefaultSetting.FLEET_TYPE}"
                        f"-S{DefaultSetting.RANDOM_SEED}"
@@ -47,11 +47,11 @@ class SOwithSAA(AlgoFrame):
         start = time.time()
         
         # Initialize master problem
-        self.mp = MasterProblem(self.in_data, self.p, "Stochastic")
+        self.mp = MasterProblem(self.input_data, self.p, "Stochastic")
         
         # Add sample scenarios
         for i in range(len(self.p.sample_scenes)):
-            self.mp.add_scene(self.in_data.scenarios[i])
+            self.mp.add_scene(self.input_data.scenarios[i])
             
         return time.time() - start
         

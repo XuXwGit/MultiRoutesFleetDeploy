@@ -40,7 +40,7 @@ class DualSubProblem(BaseDualModel):
         初始化对偶子问题模型
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             param: 模型参数
             tau: 预算约束参数
         """

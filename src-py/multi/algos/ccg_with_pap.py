@@ -48,16 +48,16 @@ class CCGwithPAP(AlgoFrame):
     */
     """
     
-    def __init__(self, in_data: InputData, p: Parameter):
+    def __init__(self, input_data: InputData, p: Parameter):
         """
         初始化带价格调整问题的列生成算法
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
         super().__init__()
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.sub_problem = None  # 子问题模型
     
@@ -66,11 +66,11 @@ class CCGwithPAP(AlgoFrame):
         初始化模型
         """
         # 初始化主问题模型
-        self.determine_model = DetermineModel(self.in_data, self.p)
+        self.determine_model = DetermineModel(self.input_data, self.p)
         self.determine_model.build_model()
         
         # 初始化子问题模型
-        self.sub_problem = SubProblem(self.in_data, self.p)
+        self.sub_problem = SubProblem(self.input_data, self.p)
         self.sub_problem.build_model()
     
     def frame(self):
@@ -201,8 +201,8 @@ class CCGwithPAP(AlgoFrame):
         x_var2 = {}
         
         # 遍历所有船舶和航线
-        for v in self.in_data.vessels:
-            for r in self.in_data.routes:
+        for v in self.input_data.vessels:
+            for r in self.input_data.routes:
                 # 检查航线是否可行
                 if self._is_route_feasible(v, r):
                     # 计算航线利润

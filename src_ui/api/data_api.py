@@ -381,6 +381,7 @@ def import_port_geo():
             port_geo = PortGeo(
                 id=int(item['ID']),
                 city_en=item['City_en'],
+                # name =item['City_en'],
                 region=item['Region'],
                 latitude=float(item['Latitude']),
                 longitude=float(item['Longitude'])

@@ -26,19 +26,19 @@ class DualProblem(BaseDualModel):
     4. 求解方法
     """
     
-    def __init__(self, in_data: InputData, param: Parameter, v_value: List[List[int]], u_value: List[float]):
+    def __init__(self, input_data: InputData, param: Parameter, v_value: List[List[int]], u_value: List[float]):
         """初始化对偶问题
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             param: 模型参数
             v_value: 船舶分配决策变量值
             u_value: 需求变化系数
         """
-        super().__init__(in_data, param)
+        super().__init__(input_data, param)
         
         # 设置模型名称
-        self.model_name = f"DP-R{len(in_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
+        self.model_name = f"DP-R{len(input_data.ship_route_set)}-T{param.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
         
         # 决策变量值
         self.v_var_value = v_value

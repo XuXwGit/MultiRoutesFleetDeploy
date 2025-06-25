@@ -59,7 +59,7 @@ class BaseDualModel(BaseModel):
         """初始化对偶问题
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             param: 模型参数
         """
         super().__init__(input_data, param)

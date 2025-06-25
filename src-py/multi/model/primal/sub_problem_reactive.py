@@ -1,5 +1,4 @@
 import logging
-import cplex
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from multi.utils.input_data import InputData
@@ -30,16 +29,16 @@ class SubProblemReactive(BasePrimalModel):
     3. 空箱量约束
     """
     
-    def __init__(self, in_data: InputData, p: Parameter):
+    def __init__(self, input_data: InputData, p: Parameter):
         """
         初始化反应式子问题模型
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
-        super().__init__(in_data, p)
-        self.model_name = f"SPR-R{in_data.ship_route_num}-T{p.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
+        super().__init__(input_data, p)
+        self.model_name = f"SPR-R{input_data.ship_route_num}-T{p.time_horizon}-{DefaultSetting.FLEET_TYPE}-S{DefaultSetting.RANDOM_SEED}"
         self.v_var_value1 = [[0 for _ in range(p.shipping_route_num)] for _ in range(p.vessel_num)]  # 第一组v变量值
         self.v_var_value2 = [[0 for _ in range(p.vessel_path_num)] for _ in range(p.vessel_num)]  # 第二组v变量值
         self.u_value = [0 for _ in range(p.demand_num)]  # 不确定需求变量值

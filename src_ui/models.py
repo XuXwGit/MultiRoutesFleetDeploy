@@ -142,6 +142,7 @@ class PortGeo(Base):
     __tablename__ = 'port_geo'
     id = Column(Integer, primary_key=True)
     city_en = Column(String)
+    # name  = Column(String)
     region = Column(String)
     latitude = Column(Float)
     longitude = Column(Float) 

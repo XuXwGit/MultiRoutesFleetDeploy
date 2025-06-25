@@ -10,7 +10,7 @@
 4. 提供基础设置方法(public_setting)
 
 关键属性:
-- in_data: 输入数据(网络结构、需求等)
+- input_data: 输入数据(网络结构、需求等)
 - p: 模型参数(成本系数、容量等)
 - cplex: CPLEX求解器实例
 - v_var_value: 船舶分配决策变量值

@@ -170,7 +170,7 @@ class AlgoFrame(BaseAlgoFrame):
         """
         初始化场景
         """
-        sss = [0.0] * len(self.in_data.request_set)
+        sss = [0.0] * len(self.input_data.request_set)
 
         # beta = min{k , I/k}
         beta = len(self.p.demand) / float(self.tau) if float(self.tau) > len(self.p.demand) / float(self.tau) else float(self.tau)
@@ -187,14 +187,14 @@ class AlgoFrame(BaseAlgoFrame):
         """
         start = time.time() * 1000
 
-        self.dsp = DualSubProblem(self.in_data, self.p, self.tau)
-        self.mp = MasterProblem(self.in_data, self.p)
+        self.dsp = DualSubProblem(self.input_data, self.p, self.tau)
+        self.mp = MasterProblem(self.input_data, self.p)
 
         if DefaultSetting.WHETHER_ADD_INITIALIZE_SCE:
             self.mp.add_scene(self.sce[0])
 
         if DefaultSetting.WHETHER_SET_INITIAL_SOLUTION:
-            dm = DetermineModel(self.in_data, self.p)
+            dm = DetermineModel(self.input_data, self.p)
             self.mp.set_initial_solution(dm.get_v_var_value())
 
         return time.time() * 1000 - start
@@ -204,11 +204,11 @@ class AlgoFrame(BaseAlgoFrame):
         初始化模型
         """
         # 初始化主问题模型
-        self.mp = MasterProblem(    self.in_data, self.p)
+        self.mp = MasterProblem(    self.input_data, self.p)
         self.mp.build_model()
         
         # 初始化子问题模型
-        self.dsp = DualSubProblem(self.in_data, self.p)
+        self.dsp = DualSubProblem(self.input_data, self.p)
         self.dsp.build_model()
 
     def update_bound_and_mp(self):
@@ -403,7 +403,7 @@ class AlgoFrame(BaseAlgoFrame):
         Returns:
             float: 平均性能
         """
-        filename = (f"{self.algo}-R{len(self.in_data.ship_route_set)}"
+        filename = (f"{self.algo}-R{len(self.input_data.ship_route_set)}"
                    f"-T{self.p.time_horizon}"
                    f"-{DefaultSetting.FLEET_TYPE}"
                    f"-Tau{self.p.tau}"
@@ -428,7 +428,7 @@ class AlgoFrame(BaseAlgoFrame):
             worst_total_cost = 0
             worst_second_cost = 0
             
-            sp = SubProblem(self.in_data, self.p, v_value)
+            sp = SubProblem(self.input_data, self.p, v_value)
             
             for sce in tqdm(range(DefaultSetting.NUM_SAMPLE_SCENES), desc="计算平均性能指标", ncols=80):
                 sp.change_demand_constraint_coefficients(self.p.sample_scenes[sce])
@@ -478,13 +478,13 @@ class AlgoFrame(BaseAlgoFrame):
                 v_value: 船舶分配方案
             """
             solution = {}
-            for h, vessel_type in enumerate(self.in_data.vessel_types):
+            for h, vessel_type in enumerate(self.input_data.vessel_types):
                 if DefaultSetting.FLEET_TYPE == "Homo":
-                    for r, ship_route in enumerate(self.in_data.ship_routes):
+                    for r, ship_route in enumerate(self.input_data.ship_routes):
                         if v_value[h][r] == 1:
                             solution[ship_route.id] = vessel_type.id
                 elif DefaultSetting.FLEET_TYPE == "Hetro":
-                    for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                    for w, vessel_path in enumerate(self.input_data.vessel_paths):
                         if v_value[h][w] == 1:
                             solution[vessel_path.id] = vessel_type.id
             return solution
@@ -549,7 +549,7 @@ class AlgoFrame(BaseAlgoFrame):
             v_value: 变量值
         """
         logger.info("VesselType Decision vVar : ")
-        for r, ship_route in enumerate(self.in_data.ship_routes):
+        for r, ship_route in enumerate(self.input_data.ship_routes):
 
             expr = f"{self.p.shipping_route_set[r]}: "
 
@@ -558,10 +558,10 @@ class AlgoFrame(BaseAlgoFrame):
                     if v_value[h][r] != 0:
                         expr += f"{self.p.vessel_set[h]}"
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
                     if self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] != 1:
                         continue
-                    for h, vessel_type in enumerate(self.in_data.vessel_types):
+                    for h, vessel_type in enumerate(self.input_data.vessel_types):
                         if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] == 1:
                             expr += f"{self.p.vessel_path_set[w]}({self.p.vessel_set[h]})"
             else:
@@ -578,18 +578,18 @@ class AlgoFrame(BaseAlgoFrame):
             file_writer: 文件写入器
         """
         file_writer.write("VesselType Decision vVar : \n")
-        for r, ship_route in enumerate(self.in_data.ship_routes):
+        for r, ship_route in enumerate(self.input_data.ship_routes):
             file_writer.write(f"{ship_route}: ")
             
             if DefaultSetting.FLEET_TYPE == "Homo":
-                for h, vessel_type in enumerate(self.in_data.vessel_types):
+                for h, vessel_type in enumerate(self.input_data.vessel_types):
                     if v_value[h][r] != 0:
                         file_writer.write(f"{vessel_type}\t")
             elif DefaultSetting.FLEET_TYPE == "Hetero":
-                for w, vessel_path in enumerate(self.in_data.vessel_paths):
+                for w, vessel_path in enumerate(self.input_data.vessel_paths):
                     if self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] != 1:
                         continue
-                    for h, vessel_type in enumerate(self.in_data.vessel_types):
+                    for h, vessel_type in enumerate(self.input_data.vessel_types):
                         if v_value[h][w] != 0 and self.p.ship_route_and_vessel_path[ship_route.route_id][vessel_path.id] == 1:
                             file_writer.write(f"{vessel_path}({vessel_type})\t")
                 file_writer.write("\n")

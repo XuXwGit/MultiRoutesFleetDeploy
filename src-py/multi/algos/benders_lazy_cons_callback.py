@@ -21,15 +21,15 @@ class BendersLazyConsCallback:
     4. 将割添加到主问题中
     """
     
-    def __init__(self, in_data: InputData, p: Parameter):
+    def __init__(self, input_data: InputData, p: Parameter):
         """
         初始化回调类
         
         Args:
-            in_data: 输入数据
+            input_data: 输入数据
             p: 模型参数
         """
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.determine_model = None  # 主问题模型
         self.dual_sub_problem = None  # 子问题模型
@@ -97,11 +97,11 @@ class BendersLazyConsCallback:
         # 构建割平面
         cut = self.determine_model.model_str.add_constraint(
             self.determine_model.theta >= 
-            sum(v_var_value[r] * (sum(x_var[v, r] for v in self.in_data.vessels) - 1) 
-                for r in self.in_data.routes) +
-            sum(u_value[a] * (sum(g_var[v, a] for v in self.in_data.vessels) - 
-                            sum(y_var[r, a] for r in self.in_data.routes))
-                for a in self.in_data.arcs)
+            sum(v_var_value[r] * (sum(x_var[v, r] for v in self.input_data.vessels) - 1) 
+                for r in self.input_data.routes) +
+            sum(u_value[a] * (sum(g_var[v, a] for v in self.input_data.vessels) - 
+                            sum(y_var[r, a] for r in self.input_data.routes))
+                for a in self.input_data.arcs)
         )
         
         # 更新割平面计数
@@ -124,11 +124,11 @@ class BendersLazyConsCallback:
         
         # 构建可行性割
         cut = self.determine_model.model_str.add_constraint(
-            sum(v_var_value[r] * (sum(x_var[v, r] for v in self.in_data.vessels) - 1) 
-                for r in self.in_data.routes) +
-            sum(u_value[a] * (sum(g_var[v, a] for v in self.in_data.vessels) - 
-                            sum(y_var[r, a] for r in self.in_data.routes))
-                for a in self.in_data.arcs) <= 0
+            sum(v_var_value[r] * (sum(x_var[v, r] for v in self.input_data.vessels) - 1) 
+                for r in self.input_data.routes) +
+            sum(u_value[a] * (sum(g_var[v, a] for v in self.input_data.vessels) - 
+                            sum(y_var[r, a] for r in self.input_data.routes))
+                for a in self.input_data.arcs) <= 0
         )
         
         # 更新割平面计数

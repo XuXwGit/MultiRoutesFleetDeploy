@@ -44,19 +44,19 @@ class SOwithBD(AlgoFrame):
     */
     """
     
-    def __init__(self, in_data, p):
+    def __init__(self, input_data, p):
         """Initialize the SOwithBD algorithm.
         
         Args:
-            in_data: Input data for the problem
+            input_data: Input data for the problem
             p: Parameters for the algorithm
         """
         super().__init__()
-        self.in_data = in_data
+        self.input_data = input_data
         self.p = p
         self.tau = p.tau
         self.algo = "SO&BD"
-        self.algo_id = (f"{self.algo}-R{len(in_data.ship_route_set)}"
+        self.algo_id = (f"{self.algo}-R{len(input_data.ship_route_set)}"
                        f"-T{p.time_horizon}"
                        f"-{DefaultSetting.FLEET_TYPE}"
                        f"-S{DefaultSetting.RANDOM_SEED}"
@@ -73,10 +73,10 @@ class SOwithBD(AlgoFrame):
         start = time.time()
         
         # Initialize dual problem
-        self.dp = DualProblem(self.in_data, self.p)
+        self.dp = DualProblem(self.input_data, self.p)
         
         # Initialize master problem
-        self.mp = MasterProblem(self.in_data, self.p, "Stochastic")
+        self.mp = MasterProblem(self.input_data, self.p, "Stochastic")
         
         # Add initial scenario if needed
         if DefaultSetting.WHETHER_ADD_INITIALIZE_SCE:
@@ -84,7 +84,7 @@ class SOwithBD(AlgoFrame):
             
         # Set initial solution if needed
         if DefaultSetting.WHETHER_SET_INITIAL_SOLUTION:
-            dm = DetermineModel(self.in_data, self.p)
+            dm = DetermineModel(self.input_data, self.p)
             self.mp.set_initial_solution(dm.v_var_value)
             
         return time.time() - start

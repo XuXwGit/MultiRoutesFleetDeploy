@@ -24,21 +24,21 @@ class SubProblem(BasePrimalModel):
     u_i: 需求点i的缺货量
     """
     
-    def __init__(self, in_data: InputData, param: Parameter, v_var_value: List[List[int]] = None):
+    def __init__(self, input_data: InputData, param: Parameter, v_var_value: List[List[int]] = None):
         """初始化子问题模型
         
         模型名示例: SP-R{航线数}-T{时间周期}-{船队类型}-S{随机种子}
         
         Args:
-            in_data: 输入数据(网络结构、需求等)
+            input_data: 输入数据(网络结构、需求等)
             param: 模型参数(成本系数、容量等)
             v_var_value: 主问题的船舶分配解
         """
-        super().__init__(in_data, param)
+        super().__init__(input_data, param)
 
         self.initialize()
 
-        self.model_name = (f"SP-R{len(in_data.ship_route_set)}"
+        self.model_name = (f"SP-R{len(input_data.ship_route_set)}"
                          f"-T{param.time_horizon}"
                          f"-{DefaultSetting.FLEET_TYPE}"
                          f"-S{DefaultSetting.RANDOM_SEED}")
